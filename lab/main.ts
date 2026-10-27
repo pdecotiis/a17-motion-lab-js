@@ -2,7 +2,7 @@ import tokensJson from '../tokens/motion.json';
 import type { MotionVersion, PageConfig, MotionMap, LiveControls, ComponentModule, Preset, DtcgGroup } from './lib/types.js';
 import { compileTokens, applyTokensToDom } from './lib/token-compiler.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
-import { resolveTiming, buildAnimationOptions } from './lib/motion-models.js';
+import { resolveTiming, buildAnimationOptions, buildSpringWaapiKeyframes } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
 import { validatePreset } from './lib/presets.js';
 import { prefersReducedMotion, getEffectiveDuration, getEffectiveKeyframes } from './lib/reduced-motion.js';
@@ -103,23 +103,41 @@ function animateElement(
   el: HTMLElement,
   version: MotionVersion,
   controls: LiveControls = {},
-  staggerIndex = 0
+  staggerIndex = 0,
 ): Animation {
-  const timing = resolveTiming(version, raw, controls, playbackRate);
-  const isReduced = prefersReducedMotion();
-  const effectiveDuration = getEffectiveDuration(timing.duration);
-  const effectiveKeyframes = getEffectiveKeyframes(version.keyframes, isReduced);
+  el.getAnimations().forEach(a => a.cancel());
 
+  const isReduced = prefersReducedMotion();
   const staggerMs = version.stagger ? parseFloat(version.stagger) : 0;
   const staggerDelay = (staggerMs * staggerIndex) / playbackRate;
 
+  if (version.model.model === 'spring') {
+    // Spring entrance: real spring simulation → WAAPI with linear easing.
+    // Shape is baked into the keyframe values; easing is always 'linear'.
+    const { keyframes, duration, delay } = buildSpringWaapiKeyframes(version, raw, {
+      controls,
+      playbackRate,
+      reducedMotion: isReduced,
+    });
+    const anim = el.animate(keyframes, {
+      duration,
+      easing: 'linear',
+      delay: delay + staggerDelay,
+      fill: 'both',
+    });
+    anim.playbackRate = playbackRate;
+    return anim;
+  }
+
+  // Tween: WAAPI with cubic-bezier easing from tokens.
+  const timing = resolveTiming(version, raw, controls, playbackRate);
+  const effectiveDuration = getEffectiveDuration(timing.duration);
+  const effectiveKeyframes = getEffectiveKeyframes(version.keyframes ?? [], isReduced);
   const options = buildAnimationOptions({
     ...timing,
     duration: effectiveDuration,
     delay: timing.delay + staggerDelay,
   });
-
-  el.getAnimations().forEach(a => a.cancel());
   const anim = el.animate(effectiveKeyframes, options);
   anim.playbackRate = playbackRate;
   return anim;
@@ -389,19 +407,20 @@ function renderPageView(params: URLSearchParams): void {
         (wrapper.firstElementChild as HTMLElement);
       const vid = motionMap[pc.id] ?? getDefaultVersion(pc.component).id;
       const ver = getVersion(pc.component, vid);
-      const timing = resolveTiming(ver, raw, {}, playbackRate);
-
-      target.getAnimations().forEach(a => a.cancel());
-      const kf = getEffectiveKeyframes(ver.keyframes, reducedMotion);
-      const opts = buildAnimationOptions({
-        ...timing,
-        duration: getEffectiveDuration(timing.duration),
-        delay: timing.delay + (currentStaggerMs * i) / playbackRate,
-      });
-      const anim = target.animate(kf, opts);
-      anim.playbackRate = playbackRate;
-      componentAnims.set(pc.id, anim);
-      activeAnimations.push(anim);
+      // Use animateElement with explicit stagger delay (index * staggerMs) instead of staggerIndex
+      // so the page stagger control overrides the version's own stagger field.
+      const staggerDelay = (currentStaggerMs * i) / playbackRate;
+      const anim = animateElement(target, ver, {}, 0);
+      // Override delay to apply page-level stagger on top
+      if (staggerDelay > 0) {
+        anim.cancel();
+        const reAnim = animateElement(target, { ...ver, stagger: `${currentStaggerMs}ms` }, {}, i);
+        componentAnims.set(pc.id, reAnim);
+        activeAnimations.push(reAnim);
+      } else {
+        componentAnims.set(pc.id, anim);
+        activeAnimations.push(anim);
+      }
     });
   }
 

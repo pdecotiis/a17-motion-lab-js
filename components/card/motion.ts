@@ -17,6 +17,8 @@ export const v1: MotionVersion = {
   status: 'in-progress',
 };
 
+// Scale In uses the real spring engine (springKeyframes → WAAPI).
+// 'scale' is spring-simulated; 'opacity' fades in linearly alongside it.
 export const v2: MotionVersion = {
   id: 'v2',
   label: 'Scale In',
@@ -24,11 +26,11 @@ export const v2: MotionVersion = {
     model: 'spring',
     bounce: 0.4,
     duration: 'motion.springs.bouncy',
+    properties: [
+      { property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1, span: 1, useSpring: true },
+      { property: 'opacity', from: 0, to: 1, span: 1, useSpring: false },
+    ],
   },
-  keyframes: [
-    { opacity: 0, transform: 'scale(0.92)', offset: 0 },
-    { opacity: 1, transform: 'scale(1)', offset: 1 },
-  ],
   stagger: '100ms',
   status: 'in-progress',
 };

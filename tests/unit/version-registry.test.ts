@@ -11,8 +11,14 @@ const mockV1: MotionVersion = {
 const mockV2: MotionVersion = {
   id: 'v2',
   label: 'V2',
-  model: { model: 'spring', bounce: 0.4, duration: '600ms' },
-  keyframes: [{ transform: 'scale(0.9)' }, { transform: 'scale(1)' }],
+  model: {
+    model: 'spring',
+    bounce: 0.4,
+    duration: '600ms',
+    properties: [
+      { property: 'transform', wrapTransform: 'scale', from: 0.9, to: 1, span: 1, useSpring: true },
+    ],
+  },
 };
 const mockModule: ComponentModule = { versions: [mockV1, mockV2], defaultVersion: 'v1' };
 

@@ -5,11 +5,28 @@ export type TweenModel = {
   delay?: string;
 };
 
+// One property animated by the spring engine.
+// property: CSS property name ('opacity', 'transform').
+// wrapTransform: wraps value in a transform function, e.g. 'scale' → 'scale(0.94)'.
+// unit: appended to the numeric value, e.g. 'px', '%'; default ''.
+// span: isSettled threshold — 20 for pixels, 1 for unitless (opacity, scale).
+// useSpring: false = linear interpolation (good for opacity alongside a spring transform).
+export interface SpringProperty {
+  property: string;
+  from: number;
+  to: number;
+  unit?: string;
+  wrapTransform?: string;
+  span?: number;
+  useSpring?: boolean;
+}
+
 export type SpringModel = {
   model: 'spring';
   bounce: number;
-  duration: string;
+  duration: string;  // token path (e.g. 'motion.springs.bouncy') or literal ('600ms')
   delay?: string;
+  properties: SpringProperty[];
 };
 
 export type MotionModel = TweenModel | SpringModel;
@@ -18,7 +35,7 @@ export interface MotionVersion {
   id: string;
   label: string;
   model: MotionModel;
-  keyframes: Keyframe[];
+  keyframes?: Keyframe[];  // Required for tween; unused for spring (spring uses model.properties)
   stagger?: string;
   // Future-ready
   status?: 'in-progress' | 'review' | 'approved' | 'archived';
