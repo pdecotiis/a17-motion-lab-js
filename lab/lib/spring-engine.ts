@@ -115,6 +115,44 @@ export interface SpringKeyframesResult {
   duration: number;
 }
 
+// Approximate a spring as a cubic-bezier for CSS mode.
+// Maps bounce → y-overshoot in the control points.
+export function springToCubicBezier(bounce: number): [number, number, number, number] {
+  const b = Math.max(0, Math.min(0.9, bounce));
+  const overshoot = b * 0.6;
+  return [0.34, 1.0 + overshoot, 0.64, 1.0];
+}
+
+export function springToCubicBezierString(bounce: number): string {
+  const [x1, y1, x2, y2] = springToCubicBezier(bounce);
+  return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
+}
+
+// Sample a spring (from=0, to=1) into a CSS linear() timing-function string.
+// Produces `steps+1` sample points evenly distributed in time.
+// Values may exceed 1.0 for springs with bounce (overshoot is preserved).
+export function springToLinear(duration: number, bounce: number, steps = 30): string {
+  const { keyframes: frames } = springKeyframes({ from: 0, to: 1, duration, bounce, span: 1 });
+  const parts: string[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const fi = t * (frames.length - 1);
+    const lo = Math.floor(fi);
+    const hi = Math.min(Math.ceil(fi), frames.length - 1);
+    const frac = fi - lo;
+    const loVal = frames[lo] ?? 0;
+    const hiVal = frames[hi] ?? 0;
+    const val = lo === hi ? loVal : loVal + (hiVal - loVal) * frac;
+    const v = parseFloat(val.toFixed(4));
+    if (i === 0 || i === steps) {
+      parts.push(String(v));
+    } else {
+      parts.push(`${v} ${parseFloat((t * 100).toFixed(1))}%`);
+    }
+  }
+  return `linear(${parts.join(', ')})`;
+}
+
 // Sample the spring into Web Animations keyframes (no retargeting).
 // Returns { keyframes: number[], duration: ms } at 60fps.
 export function springKeyframes({

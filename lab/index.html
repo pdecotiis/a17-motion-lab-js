@@ -15,8 +15,13 @@
       <nav class="lab-nav" role="navigation" aria-label="View navigation">
         <button class="lab-nav__btn" data-view="component" aria-pressed="false">Component</button>
         <button class="lab-nav__btn" data-view="page" aria-pressed="false">Page</button>
+        <button class="lab-nav__btn" data-view="tokens" aria-pressed="false">Tokens</button>
       </nav>
       <div class="lab-header__controls">
+        <div class="lab-engine-toggle" role="group" aria-label="Motion engine">
+          <button class="lab-engine-btn lab-engine-btn--active" id="engine-css" data-engine="css">CSS</button>
+          <button class="lab-engine-btn" id="engine-spring" data-engine="spring">Spring</button>
+        </div>
         <label class="lab-control-label">
           Speed
           <select id="speed-control" class="lab-select">

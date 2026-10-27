@@ -1,5 +1,5 @@
 import type { MotionVersion, TweenModel, SpringModel, SpringProperty, LiveControls } from './types.js';
-import { springKeyframes } from './spring-engine.js';
+import { springKeyframes, springToCubicBezierString } from './spring-engine.js';
 
 export interface ResolvedTiming {
   duration: number;
@@ -12,6 +12,7 @@ export interface SpringWaapiResult {
   keyframes: Keyframe[];
   duration: number;
   delay: number;
+  easing?: string;  // set by CSS mode; undefined = use 'linear' (shape baked into keyframes)
 }
 
 function parseMs(value: string): number {
@@ -178,6 +179,72 @@ export function buildSpringWaapiKeyframes(
   }
 
   return { keyframes, duration: settleDuration / playbackRate, delay };
+}
+
+// CSS fallback for spring versions: 2-frame WAAPI animation with cubic-bezier easing
+// derived from the spring's bounce. Same from/to values, same duration — no simulation.
+export function buildSpringCssKeyframes(
+  version: MotionVersion,
+  raw: Record<string, unknown>,
+  options: { controls?: LiveControls; playbackRate?: number; reducedMotion?: boolean } = {},
+): SpringWaapiResult {
+  if (version.model.model !== 'spring') {
+    throw new Error(`buildSpringCssKeyframes: version "${version.id}" is not a spring model`);
+  }
+  const model = version.model as SpringModel;
+  const { controls = {}, playbackRate = 1, reducedMotion = false } = options;
+
+  const tokenVal = model.duration in raw ? raw[model.duration] : null;
+  let naturalDuration: number;
+  if (tokenVal && typeof tokenVal === 'object' && 'duration' in tokenVal) {
+    naturalDuration = (tokenVal as { duration: number }).duration;
+  } else if (typeof tokenVal === 'string') {
+    naturalDuration = parseMs(tokenVal);
+  } else {
+    naturalDuration = parseMs(model.duration);
+  }
+  if (controls.duration) naturalDuration = parseMs(controls.duration);
+
+  const delayStr = controls.delay ?? resolveStr(model.delay, raw, '0ms');
+  const delay = parseMs(delayStr) / playbackRate;
+  const duration = naturalDuration / playbackRate;
+
+  const easing = controls.easing ?? springToCubicBezierString(model.bounce);
+
+  // Build 2-frame keyframes from property from/to values
+  const startKf: Keyframe = { offset: 0 };
+  const endKf: Keyframe = { offset: 1 };
+  const startTransform: string[] = [];
+  const endTransform: string[] = [];
+
+  for (const prop of model.properties) {
+    const unit = prop.unit ?? '';
+    if (prop.wrapTransform) {
+      startTransform.push(`${prop.wrapTransform}(${prop.from}${unit})`);
+      endTransform.push(`${prop.wrapTransform}(${prop.to}${unit})`);
+    } else if (!unit) {
+      (startKf as Record<string, unknown>)[prop.property] = prop.from;
+      (endKf as Record<string, unknown>)[prop.property] = prop.to;
+    } else {
+      (startKf as Record<string, unknown>)[prop.property] = `${prop.from}${unit}`;
+      (endKf as Record<string, unknown>)[prop.property] = `${prop.to}${unit}`;
+    }
+  }
+  if (startTransform.length) startKf.transform = startTransform.join(' ');
+  if (endTransform.length) endKf.transform = endTransform.join(' ');
+
+  if (reducedMotion) {
+    const opacityProp = model.properties.find(p => p.property === 'opacity');
+    if (opacityProp) {
+      const rStart: Keyframe = { offset: 0, opacity: opacityProp.from };
+      const rEnd: Keyframe = { offset: 1, opacity: opacityProp.to };
+      if (endKf.transform) { rStart.transform = endKf.transform; rEnd.transform = endKf.transform; }
+      return { keyframes: [rStart, rEnd], duration: 150, delay };
+    }
+    return { keyframes: [endKf], duration: 0, delay };
+  }
+
+  return { keyframes: [startKf, endKf], duration, delay, easing };
 }
 
 export function validateMotionVersion(version: MotionVersion): void {

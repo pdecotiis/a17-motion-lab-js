@@ -2,10 +2,12 @@ import tokensJson from '../tokens/motion.json';
 import type { MotionVersion, PageConfig, MotionMap, LiveControls, ComponentModule, Preset, DtcgGroup } from './lib/types.js';
 import { compileTokens, applyTokensToDom } from './lib/token-compiler.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
-import { resolveTiming, buildAnimationOptions, buildSpringWaapiKeyframes } from './lib/motion-models.js';
+import { resolveTiming, buildAnimationOptions, buildSpringWaapiKeyframes, buildSpringCssKeyframes } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
 import { validatePreset } from './lib/presets.js';
 import { prefersReducedMotion, getEffectiveDuration, getEffectiveKeyframes } from './lib/reduced-motion.js';
+import { getTokenRefs, buildUsageIndex, type UsageIndex } from './lib/token-refs.js';
+import { buildVersionCss } from './lib/css-output.js';
 
 // ── Glob imports (bundled at build time, no runtime fetches) ───────────────
 
@@ -56,9 +58,22 @@ for (const [path, module] of Object.entries(motionModules)) {
   if (name && module) registerComponent(name, module as ComponentModule);
 }
 
+// Build usage index from all registered versions
+const allVersionsFlat: { componentName: string; version: MotionVersion }[] = [];
+for (const [path, module] of Object.entries(motionModules)) {
+  const name = path.match(/\/components\/([^/]+)\/motion\.ts$/)?.[1];
+  if (name && module) {
+    for (const v of module.versions ?? []) {
+      allVersionsFlat.push({ componentName: name, version: v });
+    }
+  }
+}
+const usageIndex: UsageIndex = buildUsageIndex(allVersionsFlat, raw);
+
 // ── State ──────────────────────────────────────────────────────────────────
 
 let playbackRate = 1;
+let engineMode: 'css' | 'spring' = 'css';
 let currentTheme: 'light' | 'dark' = 'light';
 let activeAnimations: Animation[] = [];
 
@@ -67,6 +82,17 @@ let activeAnimations: Animation[] = [];
 const reducedMotion = prefersReducedMotion();
 const notice = document.getElementById('reduced-motion-notice')!;
 if (reducedMotion) notice.classList.remove('lab-notice--hidden');
+
+// ── Engine toggle ──────────────────────────────────────────────────────────
+
+const engineBtns = document.querySelectorAll<HTMLButtonElement>('.lab-engine-btn');
+engineBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    engineMode = btn.dataset['engine'] as 'css' | 'spring';
+    engineBtns.forEach(b => b.classList.toggle('lab-engine-btn--active', b === btn));
+    route();
+  });
+});
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 
@@ -97,6 +123,23 @@ navBtns.forEach(btn => {
   });
 });
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function parseMsLocal(value: string): number {
+  if (value.endsWith('ms')) return parseFloat(value);
+  if (value.endsWith('s')) return parseFloat(value) * 1000;
+  return parseFloat(value);
+}
+
+function resolveInitialTiming(version: MotionVersion): { duration: number; delay: number; easing: string } {
+  if (version.model.model === 'tween') {
+    const t = resolveTiming(version, raw, {}, 1);
+    return { duration: t.duration, delay: t.delay, easing: t.easing };
+  }
+  const r = buildSpringWaapiKeyframes(version, raw, { playbackRate: 1 });
+  return { duration: r.duration, delay: r.delay, easing: r.easing ?? 'linear' };
+}
+
 // ── Animation helpers ──────────────────────────────────────────────────────
 
 function animateElement(
@@ -112,16 +155,15 @@ function animateElement(
   const staggerDelay = (staggerMs * staggerIndex) / playbackRate;
 
   if (version.model.model === 'spring') {
-    // Spring entrance: real spring simulation → WAAPI with linear easing.
-    // Shape is baked into the keyframe values; easing is always 'linear'.
-    const { keyframes, duration, delay } = buildSpringWaapiKeyframes(version, raw, {
+    const builder = engineMode === 'spring' ? buildSpringWaapiKeyframes : buildSpringCssKeyframes;
+    const { keyframes, duration, delay, easing } = builder(version, raw, {
       controls,
       playbackRate,
       reducedMotion: isReduced,
     });
     const anim = el.animate(keyframes, {
       duration,
-      easing: 'linear',
+      easing: easing ?? 'linear',
       delay: delay + staggerDelay,
       fill: 'both',
     });
@@ -148,6 +190,7 @@ function animateElement(
 function renderComponentView(params: URLSearchParams): void {
   const componentName = params.get('component') ?? 'card';
   const versionId = params.get('version') ?? 'v1';
+  const version = getVersion(componentName, versionId);
 
   const main = document.getElementById('main-content')!;
   main.innerHTML = '';
@@ -197,6 +240,15 @@ function renderComponentView(params: URLSearchParams): void {
             <input class="lab-input" type="number" id="ctrl-delay" min="0" max="5000" step="10" />
           </div>
           <button class="lab-btn" id="copy-values-btn">Copy values</button>
+        </section>
+        <section class="lab-controls" aria-label="Tokens Used">
+          <h3 class="lab-controls__title">Tokens Used</h3>
+          <div id="tokens-used-list"></div>
+        </section>
+        <section class="lab-controls" aria-label="Generated CSS">
+          <h3 class="lab-controls__title">Generated CSS</h3>
+          <pre class="lab-css-pre" id="css-pre"></pre>
+          <button class="lab-btn lab-btn--sm" id="copy-css-btn">Copy CSS</button>
         </section>
         <section class="lab-controls" aria-label="Compare">
           <h3 class="lab-controls__title">Compare with</h3>
@@ -253,8 +305,8 @@ function renderComponentView(params: URLSearchParams): void {
     controls: LiveControls = {},
     staggerIdx = 0
   ): Animation {
-    const version = getVersion(componentName, vid);
-    const anim = animateElement(target, version, controls, staggerIdx);
+    const ver = getVersion(componentName, vid);
+    const anim = animateElement(target, ver, controls, staggerIdx);
     activeAnimations = activeAnimations.filter(a => a.playState !== 'finished').concat(anim);
     return anim;
   }
@@ -274,16 +326,15 @@ function renderComponentView(params: URLSearchParams): void {
     }
   });
 
-  // Live controls
+  // Live controls — initial values work for both tween and spring
   const durationInput = document.getElementById('ctrl-duration') as HTMLInputElement;
   const easingSelect = document.getElementById('ctrl-easing') as HTMLSelectElement;
   const easingCustom = document.getElementById('ctrl-easing-custom') as HTMLInputElement;
   const delayInput = document.getElementById('ctrl-delay') as HTMLInputElement;
 
-  const version = getVersion(componentName, versionId);
-  const resolved = resolveTiming(version, raw, {}, 1);
-  durationInput.value = String(Math.round(resolved.duration));
-  delayInput.value = String(Math.round(resolved.delay));
+  const initialTiming = resolveInitialTiming(version);
+  durationInput.value = String(Math.round(initialTiming.duration));
+  delayInput.value = String(Math.round(initialTiming.delay));
 
   function updateControls(): void {
     const easingVal =
@@ -309,12 +360,60 @@ function renderComponentView(params: URLSearchParams): void {
   delayInput.addEventListener('change', updateControls);
 
   document.getElementById('copy-values-btn')!.addEventListener('click', () => {
-    const easing = liveControls.easing ?? resolved.easing;
-    const duration = liveControls.duration ?? `${resolved.duration}ms`;
-    const delay = liveControls.delay ?? `${resolved.delay}ms`;
+    const easing = liveControls.easing ?? initialTiming.easing;
+    const duration = liveControls.duration ?? `${initialTiming.duration}ms`;
+    const delay = liveControls.delay ?? `${initialTiming.delay}ms`;
     const json = JSON.stringify({ version: versionId, duration, easing, delay }, null, 2);
     navigator.clipboard.writeText(json).catch(() => {
       console.log('Copy values:', json);
+    });
+  });
+
+  // Tokens Used section
+  const tokensList = document.getElementById('tokens-used-list')!;
+  const { tokens: usedTokens, hardcoded } = getTokenRefs(version, raw);
+  if (usedTokens.length === 0 && hardcoded.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'lab-text-muted';
+    p.textContent = 'No tokens referenced';
+    tokensList.appendChild(p);
+  } else {
+    for (const tokenPath of usedTokens) {
+      const chip = document.createElement('div');
+      chip.className = 'lab-token-chip';
+      const code = document.createElement('code');
+      code.textContent = tokenPath;
+      chip.appendChild(code);
+      const link = document.createElement('a');
+      link.href = `?view=tokens`;
+      link.className = 'lab-token-chip-link';
+      link.textContent = '↗';
+      link.title = 'View in Tokens';
+      chip.appendChild(link);
+      tokensList.appendChild(chip);
+    }
+    if (hardcoded.length > 0) {
+      const warn = document.createElement('div');
+      warn.className = 'lab-tokens-hardcoded';
+      warn.innerHTML = `<span class="lab-tokens-hardcoded-label">⚠ Hard-coded (${hardcoded.length}):</span>`;
+      for (const h of hardcoded) {
+        const item = document.createElement('div');
+        item.className = 'lab-tokens-hardcoded-item';
+        item.textContent = `${h.label}: ${h.value}`;
+        warn.appendChild(item);
+      }
+      tokensList.appendChild(warn);
+    }
+  }
+
+  // Generated CSS section
+  const cssPre = document.getElementById('css-pre')!;
+  cssPre.textContent = buildVersionCss(version, raw, { mode: engineMode });
+
+  document.getElementById('copy-css-btn')!.addEventListener('click', () => {
+    const css = cssPre.textContent ?? '';
+    navigator.clipboard.writeText(css).catch(() => {
+      console.log('Copy CSS:', css);
     });
   });
 
@@ -351,7 +450,6 @@ function renderPageView(params: URLSearchParams): void {
     main.innerHTML = `<p class="lab-error">Page "${pageName}" not found</p>`;
     return;
   }
-  // Narrow to non-undefined for inner functions
   const pageConfig: PageConfig = pageConfigMaybe;
 
   let motionMap: MotionMap = getMotionMapFromUrl();
@@ -407,12 +505,8 @@ function renderPageView(params: URLSearchParams): void {
         (wrapper.firstElementChild as HTMLElement);
       const vid = motionMap[pc.id] ?? getDefaultVersion(pc.component).id;
       const ver = getVersion(pc.component, vid);
-      // Use animateElement with explicit stagger delay (index * staggerMs) instead of staggerIndex
-      // so the page stagger control overrides the version's own stagger field.
-      const staggerDelay = (currentStaggerMs * i) / playbackRate;
       const anim = animateElement(target, ver, {}, 0);
-      // Override delay to apply page-level stagger on top
-      if (staggerDelay > 0) {
+      if (currentStaggerMs > 0 && i > 0) {
         anim.cancel();
         const reAnim = animateElement(target, { ...ver, stagger: `${currentStaggerMs}ms` }, {}, i);
         componentAnims.set(pc.id, reAnim);
@@ -436,8 +530,8 @@ function renderPageView(params: URLSearchParams): void {
       sel.className = 'lab-select';
       sel.dataset['componentId'] = pc.id;
 
-      const mod = motionModules[`../components/${pc.component}/motion.ts`];
-      const versions: MotionVersion[] = mod?.versions ?? [];
+      const pcMod = motionModules[`../components/${pc.component}/motion.ts`];
+      const versions: MotionVersion[] = pcMod?.versions ?? [];
       versions.forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.id;
@@ -500,7 +594,6 @@ function renderPageView(params: URLSearchParams): void {
     a.click();
   });
 
-  // Load preset list
   const presetList = document.getElementById('preset-list')!;
   getPresets().forEach(preset => {
     const btn = document.createElement('button');
@@ -520,6 +613,172 @@ function renderPageView(params: URLSearchParams): void {
   });
 }
 
+// ── Tokens view ────────────────────────────────────────────────────────────
+
+function renderTokensView(): void {
+  const main = document.getElementById('main-content')!;
+  main.innerHTML = '';
+  main.className = 'lab-main lab-main--tokens';
+
+  // Group raw token keys by their second path segment (timings, easings, springs, distances)
+  const groups = new Map<string, { key: string; value: unknown }[]>();
+  for (const [key, value] of Object.entries(raw)) {
+    const seg = key.split('.')[1] ?? 'other';
+    const arr = groups.get(seg) ?? [];
+    arr.push({ key, value });
+    groups.set(seg, arr);
+  }
+
+  const groupNames = [...groups.keys()];
+  let activeGroup = groupNames[0] ?? '';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'lab-tokens-view';
+
+  // Subtabs
+  const subtabs = document.createElement('div');
+  subtabs.className = 'lab-tokens-subtabs';
+  const tableContainer = document.createElement('div');
+  tableContainer.className = 'lab-tokens-table-wrap';
+
+  groupNames.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'lab-tokens-subtab' + (name === activeGroup ? ' lab-tokens-subtab--active' : '');
+    btn.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    btn.addEventListener('click', () => {
+      activeGroup = name;
+      subtabs.querySelectorAll('.lab-tokens-subtab').forEach(b =>
+        b.classList.toggle('lab-tokens-subtab--active', b === btn)
+      );
+      renderGroup(name);
+    });
+    subtabs.appendChild(btn);
+  });
+
+  wrapper.appendChild(subtabs);
+  wrapper.appendChild(tableContainer);
+
+  function formatValue(groupName: string, value: unknown): string {
+    if (groupName === 'springs' && typeof value === 'object' && value !== null) {
+      const s = value as { bounce?: number; duration?: number };
+      return `bounce: ${s.bounce ?? 0}  duration: ${s.duration ?? 0}ms`;
+    }
+    if (Array.isArray(value)) {
+      return `cubic-bezier(${(value as number[]).join(', ')})`;
+    }
+    return String(value);
+  }
+
+  function previewToken(el: HTMLElement, groupName: string, value: unknown): void {
+    el.getAnimations().forEach(a => a.cancel());
+    if (groupName === 'timings') {
+      const dur = parseMsLocal(String(value));
+      el.animate(
+        [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
+        { duration: dur, easing: 'ease-out', fill: 'forwards' }
+      );
+    } else if (groupName === 'easings') {
+      const easing = Array.isArray(value)
+        ? `cubic-bezier(${(value as number[]).join(', ')})`
+        : String(value);
+      el.animate(
+        [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
+        { duration: 500, easing, fill: 'forwards' }
+      );
+    } else if (groupName === 'springs') {
+      const s = value as { bounce?: number; duration?: number };
+      const springResult = buildSpringWaapiKeyframes(
+        {
+          id: 'preview', label: 'preview',
+          model: {
+            model: 'spring',
+            bounce: s.bounce ?? 0,
+            duration: `${s.duration ?? 300}ms`,
+            properties: [{ property: 'transform', wrapTransform: 'scaleX', from: 0, to: 1, span: 1, useSpring: true }],
+          },
+        },
+        {},
+      );
+      el.animate(springResult.keyframes, { duration: springResult.duration, easing: 'linear', fill: 'forwards' });
+    } else if (groupName === 'distances') {
+      el.animate(
+        [{ width: '4px' }, { width: String(value) }],
+        { duration: 400, easing: 'ease-out', fill: 'forwards' }
+      );
+    }
+  }
+
+  function renderGroup(groupName: string): void {
+    const tokens = groups.get(groupName) ?? [];
+    tableContainer.innerHTML = '';
+
+    const table = document.createElement('table');
+    table.className = 'lab-tokens-table';
+
+    const thead = table.createTHead();
+    const headerRow = thead.insertRow();
+    ['Preview', 'Token', 'Value', 'Used by'].forEach(text => {
+      const th = document.createElement('th');
+      th.textContent = text;
+      headerRow.appendChild(th);
+    });
+
+    const tbody = table.createTBody();
+
+    for (const { key, value } of tokens) {
+      const usages = usageIndex.get(key) ?? [];
+      const isUnused = usages.length === 0;
+
+      const row = tbody.insertRow();
+      row.className = 'lab-token-row' + (isUnused ? ' lab-token-row--unused' : '');
+
+      // Preview cell — animated bar, click to play
+      const previewCell = row.insertCell();
+      const previewEl = document.createElement('div');
+      previewEl.className = 'lab-token-preview';
+      previewEl.title = 'Click to preview';
+      previewEl.addEventListener('click', () => previewToken(previewEl, groupName, value));
+      previewCell.appendChild(previewEl);
+
+      // Token name
+      const nameCell = row.insertCell();
+      const code = document.createElement('code');
+      code.className = 'lab-token-name';
+      code.textContent = key;
+      nameCell.appendChild(code);
+
+      // Value
+      const valueCell = row.insertCell();
+      valueCell.className = 'lab-token-value';
+      valueCell.textContent = formatValue(groupName, value);
+
+      // Used by
+      const usedByCell = row.insertCell();
+      usedByCell.className = 'lab-token-used-by';
+      if (isUnused) {
+        const badge = document.createElement('span');
+        badge.className = 'lab-token-unused-badge';
+        badge.textContent = 'unused';
+        usedByCell.appendChild(badge);
+      } else {
+        usages.forEach((u, i) => {
+          if (i > 0) usedByCell.appendChild(document.createTextNode(', '));
+          const link = document.createElement('a');
+          link.href = `?view=component&component=${u.componentName}&version=${u.versionId}`;
+          link.className = 'lab-token-usage-link';
+          link.textContent = `${u.componentName}/${u.versionId}`;
+          usedByCell.appendChild(link);
+        });
+      }
+    }
+
+    tableContainer.appendChild(table);
+  }
+
+  renderGroup(activeGroup);
+  main.appendChild(wrapper);
+}
+
 // ── Router ─────────────────────────────────────────────────────────────────
 
 function route(): void {
@@ -534,6 +793,8 @@ function route(): void {
 
   if (view === 'page') {
     renderPageView(params);
+  } else if (view === 'tokens') {
+    renderTokensView();
   } else {
     renderComponentView(params);
   }
