@@ -1,0 +1,9 @@
+{
+  "id": "default",
+  "label": "Default",
+  "motionMap": {
+    "card-1": "v1",
+    "card-2": "v1",
+    "card-3": "v1"
+  }
+}
