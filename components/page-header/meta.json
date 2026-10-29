@@ -1,0 +1,59 @@
+{
+  "name": "page-header",
+  "layerName": "page header",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=22246-234733",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "22246:234733"
+  },
+  "importedAt": "2026-10-29",
+  "frame": {
+    "width": 941,
+    "height": 767
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/accent",
+    "background/default",
+    "body/family",
+    "body/weight",
+    "caption/family",
+    "caption/weight",
+    "font-size/12",
+    "font-size/14",
+    "font-size/16",
+    "font-size/48",
+    "grid/xl/col-7",
+    "grid/xl/col-8",
+    "grid/xl/container",
+    "heading/family",
+    "heading/weight",
+    "label/family",
+    "label/weight",
+    "layout/columns",
+    "layout/gutter",
+    "layout/margin",
+    "radius/xl",
+    "size/12",
+    "space/11",
+    "space/3",
+    "space/5",
+    "space/8",
+    "text/default",
+    "text/secondary"
+  ],
+  "assets": [
+    "grain.png",
+    "photo.png"
+  ],
+  "fontFallbacks": [
+    "TWK Everett Mono Regular",
+    "TWK Everett Regular"
+  ],
+  "issues": [
+    "The linked frame \"test\" is a generic wrapper around a single \"page header\" instance, scaled to 941px wide (native 1136px).",
+    "Font-size variables (font-size/12, /14, /16, /48) are used by the layers but missing from the variable definitions Figma returned; values were derived by undoing the frame scale.",
+    "Text layers have no meaningful names (label, title and description are bare text nodes).",
+    "The image has a tiled grain texture fill under the photo, which the photo fully covers."
+  ]
+}
