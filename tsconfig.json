@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@tokens/*": ["./tokens/*"],
+      "@components/*": ["./components/*"],
+      "@motion-maps/*": ["./motion-maps/*"],
+      "@lib/*": ["./lab/lib/*"]
+    },
+    "outDir": "dist",
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["lab/**/*", "components/**/*", "tests/**/*", "tokens/**/*", "scripts/**/*", "*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

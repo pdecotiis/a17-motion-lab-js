@@ -1,0 +1,28 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "motion": {
+    "timings": {
+      "fast":   { "$type": "duration", "$value": "150ms" },
+      "base":   { "$type": "duration", "$value": "300ms" },
+      "slow":   { "$type": "duration", "$value": "500ms" },
+      "slower": { "$type": "duration", "$value": "800ms" }
+    },
+    "easings": {
+      "ease-out":    { "$type": "cubicBezier", "$value": [0.0, 0.0, 0.2, 1.0] },
+      "ease-in":     { "$type": "cubicBezier", "$value": [0.4, 0.0, 1.0, 1.0] },
+      "ease-in-out": { "$type": "cubicBezier", "$value": [0.4, 0.0, 0.2, 1.0] },
+      "spring-base": { "$type": "cubicBezier", "$value": [0.34, 1.56, 0.64, 1.0] }
+    },
+    "distances": {
+      "sm": { "$type": "dimension", "$value": "8px" },
+      "md": { "$type": "dimension", "$value": "16px" },
+      "lg": { "$type": "dimension", "$value": "24px" },
+      "xl": { "$type": "dimension", "$value": "40px" }
+    },
+    "springs": {
+      "bouncy": { "$type": "custom-spring", "$value": { "bounce": 0.4, "duration": 600, "fallback": "motion.easings.spring-base" } },
+      "gentle": { "$type": "custom-spring", "$value": { "bounce": 0.1, "duration": 400 } },
+      "stiff":  { "$type": "custom-spring", "$value": { "bounce": 0.2, "duration": 250 } }
+    }
+  }
+}
