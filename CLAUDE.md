@@ -5,13 +5,13 @@
 **Shell**: Vite + vanilla TypeScript. No UI framework.
 **Motion runtime**: Web Animations API (`element.animate(keyframes, options)`).
 **Tokens**: W3C DTCG JSON (`tokens/motion.json`) → CSS custom properties + raw values.
-**Components**: HTML/CSS prototypes with a `motion.ts` file exporting named motion versions.
+**Components**: HTML/CSS prototypes with a `motion.ts` file that re-exports named motion versions, one file per version in `versions/`.
 **Pages**: `page.json` defines an ordered list of component instances for page-level motion review.
 **Motion maps**: URL-encoded state (shareable) + saved JSON presets.
 
 ```
 /lab/              Vite app shell (index.html, main.ts, styles.css, lib/)
-/components/       One folder per component (markup.html, styles.css, motion.ts)
+/components/       One folder per component (markup.html, styles.css, motion.ts, versions/)
 /pages/            page.json files
 /tokens/           DTCG motion tokens (motion.json)
 /motion-maps/      Saved presets (JSON)
@@ -32,23 +32,26 @@
 1. Create `components/<name>/` directory
 2. Add `markup.html` — the component's HTML structure. Add `data-motion-target` attribute to the element that will animate.
 3. Add `styles.css` — component styles using CSS variables from tokens
-4. Add `motion.ts` — exports `v1`, `v2`, etc. as `MotionVersion`, plus `versions` array and `defaultVersion` string:
+4. Add `versions/v1.ts` — one file per version, exporting `v1` as a `MotionVersion` (see "How to add a new motion version").
+5. Add `motion.ts` — it defines no versions itself; it only re-exports the files in `versions/`, plus the `versions` array and `defaultVersion` string. Every component, hand-built or imported, uses this structure:
    ```ts
    import type { MotionVersion, ComponentModule } from '../../lab/lib/types.js';
-   export const v1: MotionVersion = { ... };
+   import { v1 } from './versions/v1.js';
+   export { v1 };
    export const versions: MotionVersion[] = [v1];
    export const defaultVersion = 'v1';
    const module: ComponentModule = { versions, defaultVersion };
    export default module;
    ```
-5. Register it in `lab/main.ts`: import the module and call `registerComponent('<name>', module)`
-6. Copy the test template: `cp tests/unit/_template.test.ts tests/unit/<name>.test.ts` and fill it in
-7. Copy the E2E template: `cp tests/e2e/_template.spec.ts tests/e2e/<name>.spec.ts` and fill it in
+6. Register it in `lab/main.ts`: import the module and call `registerComponent('<name>', module)`
+7. Copy the test template: `cp tests/unit/_template.test.ts tests/unit/<name>.test.ts` and fill it in
+8. Copy the E2E template: `cp tests/e2e/_template.spec.ts tests/e2e/<name>.spec.ts` and fill it in
 
 ## How to add a new motion version
 
-1. In `components/<name>/motion.ts`, add a new export:
+1. Create `components/<name>/versions/v3.ts` (next free integer) exporting the new version. Never define a version inside `motion.ts`; `tests/unit/version-files.test.ts` fails if you do.
    ```ts
+   import type { MotionVersion } from '../../../lab/lib/types.js';
    export const v3: MotionVersion = {
      id: 'v3',
      label: 'Descriptive Name',
@@ -59,7 +62,7 @@
    };
    ```
    Every version needs lineage: `forkedFrom` (a version id in the same component) or, for an imported v1, `lineage: 'imported from <source>'`. `forkVersion(parent, id, label)` in `lab/lib/version-meta.ts` builds a new version that way.
-2. Add it to the `versions` array
+2. In `motion.ts`, import and re-export it, and add it to the `versions` array
 3. **Versions may only change motion properties**: `opacity`, `transform`, `filter`, `clip-path`. Never use `display`, `position`, `width`, `height`, or any structural property in keyframes.
 4. Add unit tests for the new version in `tests/unit/<name>.test.ts`, including `validateVersionMeta(versions)`
 
@@ -175,6 +178,7 @@ Before saving and before sending for review, bring in the latest `main`. If some
 
 - **Resolve automatically when safe**: edits to different parts of a file, identical changes, or independent additions. Keep both sides. Explain in one simple sentence ("Someone updated the card styles; I kept their change alongside yours").
 - **Version numbers**: if both sides added the same version id (e.g. both made `v3`), renumber the designer's to the next free integer (file, `id`, export, `versions` array, tests). Never skip or reuse numbers.
+- **Generated token files**: if `tokens/figma-variables.json`, `tokens/visual.css`, or `tokens/fonts.css` conflict during a merge, don't merge them by hand. Take either side, then regenerate all three by re-running `npm run figma:import` for each imported component from its Figma source (`meta.json` `figma.url`).
 - **Ask only for a real design choice**: both people changed the same motion value or the same version's look. Describe the two options in design terms ("Their hero fades in over 400ms, yours over 600ms. Which should we keep?"), then apply the answer.
 - After resolving, rerun `npm run check`.
 

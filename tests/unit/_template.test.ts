@@ -7,7 +7,7 @@ import { resolveTiming, validateMotionVersion } from '../../lab/lib/motion-model
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
 import type { DtcgGroup } from '../../lab/lib/types.js';
-// import { v1, v2 } from '../../components/<name>/motion.js';
+// import { v1, v2 } from '../../components/<name>/motion.js'; // versions live in components/<name>/versions/
 
 const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
 
