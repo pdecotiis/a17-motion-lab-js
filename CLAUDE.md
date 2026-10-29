@@ -1,5 +1,7 @@
 # Motion Lab — CLAUDE.md
 
+Read PLAN.md at the start of each session. When a step is completed or a decision changes, update PLAN.md in the same commit.
+
 ## Architecture
 
 **Shell**: Vite + vanilla TypeScript. No UI framework.
