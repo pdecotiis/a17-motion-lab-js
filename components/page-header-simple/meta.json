@@ -1,0 +1,48 @@
+{
+  "name": "page-header-simple",
+  "layerName": "page header",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=22711-54958",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "22711:54958"
+  },
+  "importedAt": "2026-10-29",
+  "frame": {
+    "width": 1136,
+    "height": 299
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/default",
+    "body/family",
+    "body/weight",
+    "font-size/14",
+    "font-size/16",
+    "font-size/48",
+    "grid/xl/col-7",
+    "grid/xl/col-8",
+    "heading/family",
+    "heading/weight",
+    "layout/columns",
+    "layout/gutter",
+    "layout/margin",
+    "size/16",
+    "size/4",
+    "space/11",
+    "space/5",
+    "text/default",
+    "text/secondary",
+    "ui-mono/family",
+    "ui-mono/weight"
+  ],
+  "assets": [
+    "chevron-left.svg"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "The linked frame \"page header\" is a generic wrapper around a single \"page header\" instance, which shares its name with the page header that has an image (imported as page-header). This one is the variant with a breadcrumb, title and description, so it is named page-header-simple.",
+    "A layer is named with variant strings (\"variant=text, is current=false, is truncated=false\") instead of a meaningful name.",
+    "Text layers have no meaningful names (breadcrumb, title and description are bare text nodes).",
+    "The breadcrumb text uses a hard-coded color (#6b6a68) and the \"link-mono\" font in the layer instead of variable bindings."
+  ]
+}

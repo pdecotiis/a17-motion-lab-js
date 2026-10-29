@@ -1,0 +1,59 @@
+{
+  "name": "page-header-bento",
+  "layerName": "page header bento",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=22711-54951",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "22711:54951"
+  },
+  "importedAt": "2026-10-29",
+  "frame": {
+    "width": 1136,
+    "height": 866
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/accent/1",
+    "background/accent/2",
+    "background/accent/primary",
+    "background/default",
+    "background/on-accent-inactive/primary",
+    "font-size/14",
+    "font-size/42",
+    "font-size/48",
+    "grid/xl/col-5",
+    "grid/xl/columns",
+    "grid/xl/container",
+    "grid/xl/gutter",
+    "grid/xl/margin",
+    "heading/family",
+    "heading/weight",
+    "label/family",
+    "label/weight",
+    "numeral/family",
+    "numeral/weight",
+    "radius/xl",
+    "size/24",
+    "size/32",
+    "space/3",
+    "space/4",
+    "text/on-accent-secondary/primary",
+    "text/on-accent/1",
+    "text/on-accent/2",
+    "text/on-accent/primary",
+    "ui-sans/family",
+    "ui-sans/weight"
+  ],
+  "assets": [
+    "photo-1.png",
+    "photo-2.png",
+    "texture.png"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "The variable space/11 is 64 in this frame but 128 in page-header, so it was left out of this import's variables and the top padding is a fixed 64px. Check whether the two frames use different variable modes.",
+    "The two image cards are both named \"card/image\", and the two numeral cards both \"card/numeral\".",
+    "Text layers have no meaningful names (label, title, description, numeral and caption are bare text nodes).",
+    "Each image has a tiled texture fill under the photo (opacity 75%), which the photo only partly hides."
+  ]
+}

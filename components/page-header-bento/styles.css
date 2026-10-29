@@ -1,0 +1,177 @@
+.page-header-bento {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--grid-xl-gutter);
+  width: var(--grid-xl-container);
+  /* Figma binds the top padding to space/11, which is 64 in this frame but 128 in page-header. */
+  padding: 64px var(--grid-xl-margin) 0;
+  background: var(--background-default);
+  box-sizing: border-box;
+  font-feature-settings: "lnum" 1, "pnum" 1;
+}
+
+.page-header-bento__feature-hero {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  aspect-ratio: 1;
+  padding: var(--size-32);
+  background: var(--background-accent-primary);
+  border-radius: var(--radius-xl);
+  box-sizing: border-box;
+}
+
+.page-header-bento__title-lockup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: var(--grid-xl-col-5);
+}
+
+.page-header-bento__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.page-header-bento__label-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  height: 21px;
+}
+
+.page-header-bento__bullet-margin {
+  display: flex;
+  align-items: center;
+  padding-top: 1px;
+}
+
+.page-header-bento__bullet {
+  width: 10px;
+  height: 10px;
+  background: var(--background-on-accent-inactive-primary);
+}
+
+.page-header-bento__label {
+  margin: 0;
+  font-family: var(--label-family);
+  font-weight: var(--label-weight);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  color: var(--text-on-accent-secondary-primary);
+  white-space: nowrap;
+  text-box: trim-both cap alphabetic;
+}
+
+.page-header-bento__title {
+  margin: 0;
+  font-family: var(--heading-family);
+  font-weight: var(--heading-weight);
+  font-size: var(--font-size-42);
+  line-height: 1.3;
+  letter-spacing: -0.42px;
+  color: var(--text-on-accent-primary);
+}
+
+.page-header-bento__description {
+  margin: 0;
+  width: 100%;
+  font-family: var(--ui-sans-family);
+  font-weight: var(--ui-sans-weight);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  color: var(--text-on-accent-primary);
+}
+
+.page-header-bento__card-image {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+}
+
+.page-header-bento__image {
+  position: relative;
+  width: 100%;
+  overflow: clip;
+  border-radius: var(--radius-xl);
+}
+
+.page-header-bento__card-image--square .page-header-bento__image {
+  aspect-ratio: 1;
+}
+
+.page-header-bento__card-image--fill .page-header-bento__image {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.page-header-bento__texture {
+  position: absolute;
+  inset: 0;
+  background: url("assets/texture.png") top left / 240px 240px;
+  opacity: 0.75;
+}
+
+.page-header-bento__photo {
+  position: absolute;
+  max-width: none;
+}
+
+.page-header-bento__photo--crop {
+  top: 0;
+  left: -12.95%;
+  width: 177.78%;
+  height: 100%;
+}
+
+.page-header-bento__photo--cover {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.page-header-bento__numeral {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  aspect-ratio: 1;
+  padding: var(--size-24);
+  border-radius: var(--radius-xl);
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
+.page-header-bento__numeral--1 {
+  background: var(--background-accent-1);
+  color: var(--text-on-accent-1);
+}
+
+.page-header-bento__numeral--2 {
+  background: var(--background-accent-2);
+  color: var(--text-on-accent-2);
+}
+
+.page-header-bento__numeral-value {
+  margin: 0;
+  width: 100%;
+  font-family: var(--numeral-family);
+  font-weight: var(--numeral-weight);
+  font-size: var(--font-size-48);
+  line-height: 1;
+  letter-spacing: -0.48px;
+}
+
+.page-header-bento__numeral-label {
+  margin: 0;
+  width: 100%;
+  font-family: var(--ui-sans-family);
+  font-weight: var(--ui-sans-weight);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+}
