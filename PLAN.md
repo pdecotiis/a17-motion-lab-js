@@ -10,6 +10,7 @@ Motion Lab is a reusable template for iterating on motion for components importe
 ## Done
 
 - Shell: Vite + vanilla TS, Web Animations runtime, component view, live controls, compare, speed, stagger, light/dark, page view with motion map (URL state) and presets.
+- Library view: every component as a scaled live preview that plays on hover, with name search and the status filter; cards link to the component view.
 - Spring engine; springs compile to CSS `linear()` with an optional cubic-bezier fallback.
 - Tokens view with usage ("used by", tokens per version, unused flagged).
 - Figma import via the Figma MCP: close match (not pixel-perfect), up to 2 fix-up passes to under 5% pixel diff, fonts from `/fonts` (gitignored) or the closest fallback, re-import never touches version files.
@@ -44,4 +45,5 @@ Token governance: token habits, off-system badge, nearest-token suggestions, app
 
 ## Optional
 
-A GitHub Actions workflow running `npm run check`.
+- A GitHub Actions workflow running `npm run check`.
+- Library: an "all versions" toggle that shows every version of each component side by side.
