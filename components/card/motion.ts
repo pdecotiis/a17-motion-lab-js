@@ -15,6 +15,7 @@ export const v1: MotionVersion = {
   ],
   stagger: '80ms',
   status: 'in-progress',
+  lineage: 'imported from seed component (no import source)',
 };
 
 // Scale In uses the real spring engine (springKeyframes → WAAPI).
@@ -33,10 +34,30 @@ export const v2: MotionVersion = {
   },
   stagger: '100ms',
   status: 'in-progress',
+  forkedFrom: 'v1',
+};
+
+// Archived example: kept for history, hidden from the lab by default.
+export const v3: MotionVersion = {
+  id: 'v3',
+  label: 'Slow Fade',
+  model: {
+    model: 'tween',
+    duration: 'motion.timings.slow',
+    easing: 'motion.easings.ease-out',
+    delay: '0ms',
+  },
+  keyframes: [
+    { opacity: 0, transform: 'translateY(8px)', offset: 0 },
+    { opacity: 1, transform: 'translateY(0px)', offset: 1 },
+  ],
+  stagger: '80ms',
+  status: 'archived',
+  forkedFrom: 'v1',
 };
 
 export const defaultVersion = 'v1';
-export const versions: MotionVersion[] = [v1, v2];
+export const versions: MotionVersion[] = [v1, v2, v3];
 
 const cardModule: ComponentModule = { versions, defaultVersion };
 export default cardModule;

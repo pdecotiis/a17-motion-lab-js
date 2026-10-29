@@ -3,7 +3,8 @@ import { resolveTiming, buildSpringWaapiKeyframes, validateMotionVersion } from 
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
 import type { DtcgGroup } from '../../lab/lib/types.js';
-import { v1, v2 } from '../../components/card/motion.js';
+import { v1, v2, v3, versions } from '../../components/card/motion.js';
+import { validateVersionMeta, filterVersions } from '../../lab/lib/version-meta.js';
 
 const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
 
@@ -73,5 +74,21 @@ describe('Card motion versions', () => {
       const hasOvershoot = scales.some(s => s > 1.0);
       expect(hasOvershoot).toBe(true);
     });
+  });
+});
+
+describe('Card status and lineage', () => {
+  it('every version has valid status and lineage', () => {
+    expect(() => validateVersionMeta(versions)).not.toThrow();
+  });
+
+  it('v3 validates and is archived, forked from v1', () => {
+    expect(() => validateMotionVersion(v3)).not.toThrow();
+    expect(v3.status).toBe('archived');
+    expect(v3.forkedFrom).toBe('v1');
+  });
+
+  it('archived v3 is hidden from the default version list', () => {
+    expect(filterVersions(versions).map(v => v.id)).toEqual(['v1', 'v2']);
   });
 });

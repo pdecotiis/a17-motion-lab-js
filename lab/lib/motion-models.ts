@@ -1,5 +1,6 @@
 import type { MotionVersion, TweenModel, SpringModel, SpringProperty, LiveControls } from './types.js';
 import { springKeyframes, springToCubicBezierString } from './spring-engine.js';
+import { isVersionStatus } from './version-meta.js';
 
 export interface ResolvedTiming {
   duration: number;
@@ -253,6 +254,10 @@ export function validateMotionVersion(version: MotionVersion): void {
     if (!allowed.has(key)) {
       throw new Error(`MotionVersion "${version.id}" has disallowed property: "${key}"`);
     }
+  }
+
+  if (version.status !== undefined && !isVersionStatus(version.status)) {
+    throw new Error(`MotionVersion "${version.id}" has unknown status: "${String(version.status)}"`);
   }
 
   if (version.model.model === 'tween') {

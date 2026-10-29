@@ -54,11 +54,20 @@
      label: 'Descriptive Name',
      model: { model: 'tween', duration: 'motion.timings.base', easing: 'motion.easings.ease-out' },
      keyframes: [ /* only motion properties */ ],
+     status: 'in-progress',   // new versions always start in-progress
+     forkedFrom: 'v1',        // the version this was copied from (required)
    };
    ```
+   Every version needs lineage: `forkedFrom` (a version id in the same component) or, for an imported v1, `lineage: 'imported from <source>'`. `forkVersion(parent, id, label)` in `lab/lib/version-meta.ts` builds a new version that way.
 2. Add it to the `versions` array
 3. **Versions may only change motion properties**: `opacity`, `transform`, `filter`, `clip-path`. Never use `display`, `position`, `width`, `height`, or any structural property in keyframes.
-4. Add unit tests for the new version in `tests/unit/<name>.test.ts`
+4. Add unit tests for the new version in `tests/unit/<name>.test.ts`, including `validateVersionMeta(versions)`
+
+### Version status
+
+- `status`: `'in-progress' | 'review' | 'approved' | 'archived'` (absent = `in-progress`). Unknown values fail validation.
+- Shown as a badge on version tabs, in the version history list, and in the Motion Map. The component view and Motion Map have a status filter; **archived versions are hidden by default** and appear with "Show archived" (URL: `?status=…&archived=1`). The open version is always shown.
+- `forkedFrom` must name an existing version of the same component; a version with neither `forkedFrom` nor `lineage` fails `validateVersionMeta`.
 
 ## Token types
 
@@ -155,7 +164,7 @@ Commit everything they've changed with a clear, descriptive message (what change
 
 ### "Ready for review"
 
-1. Set `status: 'review'` on the version(s) they're submitting. Leave other versions' status alone.
+1. Set `status: 'review'` on the version(s) they're submitting (they must already have `forkedFrom` or `lineage` set). Leave other versions' status alone. Only mark a version `approved` or `archived` when the designer asks.
 2. Run `npm run check`; fix anything that fails before continuing. If you can't fix it, explain simply what's wrong.
 3. Save, push the branch, and open a pull request titled after the exploration, with a short plain-language summary of what changed.
 4. Give them the link: "Sent for review: <link>".
@@ -197,9 +206,7 @@ Before saving and before sending for review, bring in the latest `main`. If some
 
 ## Future data model (do not build yet)
 
-These fields are reserved in `MotionVersion` but unused:
-- `status`: `'in-progress' | 'review' | 'approved' | 'archived'`
+This field is reserved in `MotionVersion` but unused:
 - `reviewNotes`: string
-- `forkedFrom`: version id (lineage tracking)
 
-Planned future features: status workflow, spec export, Figma import, usage audit, per-component weight tuning.
+Planned future features: spec export, usage audit, per-component weight tuning.
