@@ -16,6 +16,6 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["lab/**/*", "components/**/*", "tests/**/*", "tokens/**/*", "*.ts"],
+  "include": ["lab/**/*", "components/**/*", "tests/**/*", "tokens/**/*", "scripts/**/*", "*.ts"],
   "exclude": ["node_modules", "dist"]
 }

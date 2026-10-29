@@ -248,7 +248,7 @@ export function buildSpringCssKeyframes(
 }
 
 export function validateMotionVersion(version: MotionVersion): void {
-  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'status', 'reviewNotes', 'forkedFrom']);
+  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
   for (const key of Object.keys(version)) {
     if (!allowed.has(key)) {
       throw new Error(`MotionVersion "${version.id}" has disallowed property: "${key}"`);

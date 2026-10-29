@@ -383,3 +383,14 @@ html, body {
   font-size: 11px;
   color: var(--color-text-muted);
 }
+
+/* Imported components: rendered at their Figma frame size (see getFramedMarkup) */
+.lab-preview-area--framed { min-width: 0; }
+.lab-preview-area--framed .lab-preview { justify-content: flex-start; align-items: flex-start; overflow: auto; }
+.lab-preview-area--framed .lab-preview__inner { max-width: none; width: auto; }
+
+/* Frame view: component only, no lab chrome (visual check) */
+.lab-frame-mode .lab-header,
+.lab-frame-mode .lab-notice { display: none; }
+.lab-frame-mode, .lab-main--frame { background: #fff; }
+.lab-main--frame { padding: 0; overflow: visible; }

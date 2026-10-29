@@ -5,3 +5,5 @@ test-results/
 playwright-report/
 npm-debug.log
 /reference/
+/fonts/
+tests/visual-output/

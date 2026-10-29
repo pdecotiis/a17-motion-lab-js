@@ -110,10 +110,39 @@ tests/e2e/_template.spec.ts    → copy to tests/e2e/<component>.spec.ts
 - Component renders visibly at `/?view=component&component=<name>`
 - Each version plays without console errors
 
+## Figma import
+
+Components can be imported from a Figma frame instead of hand-built. The Figma MCP (design context, variables, screenshot, assets) is driven by the agent; the deterministic, file-writing half lives in `scripts/figma-import/lib.ts`. The agent writes a manifest JSON and runs `npm run figma:import -- <manifest.json>` (see the header of `scripts/figma-import/cli.ts` for the manifest shape).
+
+### Import rules
+
+- **Name**: kebab-case from the Figma layer name (`hero banner` → `hero-banner`). If the linked frame is a generic wrapper, name it from its only meaningful child.
+- **Output**: `components/<name>/` gets `markup.html`, `styles.css`, `assets/`, `meta.json` (Figma url, file key, node id, import date, frame size, variables, assets, font fallbacks, designer-facing `issues`), and — first import only — `motion.ts` + `versions/v1.ts`.
+- **Markup**: the root element has `data-motion-target`; every animatable layer has `data-motion="<layer-name>"`. Asset references are relative: `assets/<file>`. Never leave temporary Figma asset URLs (`figma.com/api/mcp/asset/...`) in the source.
+- **Styles**: use CSS custom properties from Figma variables (`text/default` → `--text-default`). No hard-coded colors or spacing that a variable covers.
+- **Variables**: merged across imports into `tokens/figma-variables.json`; `tokens/visual.css` and `tokens/fonts.css` are generated from it. Never edit those three files by hand.
+- **Fonts**: licensed font files go in `/fonts` (gitignored). Files are matched to Figma typefaces by name; unmatched faces use a system fallback and are listed in `meta.json` `fontFallbacks`.
+- **Re-import**: refreshes markup, styles, assets, meta and variables only. It never modifies `motion.ts` or anything in `versions/`, so motion work survives a re-import. Version files stay `v1.ts`, `v2.ts`, … without gaps.
+- **Motion**: v1 is a scaffolded default entrance (`status: 'in-progress'`, `lineage: 'imported from <figma link>'`). Imports never invent motion beyond that.
+- **Scaled frames**: if the linked frame is a scaled instance, `designWidth` records the native width. The lab lays the component out at `designWidth` and zooms to `frame.width`.
+- **Issues**: record Figma file problems for designers (no auto layout, unnamed layers, variant strings as layer names, values not bound to variables) in `meta.json` `issues`.
+
+### Fidelity target
+
+The component's static end state (after all animations finish) must match the Figma screenshot within **5%** of pixels (`MAX_DIFF_RATIO` in `tests/e2e/visual.ts`, pixelmatch threshold 0.1). Fix the markup/styles to close a gap rather than raising the threshold.
+
+### Visual check
+
+- `/?view=frame&component=<name>&version=<id>` renders the component alone at its Figma frame size, with no lab chrome.
+- `compareToBaseline(page, component, version)` in `tests/e2e/visual.ts` loads that view at the baseline's size, waits for fonts, images and animations, and diffs against `tests/baselines/<component>.png` (the Figma screenshot). Actual and diff images are written to `tests/visual-output/` (gitignored).
+- Each imported component adds an E2E spec that renders it, plays each version without console errors, and calls `compareToBaseline`. Commit its baseline PNG.
+- Unit tests for the importer use a generic fixture built in a temp directory (`tests/unit/figma-import.test.ts`); do not commit a real client component as a fixture.
+
 ## Scripts
 
 | Command              | Action                                          |
 |----------------------|-------------------------------------------------|
+| `npm run figma:import -- <manifest.json>` | Import a Figma frame as a component |
 | `npm run dev`        | Start Vite dev server (http://localhost:5173)   |
 | `npm run build`      | Build to `dist/` with relative paths            |
 | `npm run typecheck`  | TypeScript type check (no emit)                 |

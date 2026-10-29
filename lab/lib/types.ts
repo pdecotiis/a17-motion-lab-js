@@ -41,6 +41,7 @@ export interface MotionVersion {
   status?: 'in-progress' | 'review' | 'approved' | 'archived';
   reviewNotes?: string;
   forkedFrom?: string;
+  lineage?: string;  // e.g. 'imported from <figma link>'
 }
 
 export interface ComponentModule {
