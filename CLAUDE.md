@@ -8,6 +8,7 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 **Motion runtime**: Web Animations API (`element.animate(keyframes, options)`).
 **Tokens**: W3C DTCG JSON (`tokens/motion.json`) → CSS custom properties + raw values.
 **Components**: HTML/CSS prototypes with a `motion.ts` file that re-exports named motion versions, one file per version in `versions/`.
+**Library**: `/?view=library` lists every registered component as a scaled live preview (plays on hover). It builds from the component registry, so new components appear automatically; filters use `?status=…&archived=1&q=…`. Logic is in `lab/lib/library.ts`.
 **Pages**: `page.json` defines an ordered list of component instances for page-level motion review.
 **Motion maps**: URL-encoded state (shareable) + saved JSON presets.
 
