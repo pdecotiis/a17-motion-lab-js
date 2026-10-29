@@ -6,7 +6,7 @@ import { resolveTiming, buildAnimationOptions, buildSpringWaapiKeyframes, buildS
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
 import { validatePreset } from './lib/presets.js';
 import { prefersReducedMotion, getEffectiveDuration, getEffectiveKeyframes } from './lib/reduced-motion.js';
-import { getTokenRefs, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
+import { getTokenRefs, getLiveOverrides, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
 
 // ── Glob imports (bundled at build time, no runtime fetches) ───────────────
@@ -252,6 +252,7 @@ function renderComponentView(params: URLSearchParams): void {
         <section class="lab-controls" aria-label="Tokens Used">
           <h3 class="lab-controls__title">Tokens Used</h3>
           <div id="tokens-used-list"></div>
+          <div id="live-overrides"></div>
         </section>
         <section class="lab-controls" aria-label="Generated CSS">
           <h3 class="lab-controls__title">Generated CSS</h3>
@@ -353,6 +354,7 @@ function renderComponentView(params: URLSearchParams): void {
       delay: delayInput.value ? `${delayInput.value}ms` : undefined,
     };
     playAnimation(primaryTarget, versionId, liveControls);
+    renderLiveOverrides();
   }
 
   durationInput.addEventListener('change', updateControls);
@@ -376,6 +378,27 @@ function renderComponentView(params: URLSearchParams): void {
       console.log('Copy values:', json);
     });
   });
+
+  // Live overrides: control values that differ from the version's own timing
+  const overridesEl = document.getElementById('live-overrides')!;
+  function renderLiveOverrides(): void {
+    overridesEl.replaceChildren();
+    const overrides = getLiveOverrides(initialTiming, liveControls);
+    if (overrides.length === 0) return;
+    const warn = document.createElement('div');
+    warn.className = 'lab-tokens-hardcoded lab-tokens-live-overrides';
+    const label = document.createElement('span');
+    label.className = 'lab-tokens-hardcoded-label';
+    label.textContent = `⚠ Live overrides (${overrides.length}, not saved):`;
+    warn.appendChild(label);
+    for (const o of overrides) {
+      const item = document.createElement('div');
+      item.className = 'lab-tokens-hardcoded-item';
+      item.textContent = `${o.label}: ${o.from} → ${o.to}`;
+      warn.appendChild(item);
+    }
+    overridesEl.appendChild(warn);
+  }
 
   // Tokens Used section
   const tokensList = document.getElementById('tokens-used-list')!;
@@ -403,7 +426,7 @@ function renderComponentView(params: URLSearchParams): void {
     if (hardcoded.length > 0) {
       const warn = document.createElement('div');
       warn.className = 'lab-tokens-hardcoded';
-      warn.innerHTML = `<span class="lab-tokens-hardcoded-label">⚠ Hard-coded (${hardcoded.length}):</span>`;
+      warn.innerHTML = `<span class="lab-tokens-hardcoded-label">⚠ Hard-coded, bypasses token (${hardcoded.length}):</span>`;
       for (const h of hardcoded) {
         const item = document.createElement('div');
         item.className = 'lab-tokens-hardcoded-item';

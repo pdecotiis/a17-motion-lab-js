@@ -1,4 +1,4 @@
-import type { MotionVersion, TweenModel, SpringModel, PageConfig } from './types.js';
+import type { MotionVersion, TweenModel, SpringModel, PageConfig, LiveControls } from './types.js';
 
 export interface TokenRefs {
   tokens: string[];
@@ -12,6 +12,40 @@ export interface UsageEntry {
 }
 
 export type UsageIndex = Map<string, UsageEntry[]>;
+
+// A spring token may name a cubicBezier token as its fallback for engines without linear().
+export function getSpringFallbackPath(model: SpringModel, raw: Record<string, unknown>): string | undefined {
+  const val = raw[model.duration];
+  if (typeof val !== 'object' || val === null || !('fallback' in val)) return undefined;
+  const path = (val as { fallback: unknown }).fallback;
+  return typeof path === 'string' && Array.isArray(raw[path]) ? path : undefined;
+}
+
+export interface LiveOverride {
+  label: string;
+  from: string;
+  to: string;
+}
+
+// Live-control values that differ from the version's own resolved timing.
+export function getLiveOverrides(
+  initial: { duration: number; delay: number; easing: string },
+  controls: LiveControls,
+): LiveOverride[] {
+  const overrides: LiveOverride[] = [];
+  const norm = (s: string): string => s.replace(/\s+/g, '');
+  const ms = (s: string): number => parseFloat(s);
+  if (controls.duration && ms(controls.duration) !== Math.round(initial.duration)) {
+    overrides.push({ label: 'duration', from: `${Math.round(initial.duration)}ms`, to: controls.duration });
+  }
+  if (controls.delay && ms(controls.delay) !== Math.round(initial.delay)) {
+    overrides.push({ label: 'delay', from: `${Math.round(initial.delay)}ms`, to: controls.delay });
+  }
+  if (controls.easing && norm(controls.easing) !== norm(initial.easing)) {
+    overrides.push({ label: 'easing', from: initial.easing, to: controls.easing });
+  }
+  return overrides;
+}
 
 export function getTokenRefs(version: MotionVersion, raw: Record<string, unknown>): TokenRefs {
   const tokens: string[] = [];
@@ -35,6 +69,8 @@ export function getTokenRefs(version: MotionVersion, raw: Record<string, unknown
     const m = version.model as SpringModel;
     check(m.duration, 'duration');
     if (m.delay) check(m.delay, 'delay');
+    const fallback = getSpringFallbackPath(m, raw);
+    if (fallback) tokens.push(fallback);
   }
 
   return { tokens: [...new Set(tokens)], hardcoded };

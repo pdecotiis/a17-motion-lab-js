@@ -1,4 +1,5 @@
 import type { MotionVersion, TweenModel, SpringModel } from './types.js';
+import { getSpringFallbackPath } from './token-refs.js';
 import { springKeyframes, springToCubicBezierString, springToLinear } from './spring-engine.js';
 
 function parseMs(value: string): number {
@@ -102,7 +103,10 @@ export function buildVersionCss(
       lines.push(`/* ${model.duration}: bounce=${model.bounce}, duration=${naturalDuration}ms */`);
     }
 
-    const cubicBezier = springToCubicBezierString(model.bounce);
+    const fallbackPath = getSpringFallbackPath(model, raw);
+    const cubicBezier = fallbackPath
+      ? `cubic-bezier(${(raw[fallbackPath] as number[]).join(', ')})`
+      : springToCubicBezierString(model.bounce);
 
     lines.push('');
     if (mode === 'spring') {
@@ -116,7 +120,7 @@ export function buildVersionCss(
       lines.push('  animation-fill-mode: both;');
       lines.push('}');
       lines.push('');
-      lines.push(`/* cubic-bezier fallback: ${cubicBezier} */`);
+      lines.push(`/* cubic-bezier fallback${fallbackPath ? ` (${fallbackPath})` : ''}: ${cubicBezier} */`);
     } else {
       lines.push('.element {');
       lines.push(`  animation-duration: ${naturalDuration}ms;`);

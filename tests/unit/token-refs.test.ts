@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getTokenRefs, buildUsageIndex, buildPageUsageIndex } from '../../lab/lib/token-refs.js';
+import { getTokenRefs, buildUsageIndex, buildPageUsageIndex, getLiveOverrides, getSpringFallbackPath } from '../../lab/lib/token-refs.js';
+import { buildVersionCss } from '../../lab/lib/css-output.js';
 import type { MotionVersion } from '../../lab/lib/types.js';
 
 const raw: Record<string, unknown> = {
@@ -189,5 +190,54 @@ describe('buildUsageIndex — adding and removing references', () => {
     ]);
     const removed = buildUsageIndex([{ componentName: 'card', version: springVersion }], raw);
     expect(removed.has('motion.timings.base')).toBe(false);
+  });
+});
+
+describe('spring cubic-bezier fallback token', () => {
+  const rawWithFallback: Record<string, unknown> = {
+    ...raw,
+    'motion.easings.spring-base': [0.34, 1.56, 0.64, 1.0],
+    'motion.springs.bouncy': { bounce: 0.4, duration: 600, fallback: 'motion.easings.spring-base' },
+  };
+
+  it('resolves the fallback path when the spring token names a cubicBezier token', () => {
+    expect(getSpringFallbackPath(springVersion.model as never, rawWithFallback)).toBe('motion.easings.spring-base');
+  });
+
+  it('returns undefined when there is no fallback or it is not a cubicBezier token', () => {
+    expect(getSpringFallbackPath(springVersion.model as never, raw)).toBeUndefined();
+    const bad = { ...raw, 'motion.springs.bouncy': { bounce: 0.4, duration: 600, fallback: 'motion.nope' } };
+    expect(getSpringFallbackPath(springVersion.model as never, bad)).toBeUndefined();
+  });
+
+  it('counts the fallback token as used by the version', () => {
+    expect(getTokenRefs(springVersion, rawWithFallback).tokens).toContain('motion.easings.spring-base');
+  });
+
+  it('emits the fallback token value in generated CSS, else a derived cubic-bezier', () => {
+    const withToken = buildVersionCss(springVersion, rawWithFallback, { mode: 'spring' });
+    expect(withToken).toContain('cubic-bezier fallback (motion.easings.spring-base): cubic-bezier(0.34, 1.56, 0.64, 1)');
+    const derived = buildVersionCss(springVersion, raw, { mode: 'spring' });
+    expect(derived).toMatch(/cubic-bezier fallback: cubic-bezier\(/);
+  });
+});
+
+describe('getLiveOverrides', () => {
+  const initial = { duration: 300, delay: 0, easing: 'cubic-bezier(0, 0, 0.2, 1)' };
+
+  it('returns nothing when controls match the version', () => {
+    expect(getLiveOverrides(initial, { duration: '300ms', delay: '0ms', easing: 'cubic-bezier(0,0,0.2,1)' })).toEqual([]);
+    expect(getLiveOverrides(initial, {})).toEqual([]);
+  });
+
+  it('flags each changed control with before and after', () => {
+    const o = getLiveOverrides(initial, { duration: '450ms', delay: '50ms', easing: 'ease-in' });
+    expect(o.map(x => x.label)).toEqual(['duration', 'delay', 'easing']);
+    expect(o[0]).toEqual({ label: 'duration', from: '300ms', to: '450ms' });
+  });
+
+  it('flags only the control that changed', () => {
+    const o = getLiveOverrides(initial, { duration: '300ms', delay: '0ms', easing: 'ease-in' });
+    expect(o.map(x => x.label)).toEqual(['easing']);
   });
 });

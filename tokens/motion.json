@@ -20,7 +20,7 @@
       "xl": { "$type": "dimension", "$value": "40px" }
     },
     "springs": {
-      "bouncy": { "$type": "custom-spring", "$value": { "bounce": 0.4, "duration": 600 } },
+      "bouncy": { "$type": "custom-spring", "$value": { "bounce": 0.4, "duration": 600, "fallback": "motion.easings.spring-base" } },
       "gentle": { "$type": "custom-spring", "$value": { "bounce": 0.1, "duration": 400 } },
       "stiff":  { "$type": "custom-spring", "$value": { "bounce": 0.2, "duration": 250 } }
     }
