@@ -1,4 +1,4 @@
-import type { MotionVersion, TweenModel, SpringModel } from './types.js';
+import type { MotionVersion, TweenModel, SpringModel, PageConfig } from './types.js';
 
 export interface TokenRefs {
   tokens: string[];
@@ -51,6 +51,30 @@ export function buildUsageIndex(
       const entries = index.get(tokenPath) ?? [];
       entries.push({ componentName, versionId: version.id, versionLabel: version.label });
       index.set(tokenPath, entries);
+    }
+  }
+  return index;
+}
+
+// Maps token path → page ids. Pages don't pin versions, so each component
+// instance counts as its component's default version.
+export type PageUsageIndex = Map<string, string[]>;
+
+export function buildPageUsageIndex(
+  pages: PageConfig[],
+  defaultVersions: Map<string, MotionVersion>,
+  raw: Record<string, unknown>,
+): PageUsageIndex {
+  const index: PageUsageIndex = new Map();
+  for (const page of pages) {
+    for (const { component } of page.components) {
+      const version = defaultVersions.get(component);
+      if (!version) continue;
+      for (const tokenPath of getTokenRefs(version, raw).tokens) {
+        const pageIds = index.get(tokenPath) ?? [];
+        if (!pageIds.includes(page.id)) pageIds.push(page.id);
+        index.set(tokenPath, pageIds);
+      }
     }
   }
   return index;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getTokenRefs, buildUsageIndex } from '../../lab/lib/token-refs.js';
+import { getTokenRefs, buildUsageIndex, buildPageUsageIndex } from '../../lab/lib/token-refs.js';
 import type { MotionVersion } from '../../lab/lib/types.js';
 
 const raw: Record<string, unknown> = {
@@ -135,5 +135,59 @@ describe('buildUsageIndex', () => {
   it('returns an empty map when given no versions', () => {
     const index = buildUsageIndex([], raw);
     expect(index.size).toBe(0);
+  });
+});
+
+describe('buildPageUsageIndex', () => {
+  const defaults = new Map<string, MotionVersion>([
+    ['card', tweenVersion],
+    ['hero', springVersion],
+  ]);
+
+  it('maps tokens to the pages that use them via default versions', () => {
+    const pages = [
+      { id: 'home', title: 'Home', components: [{ id: 'c1', component: 'card' }] },
+      { id: 'about', title: 'About', components: [{ id: 'h1', component: 'hero' }] },
+    ];
+    const index = buildPageUsageIndex(pages, defaults, raw);
+    expect(index.get('motion.timings.base')).toEqual(['home']);
+    expect(index.get('motion.easings.ease-out')).toEqual(['home']);
+    expect(index.get('motion.springs.bouncy')).toEqual(['about']);
+  });
+
+  it('lists a page once even when a component appears several times', () => {
+    const pages = [{
+      id: 'home', title: 'Home',
+      components: [{ id: 'c1', component: 'card' }, { id: 'c2', component: 'card' }],
+    }];
+    expect(buildPageUsageIndex(pages, defaults, raw).get('motion.timings.base')).toEqual(['home']);
+  });
+
+  it('drops a page from a token when its component is removed', () => {
+    const page = { id: 'home', title: 'Home', components: [{ id: 'c1', component: 'card' }] };
+    expect(buildPageUsageIndex([page], defaults, raw).has('motion.timings.base')).toBe(true);
+    const removed = { ...page, components: [] };
+    expect(buildPageUsageIndex([removed], defaults, raw).has('motion.timings.base')).toBe(false);
+  });
+
+  it('ignores components with no registered default version', () => {
+    const pages = [{ id: 'home', title: 'Home', components: [{ id: 'x', component: 'missing' }] }];
+    expect(buildPageUsageIndex(pages, defaults, raw).size).toBe(0);
+  });
+});
+
+describe('buildUsageIndex — adding and removing references', () => {
+  it('reflects a version added and then removed', () => {
+    const before = buildUsageIndex([{ componentName: 'card', version: tweenVersion }], raw);
+    expect(before.has('motion.springs.bouncy')).toBe(false);
+    const added = buildUsageIndex([
+      { componentName: 'card', version: tweenVersion },
+      { componentName: 'card', version: springVersion },
+    ], raw);
+    expect(added.get('motion.springs.bouncy')).toEqual([
+      { componentName: 'card', versionId: 'v2', versionLabel: 'Scale In' },
+    ]);
+    const removed = buildUsageIndex([{ componentName: 'card', version: springVersion }], raw);
+    expect(removed.has('motion.timings.base')).toBe(false);
   });
 });

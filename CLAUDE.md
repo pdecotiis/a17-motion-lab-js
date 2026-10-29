@@ -85,11 +85,12 @@ The token compiler (`lab/lib/token-compiler.ts`) reads `tokens/motion.json` and 
 
 ### Spring model
 ```ts
-{ model: 'spring', bounce: 0.4, duration: 'motion.springs.bouncy', delay?: '0ms' }
+{ model: 'spring', bounce: 0.4, duration: 'motion.springs.bouncy', delay?: '0ms', properties: [{ property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 }] }
 ```
 - `bounce`: 0–1 (0 = no bounce, 1 = maximum bounce)
 - `duration`: token path or literal ms value
-- Springs are approximated to cubic-bezier for Web Animations API (`lab/lib/spring-to-bezier.ts`)
+- Springs run a real physics simulation (`lab/lib/spring-engine.ts`). They animate via baked WAAPI keyframes, and compile to a CSS `linear()` timing function (cubic-bezier is used only for the "CSS" engine-mode approximation)
+- Spring versions declare `properties[]` instead of `keyframes`
 
 ## Testing rules
 
@@ -101,8 +102,8 @@ tests/e2e/_template.spec.ts    → copy to tests/e2e/<component>.spec.ts
 
 ### Unit test coverage required per component/version
 - `validateMotionVersion(v)` does not throw (no structural keyframe props, no extra properties)
-- `resolveTiming(v, raw)` produces a numeric `duration` > 0
-- `resolveTiming(v, raw)` produces a string `easing` containing `cubic-bezier`
+- Tween versions: `resolveTiming(v, raw)` produces a numeric `duration` > 0 (`resolveTiming` is tween-only and throws on spring versions)
+- Tween versions: `resolveTiming(v, raw)` produces a string `easing` containing `cubic-bezier`
 - Token paths (e.g. `motion.timings.base`) resolve to expected concrete values
 
 ### E2E test coverage required per component

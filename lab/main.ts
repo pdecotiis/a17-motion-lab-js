@@ -6,7 +6,7 @@ import { resolveTiming, buildAnimationOptions, buildSpringWaapiKeyframes, buildS
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
 import { validatePreset } from './lib/presets.js';
 import { prefersReducedMotion, getEffectiveDuration, getEffectiveKeyframes } from './lib/reduced-motion.js';
-import { getTokenRefs, buildUsageIndex, type UsageIndex } from './lib/token-refs.js';
+import { getTokenRefs, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
 
 // ── Glob imports (bundled at build time, no runtime fetches) ───────────────
@@ -69,6 +69,14 @@ for (const [path, module] of Object.entries(motionModules)) {
   }
 }
 const usageIndex: UsageIndex = buildUsageIndex(allVersionsFlat, raw);
+
+const defaultVersions = new Map<string, MotionVersion>();
+for (const [path, module] of Object.entries(motionModules)) {
+  const name = path.match(/\/components\/([^/]+)\/motion\.ts$/)?.[1];
+  const version = module?.versions?.find(v => v.id === module.defaultVersion);
+  if (name && version) defaultVersions.set(name, version);
+}
+const pageUsageIndex: PageUsageIndex = buildPageUsageIndex(Object.values(pageModules), defaultVersions, raw);
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -769,6 +777,14 @@ function renderTokensView(): void {
           link.textContent = `${u.componentName}/${u.versionId}`;
           usedByCell.appendChild(link);
         });
+        for (const pageId of pageUsageIndex.get(key) ?? []) {
+          usedByCell.appendChild(document.createTextNode(', '));
+          const link = document.createElement('a');
+          link.href = `?view=page&page=${pageId}`;
+          link.className = 'lab-token-usage-link';
+          link.textContent = `page: ${pageId}`;
+          usedByCell.appendChild(link);
+        }
       }
     }
 
