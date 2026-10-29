@@ -138,6 +138,43 @@ The component's static end state (after all animations finish) must match the Fi
 - Each imported component adds an E2E spec that renders it, plays each version without console errors, and calls `compareToBaseline`. Commit its baseline PNG.
 - Unit tests for the importer use a generic fixture built in a temp directory (`tests/unit/figma-import.test.ts`); do not commit a real client component as a fixture.
 
+## Designer workflow
+
+Designers do not know git and work only through Claude. Handle version control for them, silently. **Never use git jargon** (branch, commit, merge, rebase, conflict, PR, push, pull, stash, diff) in replies unless the designer uses the word first; then mirror their vocabulary. Don't mention git at all unless asked.
+
+### Session start
+
+1. Learn the designer's first name (ask once if unknown) and what they want to explore.
+2. Pull the latest `main`, then create a branch named `<designer>/<exploration>` (kebab-case, e.g. `maya/hero-entrance`) from what they describe. If they are continuing earlier work, switch to their existing branch and bring it up to date with `main` instead.
+3. Start the dev server and open the lab in the browser (`npm run dev`), on the component or page they're working on.
+4. Greet them with what's ready ("The lab is open on the hero. What should we try?"), not with setup details.
+
+### "Save this"
+
+Commit everything they've changed with a clear, descriptive message (what changed and why, e.g. "Hero v3: slower fade with a slight rise"). Confirm in plain words naming what was saved ("Saved hero v3"). Do not show hashes or file lists.
+
+### "Ready for review"
+
+1. Set `status: 'review'` on the version(s) they're submitting. Leave other versions' status alone.
+2. Run `npm run check`; fix anything that fails before continuing. If you can't fix it, explain simply what's wrong.
+3. Save, push the branch, and open a pull request titled after the exploration, with a short plain-language summary of what changed.
+4. Give them the link: "Sent for review: <link>".
+
+### When others changed the same work
+
+Before saving and before sending for review, bring in the latest `main`. If someone else changed the same files:
+
+- **Resolve automatically when safe**: edits to different parts of a file, identical changes, or independent additions. Keep both sides. Explain in one simple sentence ("Someone updated the card styles; I kept their change alongside yours").
+- **Version numbers**: if both sides added the same version id (e.g. both made `v3`), renumber the designer's to the next free integer (file, `id`, export, `versions` array, tests). Never skip or reuse numbers.
+- **Ask only for a real design choice**: both people changed the same motion value or the same version's look. Describe the two options in design terms ("Their hero fades in over 400ms, yours over 600ms. Which should we keep?"), then apply the answer.
+- After resolving, rerun `npm run check`.
+
+### Rules of thumb
+
+- Never work directly on `main`; never discard a designer's changes without asking.
+- Don't edit another designer's version files; add a new version instead.
+- If something goes wrong with saving or syncing, say what it means for their work ("Your changes are safe, but I couldn't send them yet") and fix it, rather than reporting git errors.
+
 ## Scripts
 
 | Command              | Action                                          |
