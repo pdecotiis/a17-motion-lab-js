@@ -31,17 +31,19 @@ export type SpringModel = {
 
 export type MotionModel = TweenModel | SpringModel;
 
+export type VersionStatus = 'in-progress' | 'review' | 'approved' | 'archived';
+
 export interface MotionVersion {
   id: string;
   label: string;
   model: MotionModel;
   keyframes?: Keyframe[];  // Required for tween; unused for spring (spring uses model.properties)
   stagger?: string;
+  status?: VersionStatus;  // absent = 'in-progress'
+  forkedFrom?: string;     // parent version id in the same component
+  lineage?: string;        // origin when not forked, e.g. 'imported from <figma link>'
   // Future-ready
-  status?: 'in-progress' | 'review' | 'approved' | 'archived';
   reviewNotes?: string;
-  forkedFrom?: string;
-  lineage?: string;  // e.g. 'imported from <figma link>'
 }
 
 export interface ComponentModule {
