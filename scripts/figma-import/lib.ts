@@ -163,11 +163,11 @@ export const v1: MotionVersion = {
   label: 'Default Entrance',
   model: {
     model: 'tween',
-    transform: 'motion.transforms.emphasized',
+    transform: 'transforms.emphasized',
     delay: '0ms',
   },
   keyframes: [
-    { opacity: 0, transform: 'translateY(16px)', offset: 0 }, // motion.distance.md
+    { opacity: 0, transform: 'translateY(16px)', offset: 0 }, // distance.md
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
   status: 'in-progress',

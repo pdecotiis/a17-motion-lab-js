@@ -8,12 +8,12 @@ test.describe('Tokens view', () => {
   test('groups run transforms, duration, easing, springs, distance, and transforms open first', async ({ page }) => {
     await expect(page.locator('.lab-tokens-subtab')).toHaveText(['Transforms', 'Duration', 'Easing', 'Springs', 'Distance']);
     await expect(page.locator('.lab-tokens-subtab--active')).toHaveText('Transforms');
-    await expect(page.locator('.lab-token-name').first()).toHaveText('motion.transforms.entrance');
+    await expect(page.locator('.lab-token-name').first()).toHaveText('transforms.entrance');
   });
 
   test('a transform shows its duration and easing as badges, not raw values', async ({ page }) => {
     const value = page.locator('.lab-token-row').first().locator('.lab-token-value');
-    await expect(value.locator('.lab-token-badge')).toHaveText(['base · 300ms', 'ease-out']);
+    await expect(value.locator('.lab-token-badge')).toHaveText(['250ms', 'productive.entrance']);
     await expect(value).not.toContainText('cubic-bezier');
   });
 
@@ -23,10 +23,10 @@ test.describe('Tokens view', () => {
 
     await page.click('.lab-tokens-subtab:has-text("Duration")');
     await expect(page.locator('.lab-token-row .lab-curve')).toHaveCount(0);
-    await expect(page.locator('.lab-token-row .lab-token-preview')).toHaveCount(4);
+    await expect(page.locator('.lab-token-row .lab-token-preview')).toHaveCount(7);
 
     await page.click('.lab-tokens-subtab:has-text("Easing")');
-    await expect(page.locator('.lab-token-row .lab-curve')).toHaveCount(4);
+    await expect(page.locator('.lab-token-row .lab-curve')).toHaveCount(6);
 
     await page.click('.lab-tokens-subtab:has-text("Springs")');
     await expect(page.locator('.lab-token-row .lab-curve')).toHaveCount(3);

@@ -8,11 +8,11 @@ import type { LiveControls } from './types.js';
 export type ControlGroup = 'transforms' | 'springs';
 
 export interface ControlOption {
-  /** Token path (e.g. "motion.transforms.entrance"); '' is "version default". */
+  /** Token path (e.g. "transforms.entrance"); '' is "version default". */
   value: string;
   /** The token's name, e.g. "entrance". */
   label: string;
-  /** What it is, e.g. "300ms · ease-out" or "bounce 0.4 · 600ms". */
+  /** What it is, e.g. "250ms · productive.entrance" or "bounce 0.4 · 600ms". */
   detail: string;
 }
 
@@ -25,15 +25,27 @@ export function tokenCss(raw: Record<string, unknown>, path: string): string | u
   return undefined;
 }
 
-function tokenName(path: string): string {
-  return path.slice(path.lastIndexOf('.') + 1);
+// A token's name within its group: "transforms.entrance" → "entrance",
+// "easing.productive.entrance" → "productive.entrance", "duration.250" → "250".
+export function tokenLabel(path: string): string {
+  const parts = path.split('.');
+  return parts.length > 1 ? parts.slice(1).join('.') : path;
 }
 
-// "300ms · ease-out" for a transform: the duration, and the easing token's name (or the literal).
+// A duration for display: "250ms" when the token is named for its value, "base · 300ms" otherwise.
+// A literal (not a token) is returned as is.
+export function durationLabel(raw: Record<string, unknown>, ref: string): string {
+  const css = tokenCss(raw, ref);
+  if (!(ref in raw) || css === undefined) return ref;
+  const name = tokenLabel(ref);
+  return css === `${name}ms` ? css : `${name} · ${css}`;
+}
+
+// "250ms · productive.entrance" for a transform: the duration, and the easing token's name (or the literal).
 function describeTransform(raw: Record<string, unknown>, path: string): string {
   const t = raw[path];
   if (!isTransformValue(t)) return '';
-  const easing = t.easing in raw ? tokenName(t.easing) : t.easing;
+  const easing = t.easing in raw ? tokenLabel(t.easing) : t.easing;
   return `${tokenCss(raw, t.duration) ?? t.duration} · ${easing}`;
 }
 
@@ -44,12 +56,12 @@ function describeSpring(raw: Record<string, unknown>, path: string): string {
 
 // The options for a group, in token-file order.
 export function controlOptions(raw: Record<string, unknown>, group: ControlGroup): ControlOption[] {
-  const prefix = `motion.${group}.`;
+  const prefix = `${group}.`;
   return Object.keys(raw)
     .filter(path => path.startsWith(prefix))
     .map(path => ({
       value: path,
-      label: tokenName(path),
+      label: tokenLabel(path),
       detail: group === 'transforms' ? describeTransform(raw, path) : describeSpring(raw, path),
     }))
     .filter(o => o.detail !== '');

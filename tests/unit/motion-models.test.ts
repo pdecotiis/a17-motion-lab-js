@@ -3,15 +3,15 @@ import { resolveTiming, tweenParts, buildAnimationOptions, buildSpringWaapiKeyfr
 import type { MotionVersion } from '../../lab/lib/types.js';
 
 const raw: Record<string, unknown> = {
-  'motion.duration.base': '300ms',
-  'motion.easing.ease-out': [0.0, 0.0, 0.2, 1.0],
-  'motion.springs.bouncy': { bounce: 0.4, duration: 600 },
+  'duration.base': '300ms',
+  'easing.ease-out': [0.0, 0.0, 0.2, 1.0],
+  'springs.bouncy': { bounce: 0.4, duration: 600 },
 };
 
 const tweenVersion: MotionVersion = {
   id: 'v1',
   label: 'Fade Up',
-  model: { model: 'tween', duration: 'motion.duration.base', easing: 'motion.easing.ease-out', delay: '0ms' },
+  model: { model: 'tween', duration: 'duration.base', easing: 'easing.ease-out', delay: '0ms' },
   keyframes: [
     { opacity: 0, transform: 'translateY(16px)' },
     { opacity: 1, transform: 'translateY(0)' },
@@ -24,7 +24,7 @@ const springVersion: MotionVersion = {
   model: {
     model: 'spring',
     bounce: 0.4,
-    duration: 'motion.springs.bouncy',
+    duration: 'springs.bouncy',
     properties: [
       { property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1, span: 1, useSpring: true },
       { property: 'opacity', from: 0, to: 1, span: 1, useSpring: false },
@@ -168,19 +168,19 @@ describe('validateMotionVersion', () => {
 describe('transforms on tween versions', () => {
   const rawWithTransform: Record<string, unknown> = {
     ...raw,
-    'motion.duration.slow': '500ms',
-    'motion.transforms.entrance': { duration: 'motion.duration.base', easing: 'motion.easing.ease-out' },
-    'motion.transforms.emphasized': { duration: 'motion.duration.slow', easing: 'motion.easing.ease-out' },
+    'duration.slow': '500ms',
+    'transforms.entrance': { duration: 'duration.base', easing: 'easing.ease-out' },
+    'transforms.emphasized': { duration: 'duration.slow', easing: 'easing.ease-out' },
   };
   const withTransform = (over: Partial<MotionVersion['model']> = {}): MotionVersion => ({
     ...tweenVersion,
-    model: { model: 'tween', transform: 'motion.transforms.entrance', ...over } as MotionVersion['model'],
+    model: { model: 'tween', transform: 'transforms.entrance', ...over } as MotionVersion['model'],
   });
 
   it('tweenParts expands a transform into its duration and easing', () => {
     expect(tweenParts(withTransform().model as never, rawWithTransform)).toEqual({
-      duration: 'motion.duration.base',
-      easing: 'motion.easing.ease-out',
+      duration: 'duration.base',
+      easing: 'easing.ease-out',
       delay: undefined,
     });
   });
@@ -200,8 +200,8 @@ describe('transforms on tween versions', () => {
   });
 
   it('an unknown transform throws a clear error', () => {
-    expect(() => resolveTiming(withTransform({ transform: 'motion.transforms.nope' }), rawWithTransform))
-      .toThrow('Unknown transform token: "motion.transforms.nope"');
+    expect(() => resolveTiming(withTransform({ transform: 'transforms.nope' }), rawWithTransform))
+      .toThrow('Unknown transform token: "transforms.nope"');
   });
 
   it('validates with a transform, or with both duration and easing', () => {
@@ -210,9 +210,9 @@ describe('transforms on tween versions', () => {
   });
 
   it('rejects a transform mixed with duration or easing, and a tween with neither', () => {
-    expect(() => validateMotionVersion(withTransform({ duration: 'motion.duration.base' })))
+    expect(() => validateMotionVersion(withTransform({ duration: 'duration.base' })))
       .toThrow(/must not also set duration or easing/);
-    expect(() => validateMotionVersion({ ...tweenVersion, model: { model: 'tween', duration: 'motion.duration.base' } }))
+    expect(() => validateMotionVersion({ ...tweenVersion, model: { model: 'tween', duration: 'duration.base' } }))
       .toThrow(/needs a transform, or both duration and easing/);
   });
 });

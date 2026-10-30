@@ -20,9 +20,9 @@ describe('Card motion versions', () => {
       expect(t.duration).toBeGreaterThan(0);
     });
 
-    it('resolves motion.duration.base to 300ms', () => {
+    it('resolves the entrance transform for v1 (250ms)', () => {
       const t = resolveTiming(v1, raw);
-      expect(t.duration).toBe(300);
+      expect(t.duration).toBe(250);
     });
 
     it('produces a cubic-bezier easing string', () => {
@@ -58,7 +58,7 @@ describe('Card motion versions', () => {
       expect(last.opacity).toBe(1);
     });
 
-    it('resolves duration from motion.springs.bouncy token (600ms natural period)', () => {
+    it('resolves duration from springs.bouncy token (600ms natural period)', () => {
       // The spring settles after some time; duration is positive and derived from 600ms natural period
       const { duration } = buildSpringWaapiKeyframes(v2, raw);
       expect(duration).toBeGreaterThan(0);

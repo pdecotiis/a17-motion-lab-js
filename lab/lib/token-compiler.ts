@@ -5,9 +5,11 @@ export interface CompiledTokens {
   raw: Record<string, unknown>;
 }
 
-// The CSS custom property a token path compiles to, e.g. 'motion.duration.base' → '--motion-duration-base'.
+// The CSS custom property a token path compiles to, e.g. 'duration.250' → '--motion-duration-250'.
+// Token paths carry no "motion" root: the token file is the namespace, as a collection is in Figma
+// (easing/productive/standard). The CSS variable keeps the prefix so it can't collide with others.
 export function tokenVarName(path: string): string {
-  return `--${path.replace(/\./g, '-')}`;
+  return `--motion-${path.replace(/\./g, '-')}`;
 }
 
 function isDtcgToken(v: unknown): v is DtcgToken {
@@ -63,7 +65,7 @@ function flattenGroup(
   }
 }
 
-// "{motion.duration.base}" → the token path, checked to exist and to be the right kind.
+// "{duration.base}" → the token path, checked to exist and to be the right kind.
 // Anything else is a literal value ("300ms", "ease-out") and passes through.
 function resolveTransformPart(
   owner: string,
@@ -73,7 +75,7 @@ function resolveTransformPart(
   kind: 'duration' | 'easing',
 ): string {
   if (typeof ref !== 'string' || ref === '') {
-    throw new Error(`Token ${owner}: transition ${field} must be a token reference like "{motion.duration.base}" or a value`);
+    throw new Error(`Token ${owner}: transition ${field} must be a token reference like "{duration.base}" or a value`);
   }
   const m = /^\{(.+)\}$/.exec(ref);
   if (!m) return ref;

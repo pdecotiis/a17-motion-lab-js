@@ -30,7 +30,7 @@ function literal(value: unknown): string {
   return String(value);
 }
 
-// "motion.duration.base (300ms)" for a token, or the literal when the value isn't one.
+// "duration.base (300ms)" for a token, or the literal when the value isn't one.
 function describeValue(value: string | undefined, raw: Record<string, unknown>, fallback: string): string {
   if (!value) return fallback;
   return value in raw ? `${value} (${literal(raw[value])})` : `${value} (hard-coded, not a token)`;

@@ -11,7 +11,7 @@ Motion Lab is a reusable template for iterating on motion for components importe
 
 - Shell: Vite + vanilla TS, Web Animations runtime, component view, live controls, compare, speed, stagger, light/dark, page view with motion map (URL state) and presets.
 - Library view: every component as a scaled live preview that plays on hover, with name search and the status filter; cards link to the component view.
-- Token structure: `motion.duration.*`, `motion.easing.*`, `motion.transforms.*` (a named duration + easing, `transition` type with `{token}` references), `motion.distance.*`, `motion.springs.*`. CSS variables are now `--motion-duration-base` (the doubled `motion-motion` is gone). Tween versions can set a `transform` instead of duration + easing.
+- Token structure: `duration.*`, `easing.*`, `transforms.*` (a named duration + easing, `transition` type with `{token}` references), `distance.*`, `springs.*`. Token paths have no `motion.` root, so they match the Figma variable collection one to one (`easing.productive.standard` is `easing/productive/standard` in Figma). CSS variables keep the prefix: `--motion-duration-250`. Tween versions can set a `transform` instead of duration + easing. Seed values follow the design system: durations 50–700ms named by value, easings in `productive` and `expressive` sets (standard, entrance, exit); the old `base/fast/slow`, `ease-out/in/in-out` and `spring-base` tokens are gone, and the bouncy spring has no fallback token.
 - Controls panel is a dropdown of the system's named options: transforms for a tween, spring tokens for a spring. No duration, easing or delay fields and no "Custom…". "Tokens used" follows the CSS / Spring engine toggle.
 - Shared preview config (`.claude/launch.json`): the app's one-click dev server on port 5173, for every project repo.
 - Spring engine; springs compile to CSS `linear()` with an optional cubic-bezier fallback.
@@ -53,7 +53,7 @@ The pilot project repo was freshly created from the template and pulled the late
    - Open: a spec adapter for the client's animation library, only if the parity check shows the CSS isn't enough.
 4. Twill publish script (waiting on upload details).
 5. Designer onboarding guide; a second designer tries it.
-6. Push motion tokens to Figma (`/lab figma-sync`): write `motion.duration.*`, `motion.easing.*`, `motion.transforms.*`, `motion.distance.*` and `motion.springs.*` into a "Motion" variable collection in the linked Figma file via the Figma MCP, so designers see the same names and values in Figma that the Lab uses.
+6. Push motion tokens to Figma (`/lab figma-sync`): write `duration.*`, `easing.*`, `transforms.*`, `distance.*` and `springs.*` into the "Motion" variable collection in the linked Figma file via the Figma MCP. The names and nesting already match the collection (dots in a token path are slashes in Figma), so designers see the same names and values in Figma that the Lab uses.
    - Open: Figma variables are boolean/number/string/color only, so easings (cubic-bezier) and springs need a representation: likely strings for easings, numbers for duration/bounce. Check whether Figma's native animation styles can hold the curves too.
    - Open: a transform is a composite (duration + easing). Decide whether it becomes two variables per transform (`entrance/duration`, `entrance/easing`) or aliases to the duration and easing variables.
    - Idempotent: re-running updates changed values and flags removed tokens instead of deleting them.

@@ -8,7 +8,7 @@ export const v2: MotionVersion = {
   model: {
     model: 'spring',
     bounce: 0.4,
-    duration: 'motion.springs.bouncy',
+    duration: 'springs.bouncy',
     properties: [
       { property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1, span: 1, useSpring: true },
       { property: 'opacity', from: 0, to: 1, span: 1, useSpring: false },

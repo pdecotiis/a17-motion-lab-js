@@ -32,7 +32,7 @@ test.describe('Component view', () => {
     await expect(page.locator('#ctrl-transform option')).toHaveText([
       'Version default · entrance', 'entrance', 'exit', 'standard', 'emphasized',
     ]);
-    await expect(page.locator('#ctrl-transform-detail')).toHaveText('entrance · 300ms · ease-out');
+    await expect(page.locator('#ctrl-transform-detail')).toHaveText('entrance · 250ms · productive.entrance');
     for (const id of ['ctrl-duration', 'ctrl-easing', 'ctrl-delay', 'ctrl-duration-custom']) {
       await expect(page.locator(`#${id}`)).toHaveCount(0);
     }
@@ -40,21 +40,21 @@ test.describe('Component view', () => {
   });
 
   test('picking a transform replays the version with it and says it is not saved', async ({ page }) => {
-    expect(await playedDuration(page)).toBe(300);
+    expect(await playedDuration(page)).toBe(250);
 
-    await page.selectOption('#ctrl-transform', 'motion.transforms.emphasized');
-    await expect(page.locator('#ctrl-transform')).toHaveValue('motion.transforms.emphasized');
-    await expect(page.locator('#ctrl-transform-detail')).toHaveText('500ms · ease-out');
+    await page.selectOption('#ctrl-transform', 'transforms.emphasized');
+    await expect(page.locator('#ctrl-transform')).toHaveValue('transforms.emphasized');
+    await expect(page.locator('#ctrl-transform-detail')).toHaveText('400ms · expressive.entrance');
     await expect(page.locator('#live-overrides')).toContainText('Previewing, not saved');
-    await expect(page.locator('#live-overrides')).toContainText('emphasized (500ms · ease-out) instead of entrance · 300ms · ease-out');
-    expect(await playedDuration(page)).toBe(500);
+    await expect(page.locator('#live-overrides')).toContainText('emphasized (400ms · expressive.entrance) instead of entrance · 250ms · productive.entrance');
+    expect(await playedDuration(page)).toBe(400);
 
-    await page.selectOption('#ctrl-transform', 'motion.transforms.exit');
+    await page.selectOption('#ctrl-transform', 'transforms.exit');
     expect(await playedDuration(page)).toBe(150);
 
     await page.selectOption('#ctrl-transform', '');
     await expect(page.locator('#live-overrides')).toBeEmpty();
-    expect(await playedDuration(page)).toBe(300);
+    expect(await playedDuration(page)).toBe(250);
   });
 
   test('a spring version picks between spring tokens instead', async ({ page }) => {
@@ -63,7 +63,7 @@ test.describe('Component view', () => {
     await expect(page.locator('#ctrl-transform option')).toHaveText(['Version default · bouncy', 'bouncy', 'gentle', 'stiff']);
     await expect(page.locator('#ctrl-transform-detail')).toHaveText('bouncy · bounce 0.4 · 600ms');
 
-    await page.selectOption('#ctrl-transform', 'motion.springs.gentle');
+    await page.selectOption('#ctrl-transform', 'springs.gentle');
     await expect(page.locator('#ctrl-transform-detail')).toHaveText('bounce 0.1 · 400ms');
     await expect(page.locator('#live-overrides')).toContainText('gentle (bounce 0.1 · 400ms) instead of bouncy');
     expect(await playedDuration(page)).toBe(400);
@@ -110,7 +110,7 @@ test.describe('Version status and lineage', () => {
     await page.goto('/?view=component&component=card&version=v1');
     const css = page.locator('#css-pre');
     await expect(css).toContainText('@keyframes motion-card-v1');
-    await expect(css).toContainText('var(--motion-duration-base, 300ms)');
+    await expect(css).toContainText('var(--motion-duration-250, 250ms)');
     await expect(css).toContainText('@media (prefers-reduced-motion: reduce)');
   });
 

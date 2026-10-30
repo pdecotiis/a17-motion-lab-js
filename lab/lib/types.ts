@@ -1,5 +1,5 @@
 // A tween is timed either by a transform token (a named duration + easing, e.g.
-// 'motion.transforms.entrance') or by a duration and an easing given directly. Prefer the transform.
+// 'transforms.entrance') or by a duration and an easing given directly. Prefer the transform.
 export type TweenModel = {
   model: 'tween';
   transform?: string;
@@ -34,7 +34,7 @@ export interface SpringProperty {
 export type SpringModel = {
   model: 'spring';
   bounce: number;
-  duration: string;  // token path (e.g. 'motion.springs.bouncy') or literal ('600ms')
+  duration: string;  // token path (e.g. 'springs.bouncy') or literal ('600ms')
   delay?: string;
   properties: SpringProperty[];
 };

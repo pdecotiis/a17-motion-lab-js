@@ -5,7 +5,7 @@ export const v1: MotionVersion = {
   label: 'Fade Up',
   model: {
     model: 'tween',
-    transform: 'motion.transforms.entrance',
+    transform: 'transforms.entrance',
     delay: '0ms',
   },
   keyframes: [
