@@ -1,4 +1,5 @@
-import type { MotionVersion, TweenModel, SpringModel, PageConfig, LiveControls } from './types.js';
+import type { MotionVersion, TweenModel, SpringModel, PageConfig } from './types.js';
+import { isTransformValue } from './token-compiler.js';
 
 export interface TokenRefs {
   tokens: string[];
@@ -19,32 +20,6 @@ export function getSpringFallbackPath(model: SpringModel, raw: Record<string, un
   if (typeof val !== 'object' || val === null || !('fallback' in val)) return undefined;
   const path = (val as { fallback: unknown }).fallback;
   return typeof path === 'string' && Array.isArray(raw[path]) ? path : undefined;
-}
-
-export interface LiveOverride {
-  label: string;
-  from: string;
-  to: string;
-}
-
-// Live-control values that differ from the version's own resolved timing.
-export function getLiveOverrides(
-  initial: { duration: number; delay: number; easing: string },
-  controls: LiveControls,
-): LiveOverride[] {
-  const overrides: LiveOverride[] = [];
-  const norm = (s: string): string => s.replace(/\s+/g, '');
-  const ms = (s: string): number => parseFloat(s);
-  if (controls.duration && ms(controls.duration) !== Math.round(initial.duration)) {
-    overrides.push({ label: 'duration', from: `${Math.round(initial.duration)}ms`, to: controls.duration });
-  }
-  if (controls.delay && ms(controls.delay) !== Math.round(initial.delay)) {
-    overrides.push({ label: 'delay', from: `${Math.round(initial.delay)}ms`, to: controls.delay });
-  }
-  if (controls.easing && norm(controls.easing) !== norm(initial.easing)) {
-    overrides.push({ label: 'easing', from: initial.easing, to: controls.easing });
-  }
-  return overrides;
 }
 
 // With a `mode` (the lab's CSS / Spring engine), a spring version lists only the tokens that
@@ -69,8 +44,19 @@ export function getTokenRefs(
 
   if (version.model.model === 'tween') {
     const m = version.model as TweenModel;
-    check(m.duration, 'duration');
-    check(m.easing, 'easing');
+    if (m.transform !== undefined) {
+      // The transform, then the duration and easing tokens it names.
+      check(m.transform, 'transform');
+      const t = raw[m.transform];
+      if (isTransformValue(t)) {
+        check(t.duration, 'duration');
+        check(t.easing, 'easing');
+        if (t.delay && !m.delay) check(t.delay, 'delay');
+      }
+    } else {
+      check(m.duration, 'duration');
+      check(m.easing, 'easing');
+    }
     if (m.delay) check(m.delay, 'delay');
   } else {
     const m = version.model as SpringModel;

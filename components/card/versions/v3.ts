@@ -6,8 +6,8 @@ export const v3: MotionVersion = {
   label: 'Slow Fade',
   model: {
     model: 'tween',
-    duration: 'motion.timings.slow',
-    easing: 'motion.easings.ease-out',
+    duration: 'motion.duration.slow',
+    easing: 'motion.easing.ease-out',
     delay: '0ms',
   },
   keyframes: [

@@ -2,6 +2,7 @@ import type { MotionVersion, TweenModel, SpringModel, SpringProperty } from './t
 import { getSpringFallbackPath } from './token-refs.js';
 import { springKeyframes, springToCubicBezierString, springToLinear } from './spring-engine.js';
 import { tokenVarName } from './token-compiler.js';
+import { tweenParts } from './motion-models.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { describeTrigger, getReducedMotionPolicy, getVersionStatus } from './version-meta.js';
 
@@ -156,11 +157,13 @@ export function buildVersionCss(
 
   if (version.model.model === 'tween') {
     const model = version.model as TweenModel;
-    const duration = cssValue(model.duration, raw, '300ms');
-    const easing = cssValue(model.easing, raw, 'ease');
-    const delay = literalValue(model.delay, raw, '0ms');
+    const parts = tweenParts(model, raw);
+    const duration = cssValue(parts.duration, raw, '300ms');
+    const easing = cssValue(parts.easing, raw, 'ease');
+    const delay = literalValue(parts.delay, raw, '0ms');
     const kfs = version.keyframes ?? [];
 
+    if (model.transform) out.push(`/* transform ${model.transform}: ${parts.duration}, ${parts.easing} */`);
     out.push('');
     if (kfs.length >= 2) out.push(...keyframesBlock(name, tweenFrames(kfs)), '');
     out.push(
@@ -174,7 +177,7 @@ export function buildVersionCss(
     );
 
     reducedEasing = easing;
-    reducedMs = Math.min(parseMs(literalValue(model.duration, raw, '300ms')), REDUCED_MOTION_FADE_MS);
+    reducedMs = Math.min(parseMs(literalValue(parts.duration, raw, '300ms')), REDUCED_MOTION_FADE_MS);
     if (kfs.some(kf => 'opacity' in kf)) {
       // Opacity only, as the lab does: a keyframe without opacity ends fully visible.
       reducedFrames = orderedKeyframes(kfs).map(({ offset, kf }) => ({

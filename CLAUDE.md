@@ -9,8 +9,9 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 **Tokens**: W3C DTCG JSON (`tokens/motion.json`) → CSS custom properties + raw values.
 **Components**: HTML/CSS prototypes with a `motion.ts` file that re-exports named motion versions, one file per version in `versions/`.
 **Library**: `/?view=library` lists every registered component as a scaled live preview (plays on hover). It builds from the component registry, so new components appear automatically; filters use `?status=…&archived=1&q=…`. Logic is in `lab/lib/library.ts`.
-**Live controls**: in the component view, duration, easing and delay are dropdowns of the system's tokens (`motion.timings.*`, `motion.easings.*`, plus "none" for delay), so designers pick from the system. "Custom…" reveals a free-form field and the override is flagged "(custom, not a token)". "Version default" means no override. Helpers are in `lab/lib/control-options.ts`.
-**Tokens used**: follows the CSS / Spring engine toggle. A spring version lists its spring token in both modes, plus the fallback easing only in CSS mode; easing is not pickable while the spring engine shapes it. `getTokenRefs(version, raw, { mode })` in `lab/lib/token-refs.ts`; without `mode` it lists every token (used by the Tokens view).
+**Live controls**: in the component view the Controls panel is one dropdown of the system's named options, and nothing finer. A tween picks from the **transforms** (`motion.transforms.*`: a duration and an easing together); a spring picks from the **spring tokens** (`motion.springs.*`). "Version default" means no override. Picking one replays the version with it and shows "Previewing, not saved". There are no duration, easing or delay fields and no free-form values: to change what a version uses, edit the version file (use a transform). Helpers are in `lab/lib/control-options.ts`.
+**Tokens used**: follows the CSS / Spring engine toggle. A spring version lists its spring token in both modes, plus the fallback easing only in CSS mode. A tween that uses a transform lists the transform and the duration and easing tokens it names. `getTokenRefs(version, raw, { mode })` in `lab/lib/token-refs.ts`; without `mode` it lists every token (used by the Tokens view).
+**Tokens view**: `/?view=tokens`, groups in the order Transforms, Duration, Easing, Springs, Distance. Transforms, easings and springs preview as a classic curve graph (progress over time, with 0 and 1 marked and overshoot shown); click it to run a dot along the curve. Durations and distances keep a bar. A transform's value is two badges (its duration and its easing) instead of raw values. The curve maths is in `lab/lib/curve.ts`.
 **Pages**: `page.json` defines an ordered list of component instances for page-level motion review.
 **Motion maps**: URL-encoded state (shareable) + saved JSON presets.
 
@@ -28,7 +29,7 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 
 - **Components**: `kebab-case` folder names (e.g. `card`, `hero-banner`)
 - **Motion versions**: `v1`, `v2`, `v3` — sequential integers, never skip
-- **Token paths**: dot notation (e.g. `motion.timings.base`)
+- **Token paths**: dot notation (e.g. `motion.duration.base`)
 - **Page IDs**: match folder name (e.g. `pages/home/page.json` has `"id": "home"`)
 - **Preset IDs**: `kebab-case` matching the filename
 
@@ -60,7 +61,7 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
    export const v3: MotionVersion = {
      id: 'v3',
      label: 'Descriptive Name',
-     model: { model: 'tween', duration: 'motion.timings.base', easing: 'motion.easings.ease-out' },
+     model: { model: 'tween', transform: 'motion.transforms.entrance' },
      keyframes: [ /* only motion properties */ ],
      status: 'in-progress',   // new versions always start in-progress
      forkedFrom: 'v1',        // the version this was copied from (required)
@@ -90,7 +91,7 @@ reducedMotion: 'fade',                                   // what prefers-reduced
 - `reducedMotion`: `'fade'` (absent = fade: transforms dropped, opacity fade of at most 150ms, `REDUCED_MOTION_FADE_MS`) or `'none'` (no animation, end state shown). The lab's playback and the exported CSS follow the same rule, so what a designer sees under reduced motion is what ships. Versions with no opacity change get no animation under `'fade'`.
 - Both validate in `validateMotionVersion`, show in the component view ("Plays", "Reduced motion"), and carry through `forkVersion`.
 
-**Generated CSS and spec export.** The "Generated CSS" panel and `npm run spec` share one generator (`lab/lib/css-output.ts`): plain, stack-neutral CSS with named `@keyframes motion-<component>-<version>`, a `.motion-<component>-<version>` class, token custom properties with the literal value as fallback (`var(--motion-motion-timings-base, 300ms)`), a stagger index (`--motion-index`) and a `prefers-reduced-motion` block. Springs ship as `linear()` behind `@supports`, with the cubic-bezier fallback; spring and linear properties become two animations so linear fades don't overshoot.
+**Generated CSS and spec export.** The "Generated CSS" panel and `npm run spec` share one generator (`lab/lib/css-output.ts`): plain, stack-neutral CSS with named `@keyframes motion-<component>-<version>`, a `.motion-<component>-<version>` class, token custom properties with the literal value as fallback (`var(--motion-duration-base, 300ms)`), a stagger index (`--motion-index`) and a `prefers-reduced-motion` block. Springs ship as `linear()` behind `@supports`, with the cubic-bezier fallback; spring and linear properties become two animations so linear fades don't overshoot.
 
 `npm run spec -- <component> [version] [--out <dir>]` writes `export/<component>/<version>/` (gitignored) with `motion.css`, `tokens.css` and `spec.md` (`lab/lib/spec.ts`). No version = every approved version; an explicit version exports whatever its status and says so in `spec.md`. `spec.md` also lists what the lab can't verify: the production element, layout and environment, and performance.
 
@@ -102,8 +103,11 @@ reducedMotion: 'fade',                                   // what prefers-reduced
 | `cubicBezier`   | `cubic-bezier(...)` string        | `[0.0, 0.0, 0.2, 1.0]`               |
 | `dimension`     | CSS length value                  | `"16px"`                               |
 | `custom-spring` | JS only (raw object, no CSS var)  | `{ "bounce": 0.4, "duration": 600 }`  |
+| `transition`    | JS only (no CSS var; the CSS uses the duration and easing variables it names) | `{ "duration": "{motion.duration.base}", "timingFunction": "{motion.easing.ease-out}" }` |
 
-Token paths use dot notation: `motion.timings.base`, `motion.easings.ease-out`, `motion.springs.bouncy`.
+Token groups: `motion.duration.*`, `motion.easing.*`, `motion.transforms.*`, `motion.distance.*`, `motion.springs.*`. Token paths use dot notation: `motion.duration.base`, `motion.easing.ease-out`, `motion.transforms.entrance`, `motion.springs.bouncy`. CSS variables drop the dots: `motion.duration.base` → `--motion-duration-base`.
+
+**Transforms** are named combinations of a duration and an easing (`entrance`, `exit`, `standard`, `emphasized`). A `transition` token's `duration` and `timingFunction` are `{token.path}` references (checked when the tokens compile: the token must exist and be the right kind) or literal values; an optional `delay` works the same way. The compiler stores a transform in `raw` as `{ duration, easing, delay? }` token paths. Springs are not transforms.
 
 The token compiler (`lab/lib/token-compiler.ts`) reads `tokens/motion.json` and outputs:
 - CSS custom properties applied to `:root` at startup
@@ -113,9 +117,14 @@ The token compiler (`lab/lib/token-compiler.ts`) reads `tokens/motion.json` and 
 
 ### Tween model
 ```ts
-{ model: 'tween', duration: 'motion.timings.base', easing: 'motion.easings.ease-out', delay?: '0ms' }
+{ model: 'tween', transform: 'motion.transforms.entrance', delay?: '0ms' }
+// or, giving the timing directly:
+{ model: 'tween', duration: 'motion.duration.base', easing: 'motion.easing.ease-out', delay?: '0ms' }
 ```
+- **Prefer a `transform`.** It names a duration and an easing together, and it is what the Controls panel offers. Set a transform, or both `duration` and `easing`, never a mix (`validateMotionVersion` fails otherwise).
 - `duration` and `easing` can be a token path or a literal value (`"300ms"`, `"ease-out"`, `"cubic-bezier(...)"`)
+- `delay` stays on the version and wins over a transform's own delay.
+- `tweenParts(model, raw)` in `lab/lib/motion-models.ts` expands either form to duration, easing and delay; resolving an unknown transform throws.
 
 ### Spring model
 ```ts
@@ -138,7 +147,7 @@ tests/e2e/_template.spec.ts    → copy to tests/e2e/<component>.spec.ts
 - `validateMotionVersion(v)` does not throw (no structural keyframe props, no extra properties)
 - Tween versions: `resolveTiming(v, raw)` produces a numeric `duration` > 0 (`resolveTiming` is tween-only and throws on spring versions)
 - Tween versions: `resolveTiming(v, raw)` produces a string `easing` containing `cubic-bezier`
-- Token paths (e.g. `motion.timings.base`) resolve to expected concrete values
+- Token paths (e.g. `motion.duration.base`, `motion.transforms.entrance`) resolve to expected concrete values
 
 ### E2E test coverage required per component
 - Component renders visibly at `/?view=component&component=<name>`

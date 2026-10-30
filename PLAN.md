@@ -11,7 +11,8 @@ Motion Lab is a reusable template for iterating on motion for components importe
 
 - Shell: Vite + vanilla TS, Web Animations runtime, component view, live controls, compare, speed, stagger, light/dark, page view with motion map (URL state) and presets.
 - Library view: every component as a scaled live preview that plays on hover, with name search and the status filter; cards link to the component view.
-- Token-first live controls: duration, easing and delay are dropdowns of system tokens; anything else needs "Custom…" and is flagged. "Tokens used" follows the CSS / Spring engine toggle.
+- Token structure: `motion.duration.*`, `motion.easing.*`, `motion.transforms.*` (a named duration + easing, `transition` type with `{token}` references), `motion.distance.*`, `motion.springs.*`. CSS variables are now `--motion-duration-base` (the doubled `motion-motion` is gone). Tween versions can set a `transform` instead of duration + easing.
+- Controls panel is a dropdown of the system's named options: transforms for a tween, spring tokens for a spring. No duration, easing or delay fields and no "Custom…". "Tokens used" follows the CSS / Spring engine toggle.
 - Shared preview config (`.claude/launch.json`): the app's one-click dev server on port 5173, for every project repo.
 - Spring engine; springs compile to CSS `linear()` with an optional cubic-bezier fallback.
 - Tokens view with usage ("used by", tokens per version, unused flagged).
@@ -31,7 +32,11 @@ Motion Lab is a reusable template for iterating on motion for components importe
 - `reference/old-motion-lab.html` (gitignored) is the old lab, for porting features only. Never copy client content from it.
 - The motion-only rule: versions change motion, never structure.
 - Motion tokens flow Motion Lab → Figma. `tokens/motion.json` is the source of truth for motion; Figma holds a read-only mirror in its own "Motion" variable collection. Visual variables still flow Figma → Motion Lab (import), so the two directions never share a collection.
+- Designers choose from named options, not granular values: in the component view they pick from the transforms (or spring tokens), never type a duration, easing or delay. To use a value the system doesn't have, an author adds a token (see token governance, on hold) or edits the version.
 - Authors are the core users. Reviewers and tweakers get the hosted Lab. Getting started must still need as little setup as possible: a GitHub account, a machine setup and org repo admin per designer is a real cost for authors, so reducing it (or removing it, see step 8) is a product goal, not a nice-to-have.
+- Authoring and iterating on motion happens in Claude. Figma's motion tools don't yet give designers what they need and are lossy when translated to our model, so Figma stays the source of visuals and a synced mirror of motion tokens, not the place motion is authored.
+- What the Lab exports should be as close as possible to what a developer actually ships. Judge every export change by how little a developer has to reinterpret.
+- Effort to start is a standing product concern. Every new feature should be weighed by whether it makes it easier or harder for a designer to pick the tool up and start working.
 - The developer hand-off is stack-neutral CSS first. Library adapters (GSAP, Motion) are added only when a client's stack needs one.
 - A version with no `trigger` is "not specified", never defaulted. The spec and CSS say so and tell the developer to ask. Imports never set a trigger.
 
@@ -48,12 +53,13 @@ The pilot project repo was freshly created from the template and pulled the late
    - Open: a spec adapter for the client's animation library, only if the parity check shows the CSS isn't enough.
 4. Twill publish script (waiting on upload details).
 5. Designer onboarding guide; a second designer tries it.
-6. Push motion tokens to Figma (`/lab figma-sync`): write `motion.timings.*`, `motion.easings.*` and `motion.springs.*` into a "Motion" variable collection in the linked Figma file via the Figma MCP, so designers see the same names and values in Figma that the Lab uses.
+6. Push motion tokens to Figma (`/lab figma-sync`): write `motion.duration.*`, `motion.easing.*`, `motion.transforms.*`, `motion.distance.*` and `motion.springs.*` into a "Motion" variable collection in the linked Figma file via the Figma MCP, so designers see the same names and values in Figma that the Lab uses.
    - Open: Figma variables are boolean/number/string/color only, so easings (cubic-bezier) and springs need a representation: likely strings for easings, numbers for duration/bounce. Check whether Figma's native animation styles can hold the curves too.
+   - Open: a transform is a composite (duration + easing). Decide whether it becomes two variables per transform (`entrance/duration`, `entrance/easing`) or aliases to the duration and easing variables.
    - Idempotent: re-running updates changed values and flags removed tokens instead of deleting them.
    - Show in the Tokens view whether each token is in sync with Figma.
 7. Low-friction access: define what a designer can do with no GitHub account and no setup. Candidates: use the hosted Lab (step 4) in the browser with the live controls and shareable motion-map URLs; submit a tweak back as a link or preset instead of a pull request; one org-level repo with a single admin step. Decide the tiers (reviewer / tweaker / author) before the second designer onboards.
-8. Spike (1–2 weeks, one question): can a Figma plugin be the authoring home for designers, with no GitHub? Take a selected frame, render it in the plugin's UI iframe, animate it with the existing runtime, fill the token dropdowns from Figma variables, save versions in the file. Decide go/no-go on two things: is a render from the node tree good enough without Claude's fix-up passes, and would a designer choose it over Figma's native motion for real work? If go, extract the engine (runtime, tokens, springs, spec export) as a library with two shells: this repo and the plugin. Figma Make is not a candidate base (per-file generated apps don't fit a shared template).
+8. Lower priority, since authoring stays in Claude (see Decisions). Spike (1–2 weeks, one question), only worth running if the setup friction in step 7 can't be reduced enough: can a Figma plugin be the authoring home for designers, with no GitHub? Take a selected frame, render it in the plugin's UI iframe, animate it with the existing runtime, fill the token dropdowns from Figma variables, save versions in the file. Decide go/no-go on two things: is a render from the node tree good enough without Claude's fix-up passes, and would a designer choose it over Figma's native motion for real work? If go, extract the engine (runtime, tokens, springs, spec export) as a library with two shells: this repo and the plugin. Figma Make is not a candidate base (per-file generated apps don't fit a shared template).
 
 ## On hold
 

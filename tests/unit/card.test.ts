@@ -20,7 +20,7 @@ describe('Card motion versions', () => {
       expect(t.duration).toBeGreaterThan(0);
     });
 
-    it('resolves motion.timings.base to 300ms', () => {
+    it('resolves motion.duration.base to 300ms', () => {
       const t = resolveTiming(v1, raw);
       expect(t.duration).toBe(300);
     });

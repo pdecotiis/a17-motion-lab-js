@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { getTokenRefs, buildUsageIndex, buildPageUsageIndex, getLiveOverrides, getSpringFallbackPath } from '../../lab/lib/token-refs.js';
+import { getTokenRefs, buildUsageIndex, buildPageUsageIndex, getSpringFallbackPath } from '../../lab/lib/token-refs.js';
 import { buildVersionCss } from '../../lab/lib/css-output.js';
 import type { MotionVersion } from '../../lab/lib/types.js';
 
 const raw: Record<string, unknown> = {
-  'motion.timings.base': '300ms',
-  'motion.timings.slow': '500ms',
-  'motion.easings.ease-out': [0.0, 0.0, 0.2, 1.0],
+  'motion.duration.base': '300ms',
+  'motion.duration.slow': '500ms',
+  'motion.easing.ease-out': [0.0, 0.0, 0.2, 1.0],
   'motion.springs.bouncy': { bounce: 0.4, duration: 600 },
 };
 
@@ -15,8 +15,8 @@ const tweenVersion: MotionVersion = {
   label: 'Fade Up',
   model: {
     model: 'tween',
-    duration: 'motion.timings.base',
-    easing: 'motion.easings.ease-out',
+    duration: 'motion.duration.base',
+    easing: 'motion.easing.ease-out',
     delay: '0ms',
   },
   keyframes: [],
@@ -43,8 +43,8 @@ const hardcodedVersion: MotionVersion = {
 describe('getTokenRefs', () => {
   it('extracts token paths from a tween version', () => {
     const { tokens } = getTokenRefs(tweenVersion, raw);
-    expect(tokens).toContain('motion.timings.base');
-    expect(tokens).toContain('motion.easings.ease-out');
+    expect(tokens).toContain('motion.duration.base');
+    expect(tokens).toContain('motion.easing.ease-out');
   });
 
   it('extracts token paths from a spring version', () => {
@@ -69,13 +69,13 @@ describe('getTokenRefs', () => {
       id: 'v4', label: 'Dup',
       model: {
         model: 'tween',
-        duration: 'motion.timings.base',
-        easing: 'motion.timings.base',
+        duration: 'motion.duration.base',
+        easing: 'motion.duration.base',
       },
       keyframes: [],
     };
     const { tokens } = getTokenRefs(dupVersion, raw);
-    const occurrences = tokens.filter(t => t === 'motion.timings.base').length;
+    const occurrences = tokens.filter(t => t === 'motion.duration.base').length;
     expect(occurrences).toBe(1);
   });
 
@@ -100,8 +100,8 @@ describe('buildUsageIndex', () => {
     ];
     const index = buildUsageIndex(allVersions, raw);
 
-    expect(index.has('motion.timings.base')).toBe(true);
-    const entries = index.get('motion.timings.base')!;
+    expect(index.has('motion.duration.base')).toBe(true);
+    const entries = index.get('motion.duration.base')!;
     expect(entries[0]!.componentName).toBe('card');
     expect(entries[0]!.versionId).toBe('v1');
 
@@ -112,7 +112,7 @@ describe('buildUsageIndex', () => {
   it('tokens used by multiple versions accumulate entries', () => {
     const v1b: MotionVersion = {
       id: 'v1b', label: 'Also uses base',
-      model: { model: 'tween', duration: 'motion.timings.base', easing: 'ease' },
+      model: { model: 'tween', duration: 'motion.duration.base', easing: 'ease' },
       keyframes: [],
     };
     const allVersions = [
@@ -120,7 +120,7 @@ describe('buildUsageIndex', () => {
       { componentName: 'hero', version: v1b },
     ];
     const index = buildUsageIndex(allVersions, raw);
-    const entries = index.get('motion.timings.base')!;
+    const entries = index.get('motion.duration.base')!;
     expect(entries.length).toBe(2);
     expect(entries.some(e => e.componentName === 'hero')).toBe(true);
   });
@@ -128,8 +128,8 @@ describe('buildUsageIndex', () => {
   it('tokens not referenced by any version are absent from the index', () => {
     const allVersions = [{ componentName: 'card', version: tweenVersion }];
     const index = buildUsageIndex(allVersions, raw);
-    // motion.timings.slow and motion.springs.bouncy are not used by tweenVersion
-    expect(index.has('motion.timings.slow')).toBe(false);
+    // motion.duration.slow and motion.springs.bouncy are not used by tweenVersion
+    expect(index.has('motion.duration.slow')).toBe(false);
     expect(index.has('motion.springs.bouncy')).toBe(false);
   });
 
@@ -151,8 +151,8 @@ describe('buildPageUsageIndex', () => {
       { id: 'about', title: 'About', components: [{ id: 'h1', component: 'hero' }] },
     ];
     const index = buildPageUsageIndex(pages, defaults, raw);
-    expect(index.get('motion.timings.base')).toEqual(['home']);
-    expect(index.get('motion.easings.ease-out')).toEqual(['home']);
+    expect(index.get('motion.duration.base')).toEqual(['home']);
+    expect(index.get('motion.easing.ease-out')).toEqual(['home']);
     expect(index.get('motion.springs.bouncy')).toEqual(['about']);
   });
 
@@ -161,14 +161,14 @@ describe('buildPageUsageIndex', () => {
       id: 'home', title: 'Home',
       components: [{ id: 'c1', component: 'card' }, { id: 'c2', component: 'card' }],
     }];
-    expect(buildPageUsageIndex(pages, defaults, raw).get('motion.timings.base')).toEqual(['home']);
+    expect(buildPageUsageIndex(pages, defaults, raw).get('motion.duration.base')).toEqual(['home']);
   });
 
   it('drops a page from a token when its component is removed', () => {
     const page = { id: 'home', title: 'Home', components: [{ id: 'c1', component: 'card' }] };
-    expect(buildPageUsageIndex([page], defaults, raw).has('motion.timings.base')).toBe(true);
+    expect(buildPageUsageIndex([page], defaults, raw).has('motion.duration.base')).toBe(true);
     const removed = { ...page, components: [] };
-    expect(buildPageUsageIndex([removed], defaults, raw).has('motion.timings.base')).toBe(false);
+    expect(buildPageUsageIndex([removed], defaults, raw).has('motion.duration.base')).toBe(false);
   });
 
   it('ignores components with no registered default version', () => {
@@ -189,19 +189,19 @@ describe('buildUsageIndex — adding and removing references', () => {
       { componentName: 'card', versionId: 'v2', versionLabel: 'Scale In' },
     ]);
     const removed = buildUsageIndex([{ componentName: 'card', version: springVersion }], raw);
-    expect(removed.has('motion.timings.base')).toBe(false);
+    expect(removed.has('motion.duration.base')).toBe(false);
   });
 });
 
 describe('spring cubic-bezier fallback token', () => {
   const rawWithFallback: Record<string, unknown> = {
     ...raw,
-    'motion.easings.spring-base': [0.34, 1.56, 0.64, 1.0],
-    'motion.springs.bouncy': { bounce: 0.4, duration: 600, fallback: 'motion.easings.spring-base' },
+    'motion.easing.spring-base': [0.34, 1.56, 0.64, 1.0],
+    'motion.springs.bouncy': { bounce: 0.4, duration: 600, fallback: 'motion.easing.spring-base' },
   };
 
   it('resolves the fallback path when the spring token names a cubicBezier token', () => {
-    expect(getSpringFallbackPath(springVersion.model as never, rawWithFallback)).toBe('motion.easings.spring-base');
+    expect(getSpringFallbackPath(springVersion.model as never, rawWithFallback)).toBe('motion.easing.spring-base');
   });
 
   it('returns undefined when there is no fallback or it is not a cubicBezier token', () => {
@@ -211,17 +211,17 @@ describe('spring cubic-bezier fallback token', () => {
   });
 
   it('counts the fallback token as used by the version', () => {
-    expect(getTokenRefs(springVersion, rawWithFallback).tokens).toContain('motion.easings.spring-base');
+    expect(getTokenRefs(springVersion, rawWithFallback).tokens).toContain('motion.easing.spring-base');
   });
 
   it('lists the fallback easing in CSS mode but only the spring token in Spring mode', () => {
     const css = getTokenRefs(springVersion, rawWithFallback, { mode: 'css' }).tokens;
     expect(css).toContain('motion.springs.bouncy');
-    expect(css).toContain('motion.easings.spring-base');
+    expect(css).toContain('motion.easing.spring-base');
 
     const spring = getTokenRefs(springVersion, rawWithFallback, { mode: 'spring' }).tokens;
     expect(spring).toContain('motion.springs.bouncy');
-    expect(spring).not.toContain('motion.easings.spring-base');
+    expect(spring).not.toContain('motion.easing.spring-base');
   });
 
   it('leaves tween versions unchanged in either mode', () => {
@@ -230,28 +230,41 @@ describe('spring cubic-bezier fallback token', () => {
 
   it('emits the fallback token value in generated CSS, else a derived cubic-bezier', () => {
     const withToken = buildVersionCss(springVersion, rawWithFallback, { mode: 'spring' });
-    expect(withToken).toContain('cubic-bezier fallback (motion.easings.spring-base): cubic-bezier(0.34, 1.56, 0.64, 1)');
+    expect(withToken).toContain('cubic-bezier fallback (motion.easing.spring-base): cubic-bezier(0.34, 1.56, 0.64, 1)');
     const derived = buildVersionCss(springVersion, raw, { mode: 'spring' });
     expect(derived).toMatch(/cubic-bezier fallback: cubic-bezier\(/);
   });
 });
 
-describe('getLiveOverrides', () => {
-  const initial = { duration: 300, delay: 0, easing: 'cubic-bezier(0, 0, 0.2, 1)' };
+describe('transform references', () => {
+  const rawT: Record<string, unknown> = {
+    'motion.duration.base': '300ms',
+    'motion.easing.ease-out': [0, 0, 0.2, 1],
+    'motion.transforms.entrance': { duration: 'motion.duration.base', easing: 'motion.easing.ease-out' },
+  };
+  const v: MotionVersion = {
+    id: 'v1',
+    label: 'Fade',
+    model: { model: 'tween', transform: 'motion.transforms.entrance' },
+    keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
+    lineage: 'imported from test',
+  };
 
-  it('returns nothing when controls match the version', () => {
-    expect(getLiveOverrides(initial, { duration: '300ms', delay: '0ms', easing: 'cubic-bezier(0,0,0.2,1)' })).toEqual([]);
-    expect(getLiveOverrides(initial, {})).toEqual([]);
+  it('lists the transform and the duration and easing tokens it names', () => {
+    expect(getTokenRefs(v, rawT)).toEqual({
+      tokens: ['motion.transforms.entrance', 'motion.duration.base', 'motion.easing.ease-out'],
+      hardcoded: [],
+    });
   });
 
-  it('flags each changed control with before and after', () => {
-    const o = getLiveOverrides(initial, { duration: '450ms', delay: '50ms', easing: 'ease-in' });
-    expect(o.map(x => x.label)).toEqual(['duration', 'delay', 'easing']);
-    expect(o[0]).toEqual({ label: 'duration', from: '300ms', to: '450ms' });
+  it('counts the underlying tokens as used, so none is flagged unused', () => {
+    const index = buildUsageIndex([{ componentName: 'card', version: v }], rawT);
+    expect(index.has('motion.transforms.entrance')).toBe(true);
+    expect(index.has('motion.duration.base')).toBe(true);
   });
 
-  it('flags only the control that changed', () => {
-    const o = getLiveOverrides(initial, { duration: '300ms', delay: '0ms', easing: 'ease-in' });
-    expect(o.map(x => x.label)).toEqual(['easing']);
+  it('flags a transform that is not a token', () => {
+    const missing = { ...v, model: { model: 'tween', transform: 'motion.transforms.nope' } } as MotionVersion;
+    expect(getTokenRefs(missing, rawT).hardcoded).toEqual([{ label: 'transform', value: 'motion.transforms.nope' }]);
   });
 });

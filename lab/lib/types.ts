@@ -1,9 +1,19 @@
+// A tween is timed either by a transform token (a named duration + easing, e.g.
+// 'motion.transforms.entrance') or by a duration and an easing given directly. Prefer the transform.
 export type TweenModel = {
   model: 'tween';
+  transform?: string;
+  duration?: string;
+  easing?: string;
+  delay?: string;
+};
+
+// A resolved transform token: duration and easing are token paths (or literal values).
+export interface TransformValue {
   duration: string;
   easing: string;
   delay?: string;
-};
+}
 
 // One property animated by the spring engine.
 // property: CSS property name ('opacity', 'transform').
@@ -99,8 +109,11 @@ export interface DtcgGroup {
   [key: string]: DtcgToken | DtcgGroup;
 }
 
+// What the controls panel overrides while previewing: a transform (duration, easing) for a
+// tween, or a spring token (duration, bounce) for a spring. Not saved.
 export interface LiveControls {
   duration?: string;
   easing?: string;
   delay?: string;
+  bounce?: number;
 }

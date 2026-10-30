@@ -4,7 +4,7 @@ import type { ComponentModule, MotionVersion } from '../../lab/lib/types.js';
 
 const version = (over: Partial<MotionVersion> & { id: string }): MotionVersion => ({
   label: over.id,
-  model: { model: 'tween', duration: 'motion.timings.base', easing: 'motion.easings.ease-out' },
+  model: { model: 'tween', duration: 'motion.duration.base', easing: 'motion.easing.ease-out' },
   keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
   lineage: 'imported from test',
   ...over,

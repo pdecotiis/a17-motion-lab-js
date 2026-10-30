@@ -2,6 +2,7 @@ import type { MotionVersion, TweenModel, SpringModel } from './types.js';
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getTokenRefs } from './token-refs.js';
+import { tweenParts } from './motion-models.js';
 import { springKeyframes } from './spring-engine.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import {
@@ -29,7 +30,7 @@ function literal(value: unknown): string {
   return String(value);
 }
 
-// "motion.timings.base (300ms)" for a token, or the literal when the value isn't one.
+// "motion.duration.base (300ms)" for a token, or the literal when the value isn't one.
 function describeValue(value: string | undefined, raw: Record<string, unknown>, fallback: string): string {
   if (!value) return fallback;
   return value in raw ? `${value} (${literal(raw[value])})` : `${value} (hard-coded, not a token)`;
@@ -47,10 +48,12 @@ function springTokenLine(model: SpringModel, raw: Record<string, unknown>): { to
 function motionLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
   if (version.model.model === 'tween') {
     const m = version.model as TweenModel;
+    const parts = tweenParts(m, raw);
     const lines = [
-      `- Duration: ${describeValue(m.duration, raw, '300ms')}`,
-      `- Easing: ${describeValue(m.easing, raw, 'ease')}`,
-      `- Delay: ${m.delay ? describeValue(m.delay, raw, '0ms') : '0ms'}`,
+      ...(m.transform ? [`- Transform: ${m.transform}`] : []),
+      `- Duration: ${describeValue(parts.duration, raw, '300ms')}`,
+      `- Easing: ${describeValue(parts.easing, raw, 'ease')}`,
+      `- Delay: ${parts.delay ? describeValue(parts.delay, raw, '0ms') : '0ms'}`,
     ];
     if (version.stagger) lines.push(`- Stagger: ${version.stagger} between siblings`);
     return lines;

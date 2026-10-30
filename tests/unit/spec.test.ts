@@ -15,7 +15,7 @@ const { raw } = tokens;
 const tween = (over: Partial<MotionVersion> = {}): MotionVersion => ({
   id: 'v1',
   label: 'Fade Up',
-  model: { model: 'tween', duration: 'motion.timings.base', easing: 'motion.easings.ease-out' },
+  model: { model: 'tween', duration: 'motion.duration.base', easing: 'motion.easing.ease-out' },
   keyframes: [
     { opacity: 0, transform: 'translateY(16px)', offset: 0 },
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
@@ -99,8 +99,8 @@ describe('buildVersionCss: tween', () => {
   });
 
   it('uses token custom properties with the literal value as fallback', () => {
-    expect(css).toContain('animation-duration: var(--motion-motion-timings-base, 300ms);');
-    expect(css).toContain('animation-timing-function: var(--motion-motion-easings-ease-out, cubic-bezier(0, 0, 0.2, 1));');
+    expect(css).toContain('animation-duration: var(--motion-duration-base, 300ms);');
+    expect(css).toContain('animation-timing-function: var(--motion-easing-ease-out, cubic-bezier(0, 0, 0.2, 1));');
   });
 
   it('writes literal values for hard-coded timing', () => {
@@ -204,8 +204,8 @@ describe('buildVersionExport', () => {
 
   it('states the trigger, the timing tokens with values, and the reduced-motion rule', () => {
     expect(out.markdown).toContain('When scrolled into view (20% visible, first time only)');
-    expect(out.markdown).toContain('Duration: motion.timings.base (300ms)');
-    expect(out.markdown).toContain('Easing: motion.easings.ease-out (cubic-bezier(0, 0, 0.2, 1))');
+    expect(out.markdown).toContain('Duration: motion.duration.base (300ms)');
+    expect(out.markdown).toContain('Easing: motion.easing.ease-out (cubic-bezier(0, 0, 0.2, 1))');
     expect(out.markdown).toContain('Fade only, no movement.');
     expect(out.markdown).toContain('Set `--motion-index');
   });
@@ -222,9 +222,9 @@ describe('buildVersionExport', () => {
   });
 
   it('tokens.css holds only the custom properties the version uses', () => {
-    expect(out.tokensCss).toContain('--motion-motion-timings-base: 300ms;');
-    expect(out.tokensCss).toContain('--motion-motion-easings-ease-out: cubic-bezier(0, 0, 0.2, 1);');
-    expect(out.tokensCss).not.toContain('timings-slow');
+    expect(out.tokensCss).toContain('--motion-duration-base: 300ms;');
+    expect(out.tokensCss).toContain('--motion-easing-ease-out: cubic-bezier(0, 0, 0.2, 1);');
+    expect(out.tokensCss).not.toContain('duration-slow');
   });
 
   it('motion.css is the Spring-mode CSS for the version', () => {
@@ -237,5 +237,36 @@ describe('buildVersionExport', () => {
     for (const v of cardVersions) {
       expect(() => buildVersionExport('card', v, cardVersions, tokens)).not.toThrow();
     }
+  });
+});
+
+describe('transform versions', () => {
+  const t = tween({
+    model: { model: 'tween', transform: 'motion.transforms.entrance' },
+    status: 'approved',
+  });
+
+  it('CSS uses the duration and easing variables the transform names', () => {
+    const css = buildVersionCss(t, raw, { component: 'card' });
+    expect(css).toContain('/* transform motion.transforms.entrance: motion.duration.base, motion.easing.ease-out */');
+    expect(css).toContain('animation-duration: var(--motion-duration-base, 300ms);');
+    expect(css).toContain('animation-timing-function: var(--motion-easing-ease-out, cubic-bezier(0, 0, 0.2, 1));');
+  });
+
+  it('is the same animation as the granular version, apart from the comment', () => {
+    const strip = (s: string): string => s.replace(/\/\* transform [^*]*\*\/\n/, '').replace(/\n\n+/g, '\n');
+    expect(strip(buildVersionCss(t, raw, { component: 'card' }))).toBe(strip(buildVersionCss(tween({ status: 'approved' }), raw, { component: 'card' })));
+  });
+
+  it('spec.md names the transform and what it resolves to', () => {
+    const { markdown } = buildVersionExport('card', t, [t], tokens);
+    expect(markdown).toContain('- Transform: motion.transforms.entrance');
+    expect(markdown).toContain('Duration: motion.duration.base (300ms)');
+  });
+
+  it('tokens.css defines the duration and easing variables the CSS needs', () => {
+    const { tokensCss } = buildVersionExport('card', t, [t], tokens);
+    expect(tokensCss).toContain('--motion-duration-base: 300ms;');
+    expect(tokensCss).toContain('--motion-easing-ease-out: cubic-bezier(0, 0, 0.2, 1);');
   });
 });

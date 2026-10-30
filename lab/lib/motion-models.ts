@@ -1,5 +1,6 @@
 import type { MotionVersion, TweenModel, SpringModel, SpringProperty, LiveControls } from './types.js';
 import { springKeyframes, springToCubicBezierString } from './spring-engine.js';
+import { isTransformValue } from './token-compiler.js';
 import { isVersionStatus, isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
 
 export interface ResolvedTiming {
@@ -35,6 +36,20 @@ function resolveStr(value: string | undefined, raw: Record<string, unknown>, fal
   return value;
 }
 
+// A tween's duration, easing and delay as token paths or literals. A `transform` expands to the
+// duration and easing it names; the model's own delay wins over the transform's.
+export function tweenParts(
+  model: TweenModel,
+  raw: Record<string, unknown>,
+): { duration?: string; easing?: string; delay?: string } {
+  if (model.transform === undefined) {
+    return { duration: model.duration, easing: model.easing, delay: model.delay };
+  }
+  const t = raw[model.transform];
+  if (!isTransformValue(t)) throw new Error(`Unknown transform token: "${model.transform}"`);
+  return { duration: t.duration, easing: t.easing, delay: model.delay ?? t.delay };
+}
+
 // resolveTiming is for tween models only → WAAPI with cubic-bezier easing.
 export function resolveTiming(
   version: MotionVersion,
@@ -46,9 +61,10 @@ export function resolveTiming(
     throw new Error(`resolveTiming: version "${version.id}" is a spring model — use buildSpringWaapiKeyframes instead`);
   }
   const model = version.model as TweenModel;
-  const durationStr = controls.duration ?? resolveStr(model.duration, raw, '300ms');
-  const easing = controls.easing ?? resolveStr(model.easing, raw, 'ease');
-  const delayStr = controls.delay ?? resolveStr(model.delay, raw, '0ms');
+  const parts = tweenParts(model, raw);
+  const durationStr = controls.duration ?? resolveStr(parts.duration, raw, '300ms');
+  const easing = controls.easing ?? resolveStr(parts.easing, raw, 'ease');
+  const delayStr = controls.delay ?? resolveStr(parts.delay, raw, '0ms');
 
   return {
     duration: parseMs(durationStr) / playbackRate,
@@ -97,7 +113,7 @@ export function buildSpringWaapiKeyframes(
   const delayStr = controls.delay ?? resolveStr(model.delay, raw, '0ms');
   const delay = parseMs(delayStr) / playbackRate;
 
-  const bounce = model.bounce;
+  const bounce = controls.bounce ?? model.bounce;
 
   // Reduced motion: skip travel (transforms), keep opacity fade.
   if (reducedMotion) {
@@ -210,7 +226,7 @@ export function buildSpringCssKeyframes(
   const delay = parseMs(delayStr) / playbackRate;
   const duration = naturalDuration / playbackRate;
 
-  const easing = controls.easing ?? springToCubicBezierString(model.bounce);
+  const easing = controls.easing ?? springToCubicBezierString(controls.bounce ?? model.bounce);
 
   // Build 2-frame keyframes from property from/to values
   const startKf: Keyframe = { offset: 0 };
@@ -281,6 +297,14 @@ export function validateMotionVersion(version: MotionVersion): void {
   }
 
   if (version.model.model === 'tween') {
+    const { transform, duration, easing } = version.model;
+    if (transform !== undefined) {
+      if (duration !== undefined || easing !== undefined) {
+        throw new Error(`MotionVersion "${version.id}" sets a transform, so it must not also set duration or easing`);
+      }
+    } else if (duration === undefined || easing === undefined) {
+      throw new Error(`MotionVersion "${version.id}" tween needs a transform, or both duration and easing`);
+    }
     const kfs = version.keyframes ?? [];
     const structuralProps = ['display', 'position', 'width', 'height', 'content', 'innerHTML'];
     for (const kf of kfs) {

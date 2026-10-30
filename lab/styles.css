@@ -197,6 +197,29 @@ html, body {
 }
 .lab-input--hidden { display: none; }
 
+/* Controls panel: a dropdown of the system's named options (transforms, or springs) */
+.lab-ctrl-select { width: 100%; margin-bottom: 8px; }
+.lab-ctrl-detail { font-size: 12px; color: var(--color-text-muted); margin: 0 0 10px; }
+
+/* Tokens view: curve preview and transform badges */
+.lab-curve { display: block; cursor: pointer; overflow: visible; }
+.lab-curve:hover .lab-curve__line { opacity: 0.7; }
+.lab-curve__guide { stroke: var(--color-border); stroke-width: 1; stroke-dasharray: 3 3; }
+.lab-curve__line { fill: none; stroke: var(--color-accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; transition: opacity 120ms; }
+.lab-curve__dot { fill: var(--color-accent); }
+.lab-token-badge {
+  display: inline-block;
+  margin: 0 6px 4px 0;
+  padding: 2px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* Buttons */
 .lab-btn {
   display: inline-flex;

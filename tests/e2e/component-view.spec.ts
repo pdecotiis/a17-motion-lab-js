@@ -20,50 +20,53 @@ test.describe('Component view', () => {
     await replayBtn.click();
   });
 
-  test('duration, easing and delay are dropdowns of tokens plus Custom…', async ({ page }) => {
-    const labels = (id: string) => page.locator(`#${id} option`).allTextContents();
+  const playedDuration = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => {
+      const el = document.querySelector<HTMLElement>('#preview-inner-primary [data-motion-target]')!;
+      return (el.getAnimations()[0]!.effect as KeyframeEffect).getTiming().duration;
+    });
 
-    const duration = await labels('ctrl-duration');
-    expect(duration[0]).toMatch(/^Version default/);
-    expect(duration).toContain('base · 300ms');
-    expect(duration.at(-1)).toBe('Custom…');
-
-    const easing = await labels('ctrl-easing');
-    expect(easing).toContain('ease-out · cubic-bezier(0, 0, 0.2, 1)');
-    expect(easing).not.toContain('linear');
-    expect(easing.at(-1)).toBe('Custom…');
-
-    const delay = await labels('ctrl-delay');
-    expect(delay).toContain('none · 0ms');
-    expect(delay.at(-1)).toBe('Custom…');
-  });
-
-  test('there is no free-form value field until Custom… is chosen', async ({ page }) => {
-    for (const id of ['ctrl-duration-custom', 'ctrl-easing-custom', 'ctrl-delay-custom']) {
-      await expect(page.locator(`#${id}`)).toBeHidden();
+  test('controls are a dropdown of transforms, with no granular duration, easing or delay fields', async ({ page }) => {
+    await expect(page.locator('#ctrl-title')).toHaveText('Transform');
+    await expect(page.locator('select#ctrl-transform')).toBeVisible();
+    await expect(page.locator('#ctrl-transform option')).toHaveText([
+      'Version default · entrance', 'entrance', 'exit', 'standard', 'emphasized',
+    ]);
+    await expect(page.locator('#ctrl-transform-detail')).toHaveText('entrance · 300ms · ease-out');
+    for (const id of ['ctrl-duration', 'ctrl-easing', 'ctrl-delay', 'ctrl-duration-custom']) {
+      await expect(page.locator(`#${id}`)).toHaveCount(0);
     }
-    await page.selectOption('#ctrl-duration', 'motion.timings.slow');
-    await expect(page.locator('#ctrl-duration-custom')).toBeHidden();
-    await page.selectOption('#ctrl-duration', '__custom__');
-    await expect(page.locator('#ctrl-duration-custom')).toBeVisible();
-    await page.selectOption('#ctrl-easing', '__custom__');
-    await expect(page.locator('#ctrl-easing-custom')).toBeVisible();
-    await page.selectOption('#ctrl-delay', '__custom__');
-    await expect(page.locator('#ctrl-delay-custom')).toBeVisible();
+    await expect(page.locator('.lab-option-btn')).toHaveCount(0);
   });
 
-  test('picking a token overrides the version and a custom value is flagged', async ({ page }) => {
-    await page.selectOption('#ctrl-duration', 'motion.timings.slower');
-    await expect(page.locator('#live-overrides')).toContainText('duration: 300ms → 800ms');
-    await expect(page.locator('#live-overrides')).not.toContainText('custom');
+  test('picking a transform replays the version with it and says it is not saved', async ({ page }) => {
+    expect(await playedDuration(page)).toBe(300);
 
-    await page.selectOption('#ctrl-duration', '__custom__');
-    await page.fill('#ctrl-duration-custom', '425');
-    await page.dispatchEvent('#ctrl-duration-custom', 'change');
-    await expect(page.locator('#live-overrides')).toContainText('duration: 300ms → 425ms (custom, not a token)');
+    await page.selectOption('#ctrl-transform', 'motion.transforms.emphasized');
+    await expect(page.locator('#ctrl-transform')).toHaveValue('motion.transforms.emphasized');
+    await expect(page.locator('#ctrl-transform-detail')).toHaveText('500ms · ease-out');
+    await expect(page.locator('#live-overrides')).toContainText('Previewing, not saved');
+    await expect(page.locator('#live-overrides')).toContainText('emphasized (500ms · ease-out) instead of entrance · 300ms · ease-out');
+    expect(await playedDuration(page)).toBe(500);
 
-    await page.selectOption('#ctrl-duration', '');
+    await page.selectOption('#ctrl-transform', 'motion.transforms.exit');
+    expect(await playedDuration(page)).toBe(150);
+
+    await page.selectOption('#ctrl-transform', '');
     await expect(page.locator('#live-overrides')).toBeEmpty();
+    expect(await playedDuration(page)).toBe(300);
+  });
+
+  test('a spring version picks between spring tokens instead', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v2');
+    await expect(page.locator('#ctrl-title')).toHaveText('Spring');
+    await expect(page.locator('#ctrl-transform option')).toHaveText(['Version default · bouncy', 'bouncy', 'gentle', 'stiff']);
+    await expect(page.locator('#ctrl-transform-detail')).toHaveText('bouncy · bounce 0.4 · 600ms');
+
+    await page.selectOption('#ctrl-transform', 'motion.springs.gentle');
+    await expect(page.locator('#ctrl-transform-detail')).toHaveText('bounce 0.1 · 400ms');
+    await expect(page.locator('#live-overrides')).toContainText('gentle (bounce 0.1 · 400ms) instead of bouncy');
+    expect(await playedDuration(page)).toBe(400);
   });
 
   test('copy values button exists', async ({ page }) => {
@@ -107,7 +110,7 @@ test.describe('Version status and lineage', () => {
     await page.goto('/?view=component&component=card&version=v1');
     const css = page.locator('#css-pre');
     await expect(css).toContainText('@keyframes motion-card-v1');
-    await expect(css).toContainText('var(--motion-motion-timings-base, 300ms)');
+    await expect(css).toContainText('var(--motion-duration-base, 300ms)');
     await expect(css).toContainText('@media (prefers-reduced-motion: reduce)');
   });
 
