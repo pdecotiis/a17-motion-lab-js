@@ -5,7 +5,10 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "mcp__claude_ai_Claude_Docs__read",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(git ls-files *)",
+      "Bash(ls reference/)",
+      "Bash(node -e ' *)"
     ]
   }
 }
