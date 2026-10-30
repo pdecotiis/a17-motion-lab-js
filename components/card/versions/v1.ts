@@ -14,6 +14,7 @@ export const v1: MotionVersion = {
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
   stagger: '80ms',
+  trigger: { on: 'in-view', threshold: 0.2, once: true },
   status: 'in-progress',
   lineage: 'imported from seed component (no import source)',
 };

@@ -1,4 +1,4 @@
-import type { MotionVersion, VersionStatus } from './types.js';
+import type { MotionVersion, VersionStatus, TriggerType, MotionTrigger, ReducedMotionPolicy } from './types.js';
 
 export const VERSION_STATUSES: readonly VersionStatus[] = ['in-progress', 'review', 'approved', 'archived'];
 
@@ -82,4 +82,46 @@ export function filterFromParams(params: URLSearchParams): VersionFilter {
     status: isVersionStatus(raw) ? raw : 'all',
     showArchived: params.get('archived') === '1',
   };
+}
+
+export const TRIGGER_TYPES: readonly TriggerType[] = ['load', 'in-view', 'hover', 'click', 'route-change'];
+
+export const TRIGGER_LABELS: Record<TriggerType, string> = {
+  load: 'On page load',
+  'in-view': 'When scrolled into view',
+  hover: 'On hover',
+  click: 'On click',
+  'route-change': 'On route change',
+};
+
+export function isTriggerType(value: unknown): value is TriggerType {
+  return typeof value === 'string' && (TRIGGER_TYPES as readonly string[]).includes(value);
+}
+
+// Human-readable trigger, or null when the version doesn't specify one.
+export function describeTrigger(trigger: MotionTrigger | undefined): string | null {
+  if (!trigger) return null;
+  const details: string[] = [];
+  if (trigger.on === 'in-view' && trigger.threshold !== undefined) {
+    details.push(`${Math.round(trigger.threshold * 100)}% visible`);
+  }
+  if (trigger.once !== undefined) details.push(trigger.once ? 'first time only' : 'every time');
+  const label = TRIGGER_LABELS[trigger.on];
+  return details.length ? `${label} (${details.join(', ')})` : label;
+}
+
+export const REDUCED_MOTION_POLICIES: readonly ReducedMotionPolicy[] = ['fade', 'none'];
+
+export const REDUCED_MOTION_LABELS: Record<ReducedMotionPolicy, string> = {
+  fade: 'Fade only, no movement',
+  none: 'No animation',
+};
+
+export function isReducedMotionPolicy(value: unknown): value is ReducedMotionPolicy {
+  return typeof value === 'string' && (REDUCED_MOTION_POLICIES as readonly string[]).includes(value);
+}
+
+// A version with no stored policy fades.
+export function getReducedMotionPolicy(version: MotionVersion): ReducedMotionPolicy {
+  return version.reducedMotion ?? 'fade';
 }

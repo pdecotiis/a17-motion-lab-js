@@ -1,6 +1,6 @@
 import type { MotionVersion, TweenModel, SpringModel, SpringProperty, LiveControls } from './types.js';
 import { springKeyframes, springToCubicBezierString } from './spring-engine.js';
-import { isVersionStatus } from './version-meta.js';
+import { isVersionStatus, isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
 
 export interface ResolvedTiming {
   duration: number;
@@ -249,7 +249,7 @@ export function buildSpringCssKeyframes(
 }
 
 export function validateMotionVersion(version: MotionVersion): void {
-  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
+  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
   for (const key of Object.keys(version)) {
     if (!allowed.has(key)) {
       throw new Error(`MotionVersion "${version.id}" has disallowed property: "${key}"`);
@@ -258,6 +258,26 @@ export function validateMotionVersion(version: MotionVersion): void {
 
   if (version.status !== undefined && !isVersionStatus(version.status)) {
     throw new Error(`MotionVersion "${version.id}" has unknown status: "${String(version.status)}"`);
+  }
+
+  if (version.trigger !== undefined) {
+    const { on, threshold, once } = version.trigger;
+    if (!isTriggerType(on)) {
+      throw new Error(`MotionVersion "${version.id}" has unknown trigger "${String(on)}" (use ${TRIGGER_TYPES.join(', ')})`);
+    }
+    if (threshold !== undefined) {
+      if (on !== 'in-view') throw new Error(`MotionVersion "${version.id}" trigger threshold only applies to "in-view"`);
+      if (typeof threshold !== 'number' || threshold < 0 || threshold > 1) {
+        throw new Error(`MotionVersion "${version.id}" trigger threshold must be a number from 0 to 1`);
+      }
+    }
+    if (once !== undefined && typeof once !== 'boolean') {
+      throw new Error(`MotionVersion "${version.id}" trigger "once" must be true or false`);
+    }
+  }
+
+  if (version.reducedMotion !== undefined && !isReducedMotionPolicy(version.reducedMotion)) {
+    throw new Error(`MotionVersion "${version.id}" has unknown reducedMotion "${String(version.reducedMotion)}" (use fade or none)`);
   }
 
   if (version.model.model === 'tween') {

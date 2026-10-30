@@ -5,6 +5,11 @@ export interface CompiledTokens {
   raw: Record<string, unknown>;
 }
 
+// The CSS custom property a token path compiles to, e.g. 'motion.timings.base' → '--motion-motion-timings-base'.
+export function tokenVarName(path: string): string {
+  return `--motion-${path.replace(/\./g, '-')}`;
+}
+
 function isDtcgToken(v: unknown): v is DtcgToken {
   return typeof v === 'object' && v !== null && '$type' in v && '$value' in v;
 }
@@ -20,7 +25,7 @@ function flattenGroup(
     const fullKey = prefix ? `${prefix}.${key}` : key;
     if (isDtcgToken(value)) {
       raw[fullKey] = value.$value;
-      const cssKey = `--motion-${fullKey.replace(/\./g, '-')}`;
+      const cssKey = tokenVarName(fullKey);
       switch (value.$type) {
         case 'duration':
           if (typeof value.$value !== 'string')

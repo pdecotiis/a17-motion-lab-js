@@ -77,6 +77,23 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 - Shown as a badge on version tabs, in the version history list, and in the Motion Map. The component view and Motion Map have a status filter; **archived versions are hidden by default** and appear with "Show archived" (URL: `?status=…&archived=1`). The open version is always shown.
 - `forkedFrom` must name an existing version of the same component; a version with neither `forkedFrom` nor `lineage` fails `validateVersionMeta`.
 
+### Trigger and reduced motion (developer hand-off)
+
+The lab plays motion on demand, so two things a developer needs live in the version file instead:
+
+```ts
+trigger: { on: 'in-view', threshold: 0.2, once: true },  // when it plays in production
+reducedMotion: 'fade',                                   // what prefers-reduced-motion visitors get
+```
+
+- `trigger.on`: `'load' | 'in-view' | 'hover' | 'click' | 'route-change'`. `threshold` (0–1) is for `in-view` only; `once` says first time only (`true`) or every time (`false`). **Absent = not specified**: the spec and the Generated CSS say so, they never guess one. Ask the designer when they haven't said; don't invent it. Imports don't set it.
+- `reducedMotion`: `'fade'` (absent = fade: transforms dropped, opacity fade of at most 150ms, `REDUCED_MOTION_FADE_MS`) or `'none'` (no animation, end state shown). The lab's playback and the exported CSS follow the same rule, so what a designer sees under reduced motion is what ships. Versions with no opacity change get no animation under `'fade'`.
+- Both validate in `validateMotionVersion`, show in the component view ("Plays", "Reduced motion"), and carry through `forkVersion`.
+
+**Generated CSS and spec export.** The "Generated CSS" panel and `npm run spec` share one generator (`lab/lib/css-output.ts`): plain, stack-neutral CSS with named `@keyframes motion-<component>-<version>`, a `.motion-<component>-<version>` class, token custom properties with the literal value as fallback (`var(--motion-motion-timings-base, 300ms)`), a stagger index (`--motion-index`) and a `prefers-reduced-motion` block. Springs ship as `linear()` behind `@supports`, with the cubic-bezier fallback; spring and linear properties become two animations so linear fades don't overshoot.
+
+`npm run spec -- <component> [version] [--out <dir>]` writes `export/<component>/<version>/` (gitignored) with `motion.css`, `tokens.css` and `spec.md` (`lab/lib/spec.ts`). No version = every approved version; an explicit version exports whatever its status and says so in `spec.md`. `spec.md` also lists what the lab can't verify: the production element, layout and environment, and performance.
+
 ## Token types
 
 | `$type`         | CSS output                        | Example `$value`                       |
@@ -198,6 +215,7 @@ Before saving and before sending for review, bring in the latest `main`. If some
 | Command              | Action                                          |
 |----------------------|-------------------------------------------------|
 | `npm run figma:import -- <manifest.json>` | Import a Figma frame as a component |
+| `npm run spec -- <component> [version]` | Export motion.css, tokens.css and spec.md for a developer |
 | `npm run dev`        | Start Vite dev server (http://localhost:5173)   |
 | `npm run build`      | Build to `dist/` with relative paths            |
 | `npm run typecheck`  | TypeScript type check (no emit)                 |

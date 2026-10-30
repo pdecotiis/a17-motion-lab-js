@@ -8,6 +8,7 @@ import { validatePreset } from './lib/presets.js';
 import { prefersReducedMotion, getEffectiveDuration, getEffectiveKeyframes } from './lib/reduced-motion.js';
 import {
   VERSION_STATUSES, STATUS_LABELS, getVersionStatus, filterVersions, describeLineage, filterFromParams,
+  describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
   type VersionFilter,
 } from './lib/version-meta.js';
 import { getTokenRefs, getLiveOverrides, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
@@ -206,6 +207,11 @@ function animateElement(
   const staggerMs = version.stagger ? parseFloat(version.stagger) : 0;
   const staggerDelay = (staggerMs * staggerIndex) / playbackRate;
 
+  // reducedMotion: 'none' means no animation at all: the element shows its end state.
+  if (isReduced && getReducedMotionPolicy(version) === 'none') {
+    return el.animate([{}], { duration: 0, fill: 'both' });
+  }
+
   if (version.model.model === 'spring') {
     const builder = engineMode === 'spring' ? buildSpringWaapiKeyframes : buildSpringCssKeyframes;
     const { keyframes, duration, delay, easing } = builder(version, raw, {
@@ -324,6 +330,7 @@ function renderComponentView(params: URLSearchParams): void {
           <div id="version-filter"></div>
           <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
           <p class="lab-lineage" id="version-lineage"></p>
+          <dl class="lab-spec-meta" id="version-spec-meta"></dl>
           <button class="lab-btn" id="replay-btn">Replay</button>
         </section>
         <section class="lab-controls" aria-label="Version history">
@@ -399,6 +406,22 @@ function renderComponentView(params: URLSearchParams): void {
 
   // Lineage of the open version, and the component's version history
   document.getElementById('version-lineage')!.textContent = describeLineage(version, allVersions);
+
+  // What a developer needs that the lab can't show: when it plays, and what reduced-motion visitors get.
+  const specMeta = document.getElementById('version-spec-meta')!;
+  const triggerText = describeTrigger(version.trigger);
+  const specRows: [string, string, boolean][] = [
+    ['Plays', triggerText ?? 'Trigger not specified', triggerText === null],
+    ['Reduced motion', REDUCED_MOTION_LABELS[getReducedMotionPolicy(version)], false],
+  ];
+  for (const [label, text, muted] of specRows) {
+    const dt = document.createElement('dt');
+    dt.textContent = label;
+    const dd = document.createElement('dd');
+    dd.textContent = text;
+    if (muted) dd.className = 'lab-spec-meta__unset';
+    specMeta.append(dt, dd);
+  }
   const historyList = document.getElementById('version-history')!;
   for (const v of allVersions) {
     const li = document.createElement('li');
@@ -588,7 +611,7 @@ function renderComponentView(params: URLSearchParams): void {
 
   // Generated CSS section
   const cssPre = document.getElementById('css-pre')!;
-  cssPre.textContent = buildVersionCss(version, raw, { mode: engineMode });
+  cssPre.textContent = buildVersionCss(version, raw, { mode: engineMode, component: componentName });
 
   document.getElementById('copy-css-btn')!.addEventListener('click', () => {
     const css = cssPre.textContent ?? '';

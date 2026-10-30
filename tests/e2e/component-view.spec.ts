@@ -94,6 +94,23 @@ test.describe('Version status and lineage', () => {
     await expect(page.locator('#version-history li[data-version-id="v3"] .lab-status-badge')).toHaveText('Archived');
   });
 
+  test('shows when the version plays and what reduced-motion visitors get', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    await expect(page.locator('#version-spec-meta')).toContainText('When scrolled into view (20% visible, first time only)');
+    await expect(page.locator('#version-spec-meta')).toContainText('Fade only, no movement');
+
+    await page.goto('/?view=component&component=card&version=v2');
+    await expect(page.locator('#version-spec-meta')).toContainText('Trigger not specified');
+  });
+
+  test('generated CSS is named, token-based and carries a reduced-motion block', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    const css = page.locator('#css-pre');
+    await expect(css).toContainText('@keyframes motion-card-v1');
+    await expect(css).toContainText('var(--motion-motion-timings-base, 300ms)');
+    await expect(css).toContainText('@media (prefers-reduced-motion: reduce)');
+  });
+
   test('status filter narrows the version tabs', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
     await page.selectOption('#status-filter', 'archived');
