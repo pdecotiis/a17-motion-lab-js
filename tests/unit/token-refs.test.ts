@@ -214,6 +214,20 @@ describe('spring cubic-bezier fallback token', () => {
     expect(getTokenRefs(springVersion, rawWithFallback).tokens).toContain('motion.easings.spring-base');
   });
 
+  it('lists the fallback easing in CSS mode but only the spring token in Spring mode', () => {
+    const css = getTokenRefs(springVersion, rawWithFallback, { mode: 'css' }).tokens;
+    expect(css).toContain('motion.springs.bouncy');
+    expect(css).toContain('motion.easings.spring-base');
+
+    const spring = getTokenRefs(springVersion, rawWithFallback, { mode: 'spring' }).tokens;
+    expect(spring).toContain('motion.springs.bouncy');
+    expect(spring).not.toContain('motion.easings.spring-base');
+  });
+
+  it('leaves tween versions unchanged in either mode', () => {
+    expect(getTokenRefs(tweenVersion, raw, { mode: 'spring' })).toEqual(getTokenRefs(tweenVersion, raw, { mode: 'css' }));
+  });
+
   it('emits the fallback token value in generated CSS, else a derived cubic-bezier', () => {
     const withToken = buildVersionCss(springVersion, rawWithFallback, { mode: 'spring' });
     expect(withToken).toContain('cubic-bezier fallback (motion.easings.spring-base): cubic-bezier(0.34, 1.56, 0.64, 1)');
