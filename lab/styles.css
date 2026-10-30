@@ -168,6 +168,7 @@ html, body {
 }
 .lab-control-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
 .lab-control-group:last-child { margin-bottom: 0; }
+.lab-controls__hint { font-size: 12px; margin: 0 0 10px; }
 .lab-control-label {
   font-size: 12px;
   color: var(--color-text-muted);

@@ -9,6 +9,8 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 **Tokens**: W3C DTCG JSON (`tokens/motion.json`) → CSS custom properties + raw values.
 **Components**: HTML/CSS prototypes with a `motion.ts` file that re-exports named motion versions, one file per version in `versions/`.
 **Library**: `/?view=library` lists every registered component as a scaled live preview (plays on hover). It builds from the component registry, so new components appear automatically; filters use `?status=…&archived=1&q=…`. Logic is in `lab/lib/library.ts`.
+**Live controls**: in the component view, duration, easing and delay are dropdowns of the system's tokens (`motion.timings.*`, `motion.easings.*`, plus "none" for delay), so designers pick from the system. "Custom…" reveals a free-form field and the override is flagged "(custom, not a token)". "Version default" means no override. Helpers are in `lab/lib/control-options.ts`.
+**Tokens used**: follows the CSS / Spring engine toggle. A spring version lists its spring token in both modes, plus the fallback easing only in CSS mode; easing is not pickable while the spring engine shapes it. `getTokenRefs(version, raw, { mode })` in `lab/lib/token-refs.ts`; without `mode` it lists every token (used by the Tokens view).
 **Pages**: `page.json` defines an ordered list of component instances for page-level motion review.
 **Motion maps**: URL-encoded state (shareable) + saved JSON presets.
 

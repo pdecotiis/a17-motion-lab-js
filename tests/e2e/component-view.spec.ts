@@ -20,15 +20,50 @@ test.describe('Component view', () => {
     await replayBtn.click();
   });
 
-  test('live duration input is present and accepts input', async ({ page }) => {
-    const input = page.locator('#ctrl-duration');
-    await expect(input).toBeVisible();
-    await input.fill('500');
-    await input.dispatchEvent('change');
+  test('duration, easing and delay are dropdowns of tokens plus Custom…', async ({ page }) => {
+    const labels = (id: string) => page.locator(`#${id} option`).allTextContents();
+
+    const duration = await labels('ctrl-duration');
+    expect(duration[0]).toMatch(/^Version default/);
+    expect(duration).toContain('base · 300ms');
+    expect(duration.at(-1)).toBe('Custom…');
+
+    const easing = await labels('ctrl-easing');
+    expect(easing).toContain('ease-out · cubic-bezier(0, 0, 0.2, 1)');
+    expect(easing).not.toContain('linear');
+    expect(easing.at(-1)).toBe('Custom…');
+
+    const delay = await labels('ctrl-delay');
+    expect(delay).toContain('none · 0ms');
+    expect(delay.at(-1)).toBe('Custom…');
   });
 
-  test('easing select is present', async ({ page }) => {
-    await expect(page.locator('#ctrl-easing')).toBeVisible();
+  test('there is no free-form value field until Custom… is chosen', async ({ page }) => {
+    for (const id of ['ctrl-duration-custom', 'ctrl-easing-custom', 'ctrl-delay-custom']) {
+      await expect(page.locator(`#${id}`)).toBeHidden();
+    }
+    await page.selectOption('#ctrl-duration', 'motion.timings.slow');
+    await expect(page.locator('#ctrl-duration-custom')).toBeHidden();
+    await page.selectOption('#ctrl-duration', '__custom__');
+    await expect(page.locator('#ctrl-duration-custom')).toBeVisible();
+    await page.selectOption('#ctrl-easing', '__custom__');
+    await expect(page.locator('#ctrl-easing-custom')).toBeVisible();
+    await page.selectOption('#ctrl-delay', '__custom__');
+    await expect(page.locator('#ctrl-delay-custom')).toBeVisible();
+  });
+
+  test('picking a token overrides the version and a custom value is flagged', async ({ page }) => {
+    await page.selectOption('#ctrl-duration', 'motion.timings.slower');
+    await expect(page.locator('#live-overrides')).toContainText('duration: 300ms → 800ms');
+    await expect(page.locator('#live-overrides')).not.toContainText('custom');
+
+    await page.selectOption('#ctrl-duration', '__custom__');
+    await page.fill('#ctrl-duration-custom', '425');
+    await page.dispatchEvent('#ctrl-duration-custom', 'change');
+    await expect(page.locator('#live-overrides')).toContainText('duration: 300ms → 425ms (custom, not a token)');
+
+    await page.selectOption('#ctrl-duration', '');
+    await expect(page.locator('#live-overrides')).toBeEmpty();
   });
 
   test('copy values button exists', async ({ page }) => {

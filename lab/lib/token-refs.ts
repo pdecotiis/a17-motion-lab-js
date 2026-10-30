@@ -47,7 +47,14 @@ export function getLiveOverrides(
   return overrides;
 }
 
-export function getTokenRefs(version: MotionVersion, raw: Record<string, unknown>): TokenRefs {
+// With a `mode` (the lab's CSS / Spring engine), a spring version lists only the tokens that
+// engine uses: the real spring simulation needs no easing, the CSS approximation uses the
+// spring's fallback easing. Without a mode it lists every token the version can touch.
+export function getTokenRefs(
+  version: MotionVersion,
+  raw: Record<string, unknown>,
+  options: { mode?: 'css' | 'spring' } = {},
+): TokenRefs {
   const tokens: string[] = [];
   const hardcoded: { label: string; value: string }[] = [];
 
@@ -69,7 +76,7 @@ export function getTokenRefs(version: MotionVersion, raw: Record<string, unknown
     const m = version.model as SpringModel;
     check(m.duration, 'duration');
     if (m.delay) check(m.delay, 'delay');
-    const fallback = getSpringFallbackPath(m, raw);
+    const fallback = options.mode === 'spring' ? undefined : getSpringFallbackPath(m, raw);
     if (fallback) tokens.push(fallback);
   }
 
