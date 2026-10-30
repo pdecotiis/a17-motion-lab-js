@@ -28,6 +28,8 @@ Motion Lab is a reusable template for iterating on motion for components importe
 - Previews will be hosted on Twill (folder upload, password protected).
 - `reference/old-motion-lab.html` (gitignored) is the old lab, for porting features only. Never copy client content from it.
 - The motion-only rule: versions change motion, never structure.
+- Motion tokens flow Motion Lab → Figma. `tokens/motion.json` is the source of truth for motion; Figma holds a read-only mirror in its own "Motion" variable collection. Visual variables still flow Figma → Motion Lab (import), so the two directions never share a collection.
+- Getting started must need as little setup as possible. Requiring a GitHub account, a machine setup and org repo admin for every designer is too much friction; GitHub and Claude Code are for the few designers who author motion, not for everyone who reviews or tweaks it.
 
 ## Current state
 
@@ -40,6 +42,11 @@ The pilot project repo was freshly created from the template and pulled the late
 3. Spec/export (approved versions only: `tokens.css`/`json`, component CSS, `spec.md`).
 4. Twill publish script (waiting on upload details).
 5. Designer onboarding guide; a second designer tries it.
+6. Push motion tokens to Figma (`/lab figma-sync`): write `motion.timings.*`, `motion.easings.*` and `motion.springs.*` into a "Motion" variable collection in the linked Figma file via the Figma MCP, so designers see the same names and values in Figma that the Lab uses.
+   - Open: Figma variables are boolean/number/string/color only, so easings (cubic-bezier) and springs need a representation: likely strings for easings, numbers for duration/bounce. Check whether Figma's native animation styles can hold the curves too.
+   - Idempotent: re-running updates changed values and flags removed tokens instead of deleting them.
+   - Show in the Tokens view whether each token is in sync with Figma.
+7. Low-friction access: define what a designer can do with no GitHub account and no setup. Candidates: use the hosted Lab (step 4) in the browser with the live controls and shareable motion-map URLs; submit a tweak back as a link or preset instead of a pull request; one org-level repo with a single admin step. Decide the tiers (reviewer / tweaker / author) before the second designer onboards.
 
 ## On hold
 
