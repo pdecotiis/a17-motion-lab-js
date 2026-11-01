@@ -116,6 +116,12 @@ describe('pairingWarnings', () => {
     expect(pairingWarnings(tween('1500ms', 'easing.expressive-standard'), raw)).toHaveLength(1);
   });
 
+  it('there are no pairing warnings under Motion: nothing plays an easing', () => {
+    const slow = tween('duration.1200', 'easing.productive-standard');
+    expect(pairingWarnings(slow, raw, 'css')).toHaveLength(1);
+    expect(pairingWarnings(slow, raw, 'motion')).toEqual([]);
+  });
+
   it('applies to springs too, using the paired duration', () => {
     expect(pairingWarnings(bounceVersion, raw)).toEqual([]);
     const slowFlat: MotionVersion = { ...flatSpring, model: { ...(flatSpring.model as object), duration: 'duration.1200' } as MotionVersion['model'] };
@@ -231,6 +237,28 @@ describe('getStepRefs: which tokens are used where', () => {
       { token: 'duration.560', where: ['duration'] },
       { token: 'easing.expressive-bounce', where: ['easing'] },
     ]);
+  });
+
+  it('under Motion nothing lists an easing: every motion is a spring, from its duration', () => {
+    expect(getStepRefs(bounceVersion, raw, 'motion')[0]!.uses).toEqual([{ token: 'duration.560', where: ['duration'] }]);
+    expect(getStepRefs(tweenVersion, raw, 'motion')[0]!.uses.map(u => u.token)).toEqual(['duration.300']);
+    for (const v of [bounceVersion, tweenVersion]) {
+      expect(getStepRefs(v, raw, 'css')[0]!.uses.map(u => u.token), v.id).toContain(v.model.easing);
+      expect(getStepRefs(v, raw)[0]!.uses.map(u => u.token), v.id).toContain(v.model.easing);
+    }
+  });
+
+  it('under Motion a literal easing is not flagged as hard-coded, since no easing plays', () => {
+    const literal: MotionVersion = { ...tweenVersion, model: { model: 'tween', duration: 'duration.300', easing: 'ease-out' } };
+    expect(getStepRefs(literal, raw, 'css')[0]!.hardcoded).toEqual([{ label: 'easing', value: 'ease-out' }]);
+    expect(getStepRefs(literal, raw, 'motion')[0]!.hardcoded).toEqual([]);
+  });
+
+  it('under Motion layers list no easing either', () => {
+    const layered: MotionVersion = { ...bounceVersion, layers: { text: { model: tweenVersion.model, keyframes: [] } } };
+    const steps = getStepRefs(layered, raw, 'motion');
+    expect(steps[0]!.uses.map(u => u.token)).toEqual(['duration.560']);
+    expect(steps[1]!.uses.map(u => u.token)).toEqual(['duration.300']);
   });
 
   it('keyframes with no offset are placed evenly', () => {

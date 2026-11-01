@@ -262,11 +262,11 @@ test.describe('Runtime (CSS / Motion)', () => {
     await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('under Motion a tween plays its easing, a spring version plays as a real spring', async ({ page }) => {
+  test('under Motion everything plays as a spring: a tween with no bounce, a spring version with its own', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
     await page.click('#runtime-motion');
     await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
-    await expect(playbackRow(page)).toHaveText('Easing · productive-entrance, 220ms');
+    await expect(playbackRow(page)).toHaveText('Spring · bounce 0, 220ms (authored as easing, so no bounce)');
 
     await page.goto('/?view=component&component=card&version=v2&runtime=motion');
     await expect(playbackRow(page)).toHaveText('Spring · bounce 0, 300ms');
@@ -310,12 +310,13 @@ test.describe('Runtime (CSS / Motion)', () => {
     await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
   });
 
-  test('layers play under Motion too, and the Playback row names each motion', async ({ page }) => {
+  test('layers are springs under Motion too, and the Playback row names each motion', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v4&runtime=motion');
+    const note = ' (authored as easing, so no bounce)';
     await expect(playbackRow(page)).toHaveText([
-      'Easing · productive-entrance, 220ms',
-      'title: Easing · productive-entrance, 300ms',
-      'text: Easing · productive-entrance, 300ms',
+      `Spring · bounce 0, 220ms${note}`,
+      `title: Spring · bounce 0, 300ms${note}`,
+      `text: Spring · bounce 0, 300ms${note}`,
     ].join('\n'));
     await expect.poll(() => page.evaluate(() =>
       Number(getComputedStyle(document.querySelector<HTMLElement>('#preview-inner-primary [data-motion="text"]')!).opacity)), { timeout: 3000 }).toBe(1);

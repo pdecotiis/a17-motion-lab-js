@@ -3,47 +3,29 @@ import { playbackOf } from './motion-models.js';
 
 // What the Motion runtime (motion.dev) is asked to play for one motion. This is only the translation
 // of a version into Motion's own terms: Motion does the playing, the spring maths included.
-
-export type MotionEase = 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | [number, number, number, number];
+//
+// Under Motion every motion is a spring and no easing curve is used anywhere, so the runtimes stay
+// easy to tell apart: CSS plays easing curves, Motion plays springs. A version authored as a spring
+// uses its own bounce; a tween has none, so it plays as a spring with no bounce.
 
 export interface MotionArgs {
-  /** Per property, the values to animate through, as Motion's keyframes object. */
+  /** Per property, the values to animate through, as Motion's keyframes object (start and end). */
   keyframes: Record<string, (string | number)[]>;
-  /** Motion's `times` (0–1), when the keyframes carry offsets. */
-  times?: number[];
-  /** Seconds. A spring's `visualDuration` replaces `duration`. */
+  /** Seconds. */
   options: {
-    type: 'spring' | 'tween';
-    duration?: number;
-    visualDuration?: number;
-    bounce?: number;
-    ease?: MotionEase;
+    type: 'spring';
+    /** When the motion visually arrives: the duration token. */
+    visualDuration: number;
+    bounce: number;
     delay: number;
-    times?: number[];
   };
-  /** Set when the motion was authored as a spring but plays as a tween (reduced motion). */
+  /** Why it plays the way it does, when that isn't obvious from the version. */
   note?: string;
-}
-
-const NAMED: Record<string, MotionEase> = {
-  linear: 'linear', 'ease-in': 'easeIn', 'ease-out': 'easeOut', 'ease-in-out': 'easeInOut',
-};
-
-// A WAAPI easing string as Motion's `ease`: a cubic-bezier as its four numbers, a keyword by name.
-export function toMotionEase(easing: string): MotionEase {
-  const m = /^cubic-bezier\(\s*([^)]+)\)$/.exec(easing);
-  if (m) {
-    const n = m[1]!.split(',').map(Number);
-    if (n.length === 4 && n.every(Number.isFinite)) return n as [number, number, number, number];
-  }
-  if (easing in NAMED) return NAMED[easing]!;
-  if (easing === 'ease') return [0.25, 0.1, 0.25, 1];
-  return 'linear';
 }
 
 // WAAPI keyframes as Motion's keyframes object. A property missing from a frame repeats its
 // neighbour, so every property has one value per frame.
-export function toMotionKeyframes(frames: Keyframe[]): { keyframes: Record<string, (string | number)[]>; times?: number[] } {
+export function toMotionKeyframes(frames: Keyframe[]): Record<string, (string | number)[]> {
   const props = [...new Set(frames.flatMap(f => Object.keys(f)))].filter(k => !['offset', 'easing', 'composite'].includes(k));
   const keyframes: Record<string, (string | number)[]> = {};
   for (const prop of props) {
@@ -53,14 +35,13 @@ export function toMotionKeyframes(frames: Keyframe[]): { keyframes: Record<strin
     for (let i = values.length - 1; i >= 0; i--) { if (values[i] === undefined) values[i] = values[i + 1]; }
     keyframes[prop] = values as (string | number)[];
   }
-  const offsets = frames.map(f => f.offset);
-  const times = offsets.every(o => typeof o === 'number') ? (offsets as number[]) : undefined;
-  return { keyframes, ...(times ? { times } : {}) };
+  return keyframes;
 }
 
-// A version's motion for Motion. A spring plays as a real spring (its bounce, its duration as the
-// visual duration); a tween plays its easing curve. Reduced motion is the short opacity-only fade,
-// as a tween. The playback rate is not applied here: the caller sets Motion's `speed`.
+// A version's motion for Motion: always a spring, from its first values to its last (a spring has no
+// in-between frames). Its bounce is the version's own (a tween has none: 0); its duration is when it
+// visually arrives. Reduced motion is the short opacity-only fade, as a spring with no bounce. The
+// playback rate is not applied here: the caller sets Motion's `speed`.
 export function motionArgsOf(
   version: MotionVersion,
   raw: Record<string, unknown>,
@@ -68,29 +49,33 @@ export function motionArgsOf(
 ): MotionArgs {
   const { reducedMotion = false, extraDelayMs = 0 } = options;
   const p = playbackOf(version, raw, { reducedMotion });
-  const { keyframes, times } = toMotionKeyframes(p.keyframes);
-  const delay = (p.delay + extraDelayMs) / 1000;
+  const all = toMotionKeyframes(p.keyframes);
   const model = version.model;
 
-  if (model.model === 'spring' && !reducedMotion) {
-    return {
-      keyframes,
-      options: { type: 'spring', visualDuration: p.pairedMs / 1000, bounce: model.bounce, delay },
-    };
-  }
+  const skipped = p.keyframes.length > 2;
+  const keyframes = Object.fromEntries(
+    Object.entries(all).map(([prop, values]) => [prop, [values[0]!, values[values.length - 1]!]]),
+  );
+
+  const notes: string[] = [];
+  if (model.model === 'tween') notes.push('authored as easing, so no bounce');
+  if (skipped) notes.push('plays start to end, skipping the frames between');
+  if (reducedMotion && model.model === 'spring') notes.push('reduced motion: opacity fade, no bounce');
+
   return {
     keyframes,
-    options: { type: 'tween', duration: p.duration / 1000, ease: toMotionEase(p.easing), delay, ...(times ? { times } : {}) },
-    ...(model.model === 'spring' ? { note: 'authored as a spring; reduced motion plays an opacity fade' } : {}),
+    options: {
+      type: 'spring',
+      visualDuration: (reducedMotion ? p.duration : p.pairedMs) / 1000,
+      bounce: model.model === 'spring' && !reducedMotion ? model.bounce : 0,
+      delay: (p.delay + extraDelayMs) / 1000,
+    },
+    ...(notes.length ? { note: notes.join('; ') } : {}),
   };
 }
 
-// What Motion plays, in a line: "Spring · bounce 0, 300ms" or "Easing · productive-entrance, 220ms".
-export function describeMotionArgs(version: MotionVersion, args: MotionArgs): string {
-  const name = version.model.easing.slice(version.model.easing.indexOf('.') + 1);
-  const ms = Math.round((args.options.visualDuration ?? args.options.duration ?? 0) * 1000);
-  const text = args.options.type === 'spring'
-    ? `Spring · bounce ${args.options.bounce}, ${ms}ms`
-    : `Easing · ${name}, ${ms}ms`;
+// What Motion plays, in a line: "Spring · bounce 0.5, 560ms".
+export function describeMotionArgs(args: MotionArgs): string {
+  const text = `Spring · bounce ${args.options.bounce}, ${Math.round(args.options.visualDuration * 1000)}ms`;
   return args.note ? `${text} (${args.note})` : text;
 }

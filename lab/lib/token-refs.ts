@@ -1,4 +1,5 @@
 import type { MotionVersion, PageConfig } from './types.js';
+import type { Runtime } from './runtime.js';
 import { findRefs } from './token-compiler.js';
 import { stepsOf } from './motion-models.js';
 
@@ -25,7 +26,7 @@ export interface StepRefs {
   hardcoded: { label: string; value: string }[];
 }
 
-function stepRefs(layer: string | null, version: MotionVersion, raw: Record<string, unknown>, withStagger: boolean): StepRefs {
+function stepRefs(layer: string | null, version: MotionVersion, raw: Record<string, unknown>, withStagger: boolean, runtime?: Runtime): StepRefs {
   const uses = new Map<string, string[]>();
   const hardcoded: { label: string; value: string }[] = [];
   const use = (token: string, where: string): void => {
@@ -42,7 +43,8 @@ function stepRefs(layer: string | null, version: MotionVersion, raw: Record<stri
 
   const m = version.model;
   check(m.duration, 'duration');
-  check(m.easing, 'easing');
+  // Under Motion everything plays as a spring, from its duration and bounce: easing is CSS only.
+  if (runtime !== 'motion') check(m.easing, 'easing');
   if (m.delay) check(m.delay, 'delay');
   if (withStagger && version.stagger) check(version.stagger, 'stagger');
 
@@ -60,9 +62,10 @@ function stepRefs(layer: string | null, version: MotionVersion, raw: Record<stri
 }
 
 // The tokens each motion of a version uses: the root first, then each layer. The stagger belongs
-// to the version, so it is listed with the root.
-export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>): StepRefs[] {
-  return stepsOf(version).map(({ name, version: step }) => stepRefs(name, step, raw, name === null));
+// to the version, so it is listed with the root. With a runtime, it is what that runtime uses: under
+// Motion nothing uses an easing (every motion is a spring). Without one, the version as authored (what exports).
+export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>, runtime?: Runtime): StepRefs[] {
+  return stepsOf(version).map(({ name, version: step }) => stepRefs(name, step, raw, name === null, runtime));
 }
 
 // Every token a version uses, across its root and layers, and its hard-coded values (a layer's are
@@ -82,11 +85,11 @@ function ms(value: string | undefined, raw: Record<string, unknown>): number | u
 
 // Pairing rules, as warnings and never errors: productive easings pair with 100–300ms, expressive
 // easings with 400–1200ms. A layer's
-// warnings start with its name.
-export function pairingWarnings(version: MotionVersion, raw: Record<string, unknown>): string[] {
+// warnings start with its name. Under Motion nothing plays an easing, so there is nothing to pair.
+export function pairingWarnings(version: MotionVersion, raw: Record<string, unknown>, runtime?: Runtime): string[] {
   return stepsOf(version).flatMap(({ name, version: step }) => {
     const { duration, easing } = step.model;
-    if (!(easing in raw)) return [];
+    if (!(easing in raw) || runtime === 'motion') return [];
     const eName = easing.slice(easing.indexOf('.') + 1);
     const warnings: string[] = [];
     const time = ms(duration, raw);

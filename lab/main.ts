@@ -435,7 +435,7 @@ function renderComponentView(params: URLSearchParams): void {
     // What is playing, one line per motion (the root, then each layer).
     ['Playback', stepsOf(version).map(({ name, version: step }) =>
       `${name ? `${name}: ` : ''}${runtime === 'motion'
-        ? describeMotionArgs(step, motionArgsOf(step, raw))
+        ? describeMotionArgs(motionArgsOf(step, raw))
         : describePlayback(playbackOf(step, raw))}`).join('\n'), false],
   ];
   for (const [label, text, muted] of specRows) {
@@ -499,7 +499,7 @@ function renderComponentView(params: URLSearchParams): void {
   // Tokens Used section
   const tokensList = document.getElementById('tokens-used-list')!;
   // A layer (the text, say) can move differently from the card, so each motion gets its own group.
-  const steps = getStepRefs(version, raw);
+  const steps = getStepRefs(version, raw, runtime);
   if (steps.every(st => st.uses.length === 0 && st.hardcoded.length === 0)) {
     const p = document.createElement('p');
     p.className = 'lab-text-muted';
@@ -545,7 +545,7 @@ function renderComponentView(params: URLSearchParams): void {
   }
 
   // Pairing rules: productive easings with 100–300ms, expressive with 400–1200ms.
-  const pairing = pairingWarnings(version, raw);
+  const pairing = pairingWarnings(version, raw, runtime);
   if (pairing.length > 0) {
     const warn = document.createElement('div');
     warn.className = 'lab-tokens-hardcoded';
