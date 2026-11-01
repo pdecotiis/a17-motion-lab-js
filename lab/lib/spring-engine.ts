@@ -1,6 +1,10 @@
 // Motion Lab spring engine (from build 20261030.1)
 // Source of truth for all spring motion. Same parameters, same integrator, same settle rules.
 
+// A spring's own duration is the paired duration token / 0.82, so it settles about when the
+// paired duration ends.
+export const SPRING_DURATION_RATIO = 0.82;
+
 export interface SpringPhysics {
   stiffness: number;
   damping: number;
@@ -113,19 +117,6 @@ export interface SpringKeyframesOptions {
 export interface SpringKeyframesResult {
   keyframes: number[];
   duration: number;
-}
-
-// Approximate a spring as a cubic-bezier for CSS mode.
-// Maps bounce → y-overshoot in the control points.
-export function springToCubicBezier(bounce: number): [number, number, number, number] {
-  const b = Math.max(0, Math.min(0.9, bounce));
-  const overshoot = b * 0.6;
-  return [0.34, 1.0 + overshoot, 0.64, 1.0];
-}
-
-export function springToCubicBezierString(bounce: number): string {
-  const [x1, y1, x2, y2] = springToCubicBezier(bounce);
-  return `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
 }
 
 // Sample a spring (from=0, to=1) into a CSS linear() timing-function string.

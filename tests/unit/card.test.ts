@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTiming, buildSpringWaapiKeyframes, validateMotionVersion } from '../../lab/lib/motion-models.js';
+import { resolveTiming, resolveKeyframes, buildSpringWaapiKeyframes, springParts, validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
 import type { DtcgGroup } from '../../lab/lib/types.js';
 import { v1, v2, v3, versions } from '../../components/card/motion.js';
 import { validateVersionMeta, filterVersions } from '../../lab/lib/version-meta.js';
+import { getTokenRefs, pairingWarnings } from '../../lab/lib/token-refs.js';
 
 const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
 
@@ -20,9 +21,15 @@ describe('Card motion versions', () => {
       expect(t.duration).toBeGreaterThan(0);
     });
 
-    it('resolves motion.timings.base to 300ms', () => {
+    it('plays duration.220 with productive-entrance (220ms)', () => {
       const t = resolveTiming(v1, raw);
-      expect(t.duration).toBe(300);
+      expect(t.duration).toBe(220);
+      expect(t.easing).toBe('cubic-bezier(0, 0, 0.38, 0.9)');
+    });
+
+    it('names its travel distance as a token, so the keyframes resolve to 16px', () => {
+      expect(v1.keyframes![0]!.transform).toBe('translateY({distance.16})');
+      expect(resolveKeyframes(v1.keyframes, raw)[0]!.transform).toBe('translateY(16px)');
     });
 
     it('produces a cubic-bezier easing string', () => {
@@ -58,22 +65,38 @@ describe('Card motion versions', () => {
       expect(last.opacity).toBe(1);
     });
 
-    it('resolves duration from motion.springs.bouncy token (600ms natural period)', () => {
-      // The spring settles after some time; duration is positive and derived from 600ms natural period
+    it('plays productive-entrance as a spring: bounce-0, over duration.300 / 0.82', () => {
+      const parts = springParts(v2.model as never, raw);
+      expect(parts).toMatchObject({ bounce: 0, pairedMs: 300, bounceToken: 'bounce.0' });
+      expect(parts.durationMs).toBeCloseTo(300 / 0.82, 6);
       const { duration } = buildSpringWaapiKeyframes(v2, raw);
       expect(duration).toBeGreaterThan(0);
       expect(duration).toBeLessThan(3000); // within maxMs cap
     });
 
-    it('keyframes include a mid-point with overshoot (scale > 1) due to bounce 0.4', () => {
+    it('bounce-0 means the scale never overshoots 1', () => {
       const { keyframes } = buildSpringWaapiKeyframes(v2, raw);
       const scales = keyframes
         .map(kf => kf.transform)
         .filter((t): t is string => typeof t === 'string')
         .map(t => parseFloat(t.replace('scale(', '')));
-      const hasOvershoot = scales.some(s => s > 1.0);
-      expect(hasOvershoot).toBe(true);
+      expect(scales.some(sc => sc > 1.0)).toBe(false);
     });
+  });
+});
+
+describe('Card tokens', () => {
+  it('every version uses tokens that exist, with no hard-coded values and no pairing warnings', () => {
+    for (const v of versions) {
+      const { tokens, hardcoded } = getTokenRefs(v, raw);
+      expect(hardcoded, `${v.id} hard-coded values`).toEqual([]);
+      expect(tokens.every(t => t in raw), `${v.id} unknown tokens`).toBe(true);
+      expect(pairingWarnings(v, raw), `${v.id} pairing`).toEqual([]);
+    }
+  });
+
+  it('staggers with delay tokens', () => {
+    expect(versions.map(v => v.stagger)).toEqual(['delay.70', 'delay.120', 'delay.70']);
   });
 });
 

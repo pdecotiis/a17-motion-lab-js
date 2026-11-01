@@ -1,4 +1,5 @@
-import type { MotionVersion, TweenModel, SpringModel, PageConfig, LiveControls } from './types.js';
+import type { MotionVersion, PageConfig } from './types.js';
+import { findRefs, isSpringForm, springKey } from './token-compiler.js';
 
 export interface TokenRefs {
   tokens: string[];
@@ -13,47 +14,12 @@ export interface UsageEntry {
 
 export type UsageIndex = Map<string, UsageEntry[]>;
 
-// A spring token may name a cubicBezier token as its fallback for engines without linear().
-export function getSpringFallbackPath(model: SpringModel, raw: Record<string, unknown>): string | undefined {
-  const val = raw[model.duration];
-  if (typeof val !== 'object' || val === null || !('fallback' in val)) return undefined;
-  const path = (val as { fallback: unknown }).fallback;
-  return typeof path === 'string' && Array.isArray(raw[path]) ? path : undefined;
-}
-
-export interface LiveOverride {
-  label: string;
-  from: string;
-  to: string;
-}
-
-// Live-control values that differ from the version's own resolved timing.
-export function getLiveOverrides(
-  initial: { duration: number; delay: number; easing: string },
-  controls: LiveControls,
-): LiveOverride[] {
-  const overrides: LiveOverride[] = [];
-  const norm = (s: string): string => s.replace(/\s+/g, '');
-  const ms = (s: string): number => parseFloat(s);
-  if (controls.duration && ms(controls.duration) !== Math.round(initial.duration)) {
-    overrides.push({ label: 'duration', from: `${Math.round(initial.duration)}ms`, to: controls.duration });
-  }
-  if (controls.delay && ms(controls.delay) !== Math.round(initial.delay)) {
-    overrides.push({ label: 'delay', from: `${Math.round(initial.delay)}ms`, to: controls.delay });
-  }
-  if (controls.easing && norm(controls.easing) !== norm(initial.easing)) {
-    overrides.push({ label: 'easing', from: initial.easing, to: controls.easing });
-  }
-  return overrides;
-}
-
-// With a `mode` (the lab's CSS / Spring engine), a spring version lists only the tokens that
-// engine uses: the real spring simulation needs no easing, the CSS approximation uses the
-// spring's fallback easing. Without a mode it lists every token the version can touch.
+// Every token a version uses: its duration, easing and delay, a stagger that is a token, the tokens
+// named in its keyframes, and for a spring the bounce token of its easing. bounce-0 means "no
+// bounce" and is never listed.
 export function getTokenRefs(
   version: MotionVersion,
   raw: Record<string, unknown>,
-  options: { mode?: 'css' | 'spring' } = {},
 ): TokenRefs {
   const tokens: string[] = [];
   const hardcoded: { label: string; value: string }[] = [];
@@ -67,20 +33,52 @@ export function getTokenRefs(
     }
   }
 
-  if (version.model.model === 'tween') {
-    const m = version.model as TweenModel;
-    check(m.duration, 'duration');
-    check(m.easing, 'easing');
-    if (m.delay) check(m.delay, 'delay');
+  const m = version.model;
+  check(m.duration, 'duration');
+  check(m.easing, 'easing');
+  if (m.delay) check(m.delay, 'delay');
+  if (version.stagger) check(version.stagger, 'stagger');
+
+  if (m.model === 'spring') {
+    const form = raw[springKey(m.easing)];
+    if (isSpringForm(form) && form.bounce !== 0) tokens.push(form.token);
   } else {
-    const m = version.model as SpringModel;
-    check(m.duration, 'duration');
-    if (m.delay) check(m.delay, 'delay');
-    const fallback = options.mode === 'spring' ? undefined : getSpringFallbackPath(m, raw);
-    if (fallback) tokens.push(fallback);
+    for (const kf of version.keyframes ?? []) {
+      for (const v of Object.values(kf)) {
+        if (typeof v === 'string') findRefs(v).filter(p => p in raw).forEach(p => tokens.push(p));
+      }
+    }
   }
 
   return { tokens: [...new Set(tokens)], hardcoded };
+}
+
+function ms(value: string | undefined, raw: Record<string, unknown>): number | undefined {
+  const v = value !== undefined && value in raw ? raw[value] : value;
+  return typeof v === 'string' && /^[\d.]+m?s$/.test(v) ? (v.endsWith('ms') ? parseFloat(v) : parseFloat(v) * 1000) : undefined;
+}
+
+// Pairing rules, as warnings and never errors: productive easings pair with 100–300ms, expressive
+// easings with 400–1200ms, and an easing with a bounce is for expressive motion only.
+export function pairingWarnings(version: MotionVersion, raw: Record<string, unknown>): string[] {
+  const { duration, easing } = version.model;
+  if (!(easing in raw)) return [];
+  const name = easing.slice(easing.indexOf('.') + 1);
+  const warnings: string[] = [];
+  const time = ms(duration, raw);
+  if (time !== undefined) {
+    if (name.startsWith('productive-') && (time < 100 || time > 300)) {
+      warnings.push(`${name} is a productive easing: pair it with 100–300ms, not ${time}ms`);
+    }
+    if (name.startsWith('expressive-') && (time < 400 || time > 1200)) {
+      warnings.push(`${name} is an expressive easing: pair it with 400–1200ms, not ${time}ms`);
+    }
+  }
+  const form = raw[springKey(easing)];
+  if (isSpringForm(form) && form.bounce > 0 && !name.startsWith('expressive-')) {
+    warnings.push(`${name} has a bounce, so it is for expressive motion only`);
+  }
+  return warnings;
 }
 
 export function buildUsageIndex(

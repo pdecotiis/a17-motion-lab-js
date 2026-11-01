@@ -6,15 +6,15 @@ export const v3: MotionVersion = {
   label: 'Slow Fade',
   model: {
     model: 'tween',
-    duration: 'motion.timings.slow',
-    easing: 'motion.easings.ease-out',
+    duration: 'duration.400',
+    easing: 'easing.expressive-entrance',
     delay: '0ms',
   },
   keyframes: [
-    { opacity: 0, transform: 'translateY(8px)', offset: 0 },
+    { opacity: 0, transform: 'translateY({distance.8})', offset: 0 },
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
-  stagger: '80ms',
+  stagger: 'delay.70',
   status: 'archived',
   forkedFrom: 'v1',
 };

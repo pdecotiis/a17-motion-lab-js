@@ -1,64 +1,87 @@
 import { describe, it, expect } from 'vitest';
-import { CUSTOM_VALUE, ZERO_VALUE, delayOptions, resolveControlValue, tokenCss, tokenOptions } from '../../lab/lib/control-options.js';
+import { controlOptions, controlsFor, tokenCss, tokenLabel } from '../../lab/lib/control-options.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
 import type { DtcgGroup } from '../../lab/lib/types.js';
 
 const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
 
-describe('tokenCss', () => {
-  it('returns duration tokens as strings and cubicBezier tokens as cubic-bezier()', () => {
-    expect(tokenCss(raw, 'motion.timings.base')).toBe('300ms');
-    expect(tokenCss(raw, 'motion.easings.ease-out')).toBe('cubic-bezier(0, 0, 0.2, 1)');
+describe('tokenCss and tokenLabel', () => {
+  it('returns duration tokens as strings and easing tokens as cubic-bezier()', () => {
+    expect(tokenCss(raw, 'duration.300')).toBe('300ms');
+    expect(tokenCss(raw, 'easing.productive-standard')).toBe('cubic-bezier(0.2, 0, 0.38, 0.9)');
+    expect(tokenCss(raw, 'easing.linear')).toBe('cubic-bezier(0, 0, 1, 1)');
   });
 
-  it('returns undefined for unknown paths and spring tokens', () => {
-    expect(tokenCss(raw, 'motion.nope')).toBeUndefined();
-    expect(tokenCss(raw, 'motion.springs.bouncy')).toBeUndefined();
+  it('passes a literal through and returns undefined for a spring form', () => {
+    expect(tokenCss(raw, '240ms')).toBe('240ms');
+    expect(tokenCss(raw, 'easing.expressive-settle.spring')).toBeUndefined();
+  });
+
+  it('names a token within its group', () => {
+    expect(tokenLabel('easing.productive-standard')).toBe('productive-standard');
+    expect(tokenLabel('duration.300')).toBe('300');
   });
 });
 
-describe('tokenOptions', () => {
-  it('lists every timing token with its value, and only timing tokens', () => {
-    const options = tokenOptions(raw, 'timings');
-    expect(options.map(o => o.value)).toEqual([
-      'motion.timings.fast', 'motion.timings.base', 'motion.timings.slow', 'motion.timings.slower',
+describe('controlOptions', () => {
+  it('lists every duration token for a tween, as its value', () => {
+    expect(controlOptions(raw, 'duration', 'tween').map(o => o.label)).toEqual([
+      '100ms', '140ms', '220ms', '300ms', '400ms', '560ms', '800ms', '1200ms',
     ]);
-    expect(options[1]!.label).toBe('base · 300ms');
+    expect(controlOptions(raw, 'duration', 'tween')[3]).toEqual({ value: 'duration.300', label: '300ms' });
   });
 
-  it('lists every easing token', () => {
-    const options = tokenOptions(raw, 'easings');
-    expect(options.map(o => o.value)).toContain('motion.easings.ease-out');
-    expect(options.every(o => o.value.startsWith('motion.easings.'))).toBe(true);
-    expect(options.find(o => o.value === 'motion.easings.ease-out')!.label).toBe('ease-out · cubic-bezier(0, 0, 0.2, 1)');
+  it('lists every easing for a tween, in system order, never a spring form', () => {
+    const options = controlOptions(raw, 'easing', 'tween');
+    expect(options.map(o => o.label)).toEqual([
+      'productive-standard', 'productive-entrance', 'productive-exit',
+      'expressive-standard', 'expressive-entrance', 'expressive-exit', 'expressive-settle', 'expressive-bounce',
+      'linear',
+    ]);
+    expect(options.every(o => !o.value.endsWith('.spring'))).toBe(true);
+  });
+
+  it('offers a spring only the easings that have a spring form: no exits, no linear', () => {
+    expect(controlOptions(raw, 'easing', 'spring').map(o => o.label)).toEqual([
+      'productive-standard', 'productive-entrance',
+      'expressive-standard', 'expressive-entrance', 'expressive-settle', 'expressive-bounce',
+    ]);
+  });
+
+  it('offers a spring the same durations as a tween', () => {
+    expect(controlOptions(raw, 'duration', 'spring')).toEqual(controlOptions(raw, 'duration', 'tween'));
+  });
+
+  it('offers nothing but durations and easings: no transforms, no free-form values', () => {
+    const all = [...controlOptions(raw, 'duration', 'tween'), ...controlOptions(raw, 'easing', 'tween')];
+    expect(all.every(o => /^(duration|easing)\./.test(o.value))).toBe(true);
   });
 });
 
-describe('resolveControlValue', () => {
-  it('means no override for the version default', () => {
-    expect(resolveControlValue(raw, '', '500', 'ms')).toBeUndefined();
+describe('controlsFor', () => {
+  it('a tween previews the picked duration and easing', () => {
+    expect(controlsFor(raw, 'tween', { duration: 'duration.560', easing: 'easing.expressive-entrance' })).toEqual({
+      duration: '560ms',
+      easing: 'cubic-bezier(0, 0, 0.3, 1)',
+    });
   });
 
-  it('resolves a token to its CSS value', () => {
-    expect(resolveControlValue(raw, 'motion.timings.slow', '', 'ms')).toBe('500ms');
-    expect(resolveControlValue(raw, 'motion.easings.ease-in', '')).toBe('cubic-bezier(0.4, 0, 1, 1)');
+  it('a spring previews the picked duration, and takes the bounce of the picked easing', () => {
+    expect(controlsFor(raw, 'spring', { duration: 'duration.560', easing: 'easing.expressive-bounce' })).toEqual({
+      duration: '560ms',
+      bounce: 0.25,
+    });
+    expect(controlsFor(raw, 'spring', { easing: 'easing.productive-standard' })).toEqual({ bounce: 0 });
   });
 
-  it('takes the typed value for custom, adding ms to bare numbers', () => {
-    expect(resolveControlValue(raw, CUSTOM_VALUE, '425', 'ms')).toBe('425ms');
-    expect(resolveControlValue(raw, CUSTOM_VALUE, '0.5s', 'ms')).toBe('0.5s');
-    expect(resolveControlValue(raw, CUSTOM_VALUE, 'cubic-bezier(0,0,1,1)')).toBe('cubic-bezier(0,0,1,1)');
+  it('a spring ignores an easing that has no spring form', () => {
+    expect(controlsFor(raw, 'spring', { easing: 'easing.productive-exit' })).toEqual({});
   });
 
-  it('offers "none" plus the timing tokens for delay, and resolves none to 0ms', () => {
-    const options = delayOptions(raw);
-    expect(options[0]).toEqual({ value: ZERO_VALUE, label: 'none · 0ms' });
-    expect(options.slice(1)).toEqual(tokenOptions(raw, 'timings'));
-    expect(resolveControlValue(raw, ZERO_VALUE, '', 'ms')).toBe('0ms');
-  });
-
-  it('means no override for an empty custom value', () => {
-    expect(resolveControlValue(raw, CUSTOM_VALUE, '  ', 'ms')).toBeUndefined();
+  it('nothing picked, or an unknown path, overrides nothing', () => {
+    expect(controlsFor(raw, 'tween', {})).toEqual({});
+    expect(controlsFor(raw, 'tween', { duration: '', easing: '' })).toEqual({});
+    expect(controlsFor(raw, 'tween', { duration: 'duration.nope', easing: 'easing.nope' })).toEqual({});
   });
 });

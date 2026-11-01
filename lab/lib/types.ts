@@ -1,9 +1,27 @@
+// A tween names its primitives directly: a duration and an easing (token paths, or literal
+// values). It plays the easing curve.
 export type TweenModel = {
   model: 'tween';
   duration: string;
   easing: string;
   delay?: string;
 };
+
+// An easing token's spring form: the bounce token it names and that token's value (0–1).
+// Derived when the tokens compile; bounce-0 means no bounce.
+export interface SpringForm {
+  bounce: number;
+  token: string;
+}
+
+// Token status: 'system' is approved. A token with no status is 'experimental', as new tokens are.
+export type TokenStatus = 'system' | 'experimental';
+
+export interface TokenMeta {
+  description?: string;  // notes
+  status: TokenStatus;
+  oldNames?: string[];
+}
 
 // One property animated by the spring engine.
 // property: CSS property name ('opacity', 'transform').
@@ -21,10 +39,13 @@ export interface SpringProperty {
   useSpring?: boolean;
 }
 
+// A spring names the same primitives as a tween: a duration and an easing. The easing must have a
+// spring form (its bounce comes from there; exits and linear have none). The spring's own duration
+// is the paired duration / 0.82.
 export type SpringModel = {
   model: 'spring';
-  bounce: number;
-  duration: string;  // token path (e.g. 'motion.springs.bouncy') or literal ('600ms')
+  duration: string;
+  easing: string;
   delay?: string;
   properties: SpringProperty[];
 };
@@ -33,12 +54,29 @@ export type MotionModel = TweenModel | SpringModel;
 
 export type VersionStatus = 'in-progress' | 'review' | 'approved' | 'archived';
 
+// What makes the motion play in production. The lab plays on demand, so this is a spec for the
+// developer, not something the lab simulates.
+export type TriggerType = 'load' | 'in-view' | 'hover' | 'click' | 'route-change';
+
+export interface MotionTrigger {
+  on: TriggerType;
+  threshold?: number;  // in-view only: fraction of the element visible (0–1) that fires it
+  once?: boolean;      // play the first time only (true) or every time the trigger fires (false)
+}
+
+// What a visitor with prefers-reduced-motion: reduce gets.
+// 'fade': opacity-only fade (transforms and travel dropped, REDUCED_MOTION_FADE_MS at most).
+// 'none': no animation, the element appears in its end state.
+export type ReducedMotionPolicy = 'fade' | 'none';
+
 export interface MotionVersion {
   id: string;
   label: string;
   model: MotionModel;
   keyframes?: Keyframe[];  // Required for tween; unused for spring (spring uses model.properties)
   stagger?: string;
+  trigger?: MotionTrigger;               // absent = not specified; the spec says so rather than guessing
+  reducedMotion?: ReducedMotionPolicy;   // absent = 'fade'
   status?: VersionStatus;  // absent = 'in-progress'
   forkedFrom?: string;     // parent version id in the same component
   lineage?: string;        // origin when not forked, e.g. 'imported from <figma link>'
@@ -76,14 +114,19 @@ export interface Preset {
 export interface DtcgToken {
   $type: string;
   $value: unknown;
+  $description?: string;
+  $extensions?: Record<string, unknown>;
 }
 
 export interface DtcgGroup {
   [key: string]: DtcgToken | DtcgGroup;
 }
 
+// What the controls panel overrides while previewing: a duration token's ms, and for a tween an
+// easing curve or for a spring the bounce of the chosen easing. Not saved.
 export interface LiveControls {
   duration?: string;
   easing?: string;
   delay?: string;
+  bounce?: number;
 }

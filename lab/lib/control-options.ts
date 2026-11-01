@@ -1,58 +1,63 @@
-// Live controls (duration, easing, delay) offer the system's tokens first.
-// Anything else goes through an explicit "Custom…" choice.
+// The controls panel offers the system's durations and easings and nothing finer: pick a duration
+// token, pick an easing token. A version previews with the pick; nothing is saved. There are no
+// free-form values and no delay control.
 
-export type TokenGroup = 'timings' | 'easings';
+import { isSpringForm, springKey } from './token-compiler.js';
+import type { LiveControls } from './types.js';
 
-export const CUSTOM_VALUE = '__custom__';
+/** What a version plays: a tween plays its easing curve, a spring its easing's spring form. */
+export type PlayKind = 'tween' | 'spring';
 
 export interface ControlOption {
-  /** Token path (e.g. "motion.timings.base"); '' is "version default", CUSTOM_VALUE is "Custom…". */
+  /** Token path (e.g. "duration.300"); '' is "version default". */
   value: string;
+  /** What to show: "300ms" for a duration, "productive-standard" for an easing. */
   label: string;
 }
 
-// The CSS value of a duration or cubicBezier token, e.g. "300ms" or "cubic-bezier(0, 0, 0.2, 1)".
+// The CSS value of a duration or easing token, e.g. "300ms" or "cubic-bezier(0.2, 0, 0.38, 0.9)".
+// A literal (not a token path) is returned as is.
 export function tokenCss(raw: Record<string, unknown>, path: string): string | undefined {
-  const v = raw[path];
+  const v = path in raw ? raw[path] : path;
   if (typeof v === 'string') return v;
   if (Array.isArray(v) && v.length === 4) return `cubic-bezier(${v.join(', ')})`;
   return undefined;
 }
 
-// Tokens of one group in token-file order: [{ value: path, label: "base · 300ms" }].
-export function tokenOptions(raw: Record<string, unknown>, group: TokenGroup): ControlOption[] {
-  const prefix = `motion.${group}.`;
-  const options: ControlOption[] = [];
-  for (const path of Object.keys(raw)) {
-    if (!path.startsWith(prefix)) continue;
-    const css = tokenCss(raw, path);
-    if (css === undefined) continue;
-    options.push({ value: path, label: `${path.slice(prefix.length)} · ${css}` });
-  }
-  return options;
+// A token's name within its group: "easing.productive-standard" → "productive-standard",
+// "duration.300" → "300".
+export function tokenLabel(path: string): string {
+  return path.slice(path.indexOf('.') + 1);
 }
 
-// Delay has no tokens of its own: "none" plus the timing tokens.
-export const ZERO_VALUE = '__none__';
-
-export function delayOptions(raw: Record<string, unknown>): ControlOption[] {
-  return [{ value: ZERO_VALUE, label: 'none · 0ms' }, ...tokenOptions(raw, 'timings')];
+// The tokens a version can be previewed with, in token-file order. A spring can only use an easing
+// that has a spring form (exits and linear have none).
+export function controlOptions(raw: Record<string, unknown>, group: 'duration' | 'easing', kind: PlayKind): ControlOption[] {
+  return Object.keys(raw)
+    .filter(path => path.startsWith(`${group}.`) && !path.endsWith('.spring'))
+    .filter(path => group === 'duration' || kind === 'tween' || isSpringForm(raw[springKey(path)]))
+    .map(path => ({ value: path, label: group === 'duration' ? (tokenCss(raw, path) ?? path) : tokenLabel(path) }));
 }
 
-// What a select plus its custom field mean: '' → no override, a token → its CSS value,
-// custom → the typed value (numbers get "ms" when unit is "ms"). Empty custom → no override.
-export function resolveControlValue(
+// What the picks change while previewing. '' (version default) or an unknown path changes nothing.
+// A tween previews the easing curve; a spring takes the bounce of the easing's spring form (its
+// own duration is derived from the duration pick when it plays).
+export function controlsFor(
   raw: Record<string, unknown>,
-  selected: string,
-  custom: string,
-  unit: 'ms' | '' = '',
-): string | undefined {
-  if (selected === '') return undefined;
-  if (selected === ZERO_VALUE) return '0ms';
-  if (selected === CUSTOM_VALUE) {
-    const typed = custom.trim();
-    if (!typed) return undefined;
-    return unit === 'ms' && /^-?\d+(\.\d+)?$/.test(typed) ? `${typed}ms` : typed;
+  kind: PlayKind,
+  picks: { duration?: string; easing?: string },
+): LiveControls {
+  const controls: LiveControls = {};
+  const duration = picks.duration && picks.duration in raw ? tokenCss(raw, picks.duration) : undefined;
+  if (duration) controls.duration = duration;
+  if (picks.easing && picks.easing in raw) {
+    if (kind === 'spring') {
+      const form = raw[springKey(picks.easing)];
+      if (isSpringForm(form)) controls.bounce = form.bounce;
+    } else {
+      const easing = tokenCss(raw, picks.easing);
+      if (easing) controls.easing = easing;
+    }
   }
-  return tokenCss(raw, selected);
+  return controls;
 }

@@ -32,7 +32,7 @@ The lab opens at http://localhost:5173.
 - **Library view:** every component as a scaled live preview. Hover (or focus) a card to play it, search by name, and filter by version status. Click a card to open the component.
 - **Component view:** play any motion version with live controls, speed and stagger, light/dark, and side-by-side compare. Duration, easing and delay are picked from the system's tokens; "Custom…" is there when nothing fits, and flagged as not a token.
 - **Page view:** an ordered list of component instances (`pages/<id>/page.json`) for reviewing motion in context. A motion map shows every version, with its state kept in the URL so it can be shared, plus saved presets.
-- **Motion models:** tween and spring. Springs run a real physics simulation and compile to CSS `linear()`, with an optional cubic-bezier fallback.
+- **Motion models:** tween and spring. Springs run a real physics simulation and export as a CSS `linear()` curve (no fallback: browsers without `linear()` are not supported).
 - **Tokens view:** motion tokens (W3C DTCG JSON) with where each is used, tokens per version, and unused tokens flagged.
 - **Version status and lineage:** each version is `in-progress`, `review`, `approved` or `archived`, and records which version it was forked from. Archived versions are hidden by default.
 - **Figma import:** a close match to the Figma frame, not pixel-perfect. It checks the result against a Figma screenshot (under 5% pixel difference), and re-importing never touches motion versions.
