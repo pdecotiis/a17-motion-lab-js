@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTiming, resolveKeyframes, buildSpringWaapiKeyframes, springParts, stepsOf, validateMotionVersion } from '../../lab/lib/motion-models.js';
+import { resolveTiming, resolveKeyframes, playbackOf, stepsOf, validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
 import type { DtcgGroup } from '../../lab/lib/types.js';
@@ -45,40 +45,17 @@ describe('Card motion versions', () => {
       expect(() => validateMotionVersion(v2)).not.toThrow();
     });
 
-    it('produces WAAPI keyframes from the real spring simulation', () => {
-      const { keyframes, duration } = buildSpringWaapiKeyframes(v2, raw);
-      expect(Array.isArray(keyframes)).toBe(true);
-      expect(keyframes.length).toBeGreaterThan(2);
-      expect(typeof duration).toBe('number');
-      expect(duration).toBeGreaterThan(0);
+    it('plays its from and to values with productive-entrance over duration.300', () => {
+      const p = playbackOf(v2, raw);
+      expect(p.keyframes).toHaveLength(2);
+      expect(p.keyframes[0]).toMatchObject({ transform: 'scale(0.92)', opacity: 0 });
+      expect(p.keyframes[1]).toMatchObject({ transform: 'scale(1)', opacity: 1 });
+      expect(p.duration).toBe(300);
+      expect(p.easing).toContain('cubic-bezier');
     });
 
-    it('first keyframe is at scale(0.92) with opacity 0', () => {
-      const { keyframes } = buildSpringWaapiKeyframes(v2, raw);
-      const first = keyframes[0]!;
-      expect(first.transform).toContain('scale(0.92)');
-      expect(first.opacity).toBe(0);
-    });
-
-    it('last keyframe is at scale(1) with opacity 1', () => {
-      const { keyframes } = buildSpringWaapiKeyframes(v2, raw);
-      const last = keyframes[keyframes.length - 1]!;
-      expect(last.transform).toContain('scale(1)');
-      expect(last.opacity).toBe(1);
-    });
-
-    it('plays productive-entrance as a spring: bounce-0, over duration.300 / 0.82', () => {
-      const parts = springParts(v2.model as never, raw);
-      expect(parts).toMatchObject({ bounce: 0, pairedMs: 300, bounceToken: 'bounce.0' });
-      expect(parts.durationMs).toBeCloseTo(300 / 0.82, 6);
-      const { duration } = buildSpringWaapiKeyframes(v2, raw);
-      expect(duration).toBeGreaterThan(0);
-      expect(duration).toBeLessThan(3000); // within maxMs cap
-    });
-
-    it('bounce-0 means the scale never overshoots 1', () => {
-      const { keyframes } = buildSpringWaapiKeyframes(v2, raw);
-      const scales = keyframes
+    it('never overshoots 1: CSS plays no spring', () => {
+      const scales = playbackOf(v2, raw).keyframes
         .map(kf => kf.transform)
         .filter((t): t is string => typeof t === 'string')
         .map(t => parseFloat(t.replace('scale(', '')));

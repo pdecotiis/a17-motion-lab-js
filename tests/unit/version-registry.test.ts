@@ -16,7 +16,7 @@ const mockV2: MotionVersion = {
     duration: '600ms',
     easing: 'easing.expressive-bounce',
     properties: [
-      { property: 'transform', wrapTransform: 'scale', from: 0.9, to: 1, span: 1, useSpring: true },
+      { property: 'transform', wrapTransform: 'scale', from: 0.9, to: 1 },
     ],
   },
 };

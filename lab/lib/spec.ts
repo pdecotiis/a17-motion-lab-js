@@ -2,8 +2,7 @@ import type { MotionVersion, TweenModel, SpringModel } from './types.js';
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getStepRefs, getTokenRefs } from './token-refs.js';
-import { resolveKeyframes, springParts, stepsOf } from './motion-models.js';
-import { springKeyframes } from './spring-engine.js';
+import { resolveKeyframes, stepsOf } from './motion-models.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import {
   STATUS_LABELS, describeLineage, describeTrigger, getReducedMotionPolicy, getVersionStatus,
@@ -48,12 +47,7 @@ function motionLines(version: MotionVersion, raw: Record<string, unknown>): stri
     `- Easing: ${describeValue(m.easing, raw, 'ease')}`,
   ];
   if (m.model === 'spring') {
-    const { bounce, durationMs, bounceToken } = springParts(m, raw);
-    const { duration: settle } = springKeyframes({ from: 0, to: 1, duration: durationMs, bounce, span: 1 });
-    lines.push(
-      `- Plays as a spring: bounce ${bounce}${bounce === 0 ? '' : ` (${bounceToken})`}, a spring duration of ${Math.round(durationMs)}ms (the duration / 0.82)`,
-      `- Settles in about ${Math.round(settle)}ms (a real spring, shipped as a CSS linear() curve)`,
-    );
+    lines.push('- Authored as a spring: CSS plays its easing curve over the duration; only a spring runtime (Motion) bounces');
   }
   lines.push(`- Delay: ${m.delay ? describeValue(m.delay, raw, '0ms') : '0ms'}`);
   if (version.stagger) lines.push(`- Stagger: ${stagger(version.stagger, raw)} between siblings`);
@@ -73,7 +67,7 @@ function animatedLines(version: MotionVersion, raw: Record<string, unknown>): st
   return m.properties.map(p => {
     const unit = p.unit ?? '';
     const wrap = (n: number): string => (p.wrapTransform ? `${p.wrapTransform}(${n}${unit})` : `${n}${unit}`);
-    return `- ${p.property}: ${wrap(p.from)} → ${wrap(p.to)} (${p.useSpring === false ? 'linear' : 'spring'})`;
+    return `- ${p.property}: ${wrap(p.from)} → ${wrap(p.to)}`;
   });
 }
 

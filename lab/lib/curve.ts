@@ -1,8 +1,6 @@
-import { springKeyframes } from './spring-engine.js';
-
 // A motion curve for the Tokens view: progress (y) over time (x), the classic easing graph.
 // x runs 0 → 1 across the duration; y runs 0 → 1 and may leave that range when the motion
-// overshoots (a bouncy spring, an easing with a control point above 1).
+// overshoots (an easing with a control point above 1).
 
 export interface Curve {
   points: { x: number; y: number }[];
@@ -29,13 +27,6 @@ export function bezierCurve(
     return { x: bez(x1, x2, s), y: bez(y1, y2, s) };
   });
   return withRange(points, 0);
-}
-
-// A spring (0 → 1), simulated by the same engine the lab plays.
-export function springCurve(bounce: number, durationMs: number): Curve {
-  const { keyframes, duration } = springKeyframes({ from: 0, to: 1, duration: durationMs, bounce, span: 1 });
-  const last = Math.max(keyframes.length - 1, 1);
-  return withRange(keyframes.map((y, i) => ({ x: i / last, y })), duration);
 }
 
 // An SVG path for the curve inside a width × height box with `pad` around it.

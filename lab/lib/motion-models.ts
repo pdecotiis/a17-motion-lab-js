@@ -1,7 +1,6 @@
-import type { MotionVersion, TweenModel, SpringModel, SpringProperty, PlayMode } from './types.js';
-import { springKeyframes, springToLinear, SPRING_DURATION_RATIO } from './spring-engine.js';
+import type { MotionVersion, TweenModel, SpringModel, SpringProperty } from './types.js';
 import { getEffectiveKeyframes, REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
-import { isSpringForm, resolveRefs, springKey } from './token-compiler.js';
+import { resolveRefs } from './token-compiler.js';
 import { isVersionStatus, isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
 
 export interface ResolvedTiming {
@@ -9,13 +8,6 @@ export interface ResolvedTiming {
   easing: string;
   delay: number;
   fill: FillMode;
-}
-
-export interface SpringWaapiResult {
-  keyframes: Keyframe[];
-  duration: number;
-  delay: number;
-  easing?: string;  // set by CSS mode; undefined = use 'linear' (shape baked into keyframes)
 }
 
 function parseMs(value: string): number {
@@ -44,7 +36,7 @@ export function resolveTiming(
   playbackRate = 1,
 ): ResolvedTiming {
   if (version.model.model !== 'tween') {
-    throw new Error(`resolveTiming: version "${version.id}" is a spring model — use buildSpringWaapiKeyframes instead`);
+    throw new Error(`resolveTiming: version "${version.id}" is a spring model, which CSS plays through playbackOf`);
   }
   const model = version.model as TweenModel;
   const durationStr = resolveStr(model.duration, raw, '300ms');
@@ -82,21 +74,6 @@ export function stepsOf(version: MotionVersion): { name: string | null; version:
   ];
 }
 
-// A spring's bounce and durations. The bounce comes from the easing's spring form (an easing with
-// none, such as an exit or linear, can't be a spring); the spring's duration is the paired duration
-// / 0.82. `bounceToken` is the bounce token the easing names.
-export function springParts(
-  model: SpringModel,
-  raw: Record<string, unknown>,
-): { bounce: number; durationMs: number; pairedMs: number; bounceToken: string } {
-  const form = raw[springKey(model.easing)];
-  if (!isSpringForm(form)) {
-    throw new Error(`Easing "${model.easing}" has no spring form, so a spring can't use it (exits and linear have none)`);
-  }
-  const pairedMs = parseMs(resolveStr(model.duration, raw, '300ms'));
-  return { bounce: form.bounce, durationMs: pairedMs / SPRING_DURATION_RATIO, pairedMs, bounceToken: form.token };
-}
-
 // A tween's keyframes with token references ("{distance.16}") replaced by their values.
 export function resolveKeyframes(keyframes: Keyframe[] | undefined, raw: Record<string, unknown>): Keyframe[] {
   return (keyframes ?? []).map(kf =>
@@ -106,130 +83,19 @@ export function resolveKeyframes(keyframes: Keyframe[] | undefined, raw: Record<
   );
 }
 
-// Build WAAPI keyframes from the spring simulation for entrance animations.
-// Each property in model.properties is simulated (or linearly interpolated).
-// The easing on the WAAPI animation is always 'linear' — the shape is baked into the keyframes.
-export function buildSpringWaapiKeyframes(
-  version: MotionVersion,
-  raw: Record<string, unknown>,
-  options: { playbackRate?: number; reducedMotion?: boolean } = {},
-): SpringWaapiResult {
-  if (version.model.model !== 'spring') {
-    throw new Error(`buildSpringWaapiKeyframes: version "${version.id}" is not a spring model`);
-  }
-  const model = version.model as SpringModel;
-  const { playbackRate = 1, reducedMotion = false } = options;
-
-  // The spring's duration (ms) is the paired duration / 0.82; the bounce is the easing's
-  const parts = springParts(model, raw);
-
-  // Resolve delay
-  const delayStr = resolveStr(model.delay, raw, '0ms');
-  const delay = parseMs(delayStr) / playbackRate;
-
-  const { bounce, durationMs: naturalDuration } = parts;
-
-  // Reduced motion: skip travel (transforms), keep opacity fade.
-  if (reducedMotion) {
-    const opacityProp = model.properties.find(p => p.property === 'opacity');
-    const endTransformParts: string[] = [];
-    for (const prop of model.properties) {
-      if (prop.wrapTransform) {
-        endTransformParts.push(`${prop.wrapTransform}(${prop.to}${prop.unit ?? ''})`);
-      }
-    }
-    const endTransform = endTransformParts.length ? endTransformParts.join(' ') : undefined;
-
-    if (opacityProp) {
-      const startKf: Keyframe = { offset: 0, opacity: opacityProp.from };
-      const endKf: Keyframe = { offset: 1, opacity: opacityProp.to };
-      if (endTransform) { startKf.transform = endTransform; endKf.transform = endTransform; }
-      return { keyframes: [startKf, endKf], duration: 150, delay };
-    }
-    return {
-      keyframes: [{ offset: 1, ...(endTransform ? { transform: endTransform } : {}) }],
-      duration: 0,
-      delay,
-    };
-  }
-
-  // Run spring simulation for each property
-  const fps = 60;
-  const simResults: { prop: SpringProperty; values: number[]; settleDuration: number }[] = [];
-
-  for (const prop of model.properties) {
-    if (prop.useSpring === false) {
-      simResults.push({ prop, values: [prop.from, prop.to], settleDuration: naturalDuration });
-    } else {
-      const result = springKeyframes({
-        from: prop.from,
-        to: prop.to,
-        duration: naturalDuration,
-        bounce,
-        span: prop.span ?? 1,
-        fps,
-      });
-      simResults.push({ prop, values: result.keyframes, settleDuration: result.duration });
-    }
-  }
-
-  const maxFrames = Math.max(...simResults.map(r => r.values.length));
-  const settleDuration = Math.max(...simResults.map(r => r.settleDuration));
-
-  // Build WAAPI keyframe array — easing will be 'linear', shape is in the values.
-  const keyframes: Keyframe[] = [];
-  for (let i = 0; i < maxFrames; i++) {
-    const offset = maxFrames === 1 ? 0 : i / (maxFrames - 1);
-    const kf: Keyframe = { offset };
-    const transformParts: string[] = [];
-
-    for (const { prop, values } of simResults) {
-      // Map this frame index into the property's value array via linear interpolation
-      const frameT = maxFrames === 1 ? 1 : i / (maxFrames - 1);
-      const propT = frameT * (values.length - 1);
-      const lo = Math.floor(propT);
-      const hi = Math.min(Math.ceil(propT), values.length - 1);
-      const frac = propT - lo;
-      const loVal = values[lo] ?? prop.to;
-      const hiVal = values[hi] ?? prop.to;
-      const value = lo === hi ? loVal : loVal + (hiVal - loVal) * frac;
-
-      const unit = prop.unit ?? '';
-      if (prop.wrapTransform) {
-        transformParts.push(`${prop.wrapTransform}(${value}${unit})`);
-      } else if (unit === '') {
-        // Numeric property (opacity, scale via custom prop, etc.)
-        (kf as Record<string, unknown>)[prop.property] = value;
-      } else {
-        (kf as Record<string, unknown>)[prop.property] = `${value}${unit}`;
-      }
-    }
-
-    if (transformParts.length) kf.transform = transformParts.join(' ');
-    keyframes.push(kf);
-  }
-
-  return { keyframes, duration: settleDuration / playbackRate, delay };
-}
-
-// ── The playback lens ─────────────────────────────────────────────────────
+// ── Playback ──────────────────────────────────────────────────────────────
 
 export interface Playback {
   keyframes: Keyframe[];
   /** WAAPI duration in ms (already divided by the playback rate). */
   duration: number;
   delay: number;
-  /** WAAPI easing: a cubic-bezier, a baked linear(…) spring curve, or 'linear' for baked keyframes. */
+  /** WAAPI easing: the easing token's cubic-bezier. */
   easing: string;
-  as: PlayMode;
   easingToken: string;
-  /** The paired duration token's ms. */
+  /** The duration token's ms. */
   pairedMs: number;
-  /** Spring only: the easing's bounce, its bounce token, and the spring's own duration (paired / 0.82). */
-  bounce?: number;
-  bounceToken?: string;
-  springMs?: number;
-  /** Set when the lens asked for a spring but the easing has none (an exit, linear): it plays as easing. */
+  /** Set when the motion was authored as a spring but CSS can only play its easing. */
   note?: string;
 }
 
@@ -254,17 +120,12 @@ function springAsKeyframes(properties: SpringProperty[]): Keyframe[] {
   return [start, end];
 }
 
-// How one motion plays under the lens, whatever it was authored as.
-//  - easing: its easing curve over the duration token.
-//  - spring: the easing's spring form. A tween plays its own keyframes with the spring's curve as
-//    the timing function (as the CSS export does), so any keyframes work; a spring version plays
-//    its physics. The spring's duration is the paired duration / 0.82.
-// An easing with no spring form (an exit, linear) plays as easing, with a note. Reduced motion
-// gives the short opacity-only fade.
+// How one motion plays in the lab's CSS runtime: its easing curve over its duration token. A spring
+// version has no real spring here, so it plays its from/to values with the easing curve. Reduced
+// motion gives the short opacity-only fade.
 export function playbackOf(
   version: MotionVersion,
   raw: Record<string, unknown>,
-  mode: PlayMode,
   options: { playbackRate?: number; reducedMotion?: boolean } = {},
 ): Playback {
   const { playbackRate = 1, reducedMotion = false } = options;
@@ -272,55 +133,25 @@ export function playbackOf(
   const easingToken = model.easing;
   const pairedMs = parseMs(resolveStr(model.duration, raw, '300ms'));
   const delay = parseMs(resolveStr(model.delay, raw, '0ms')) / playbackRate;
-  const form = raw[springKey(easingToken)];
-
-  // A spring version as a spring: its physics, baked into keyframes.
-  if (model.model === 'spring' && mode === 'spring') {
-    const baked = buildSpringWaapiKeyframes(version, raw, { playbackRate, reducedMotion });
-    const parts = springParts(model, raw);
-    return {
-      // Reduced motion is opacity only here too, as for every other motion and as exported.
-      keyframes: reducedMotion ? getEffectiveKeyframes(baked.keyframes, true) : baked.keyframes,
-      duration: baked.duration, delay: baked.delay, easing: 'linear', as: 'spring',
-      easingToken, pairedMs, bounce: parts.bounce, bounceToken: parts.bounceToken, springMs: parts.durationMs,
-    };
-  }
-
   const keyframes = model.model === 'spring' ? springAsKeyframes(model.properties) : resolveKeyframes(version.keyframes, raw);
-  const easing = resolveStr(easingToken, raw, 'ease');
-  let playback: Playback;
-  if (mode === 'spring' && isSpringForm(form)) {
-    const springMs = pairedMs / SPRING_DURATION_RATIO;
-    const settle = springKeyframes({ from: 0, to: 1, duration: springMs, bounce: form.bounce, span: 1 }).duration;
-    playback = {
-      keyframes, duration: settle / playbackRate, delay, easing: springToLinear(springMs, form.bounce, 30), as: 'spring',
-      easingToken, pairedMs, bounce: form.bounce, bounceToken: form.token, springMs,
-    };
-  } else {
-    playback = { keyframes, duration: pairedMs / playbackRate, delay, easing, as: 'easing', easingToken, pairedMs };
-    if (mode === 'spring') {
-      playback.note = `${easingToken.slice(easingToken.indexOf('.') + 1)} has no spring form, so it plays as easing`;
-    }
-  }
+  const playback: Playback = {
+    keyframes, duration: pairedMs / playbackRate, delay, easing: resolveStr(easingToken, raw, 'ease'), easingToken, pairedMs,
+  };
+  if (model.model === 'spring') playback.note = 'authored as a spring; CSS plays its easing';
 
   if (reducedMotion) {
     return {
       ...playback,
       keyframes: getEffectiveKeyframes(playback.keyframes, true),
       duration: Math.min(playback.duration, REDUCED_MOTION_FADE_MS),
-      easing: playback.as === 'spring' ? 'linear' : playback.easing,
     };
   }
   return playback;
 }
 
-// What a motion plays as, in a line: "Easing · productive-entrance, 220ms" or
-// "Spring · expressive-settle, bounce 0.1 (bounce.10), 366ms".
+// What a motion plays as, in a line: "Easing · productive-entrance, 220ms".
 export function describePlayback(p: Playback): string {
-  const name = p.easingToken.slice(p.easingToken.indexOf('.') + 1);
-  const text = p.as === 'spring'
-    ? `Spring · ${name}, bounce ${p.bounce}${p.bounce ? ` (${p.bounceToken})` : ''}, ${Math.round(p.springMs!)}ms`
-    : `Easing · ${name}, ${Math.round(p.pairedMs)}ms`;
+  const text = `Easing · ${p.easingToken.slice(p.easingToken.indexOf('.') + 1)}, ${Math.round(p.pairedMs)}ms`;
   return p.note ? `${text} (${p.note})` : text;
 }
 

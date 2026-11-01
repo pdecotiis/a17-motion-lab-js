@@ -2,9 +2,8 @@ import { test, expect } from '@playwright/test';
 
 // "Tokens used" lists what each motion of a version uses, and where in the motion each token sits:
 // its duration, easing and delay, a stagger that is a token, the tokens its keyframes name, and for a
-// spring the bounce token of its easing (bounce-0 is never listed). A version with layers (the text
-// moving differently from the card) gets a group for the root and one for each layer. Springs always
-// play as real springs: there is no engine toggle.
+// version authored as a spring lists its duration and easing (CSS plays no spring, so no bounce). A version with layers (the text
+// moving differently from the card) gets a group for the root and one for each layer.
 test.describe('Tokens used', () => {
   const chips = (page: import('@playwright/test').Page) => page.locator('#tokens-used-list .lab-token-chip code');
   const wheres = (page: import('@playwright/test').Page) => page.locator('#tokens-used-list .lab-token-chip-where');
@@ -16,7 +15,7 @@ test.describe('Tokens used', () => {
     await expect(page.locator('.lab-tokens-layer')).toHaveCount(0);
   });
 
-  test('a spring lists its duration and easing; bounce-0 is not listed', async ({ page }) => {
+  test('a spring lists its duration and easing, with no bounce token', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v2');
     await expect(chips(page)).toHaveText(['duration.300', 'easing.productive-entrance', 'delay.120']);
     await expect(wheres(page)).toHaveText(['duration', 'easing', 'stagger']);
@@ -49,12 +48,11 @@ test.describe('Tokens used', () => {
     await expect(page.locator('#engine-spring')).toHaveCount(0);
   });
 
-  test('the generated CSS for a spring is one linear() curve, with no fallback', async ({ page }) => {
+  test('the generated CSS for a spring has no linear() curve: CSS plays its easing', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v2');
     const css = page.locator('#css-pre');
-    await expect(css).toContainText('linear(0,');
-    await expect(css).toContainText('/* spring of easing.productive-entrance: bounce 0, 366ms (300ms / 0.82) */');
-    await expect(css).not.toContainText('@supports');
-    await expect(css).not.toContainText('cubic-bezier');
+    await expect(css).toContainText('/* authored as a spring of easing.productive-entrance; CSS plays its easing, only a spring runtime (Motion) bounces */');
+    await expect(css).toContainText('animation-timing-function: var(--motion-easing-productive-entrance');
+    await expect(css).not.toContainText('linear(');
   });
 });

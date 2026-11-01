@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  compileTokens, resolveTokenValue, tokenVarName, springKey, isSpringForm, findRefs, resolveRefs, tokenCss, tokenLabel,
+  compileTokens, resolveTokenValue, tokenVarName, findRefs, resolveRefs, tokenCss, tokenLabel,
 } from '../../lab/lib/token-compiler.js';
 import type { DtcgGroup } from '../../lab/lib/types.js';
 import tokensJson from '../../tokens/motion.json';
@@ -14,13 +14,9 @@ const sample = (over: Partial<Record<string, unknown>> = {}): DtcgGroup => ({
     'productive-standard': {
       $type: 'cubicBezier',
       $value: [0.2, 0, 0.38, 0.9],
-      $extensions: { status: 'system', spring: { bounce: '{bounce.0}' } },
+      $extensions: { status: 'system' },
     },
     'productive-exit': { $type: 'cubicBezier', $value: [0.2, 0, 1, 0.9] },
-  },
-  bounce: {
-    '0': { $type: 'number', $value: 0 },
-    '10': { $type: 'number', $value: 0.1 },
   },
   distance: { '16': { $type: 'dimension', $value: '16px' } },
   scale: { '95': { $type: 'number', $value: 0.95 } },
@@ -78,39 +74,6 @@ describe('status, notes and old names', () => {
   });
 });
 
-describe('spring form of an easing', () => {
-  it('an easing with $extensions.spring gets a spring form under <path>.spring', () => {
-    const { raw } = compileTokens(sample());
-    expect(raw[springKey('easing.productive-standard')]).toEqual({ bounce: 0, token: 'bounce.0' });
-    expect(isSpringForm(raw['easing.productive-standard.spring'])).toBe(true);
-  });
-
-  it('an easing without one (an exit) has none', () => {
-    const { raw } = compileTokens(sample());
-    expect(raw[springKey('easing.productive-exit')]).toBeUndefined();
-  });
-
-  it('the bounce value comes from the bounce token', () => {
-    const { raw } = compileTokens(sample({
-      easing: { settle: { $type: 'cubicBezier', $value: [0.3, 1.1, 0.5, 1], $extensions: { spring: { bounce: '{bounce.10}' } } } },
-    }));
-    expect(raw['easing.settle.spring']).toEqual({ bounce: 0.1, token: 'bounce.10' });
-  });
-
-  it('rejects a bounce that is not a reference, is unknown, is not a number token, or is out of range', () => {
-    const withBounce = (bounce: unknown): DtcgGroup => sample({
-      easing: { e: { $type: 'cubicBezier', $value: [0, 0, 1, 1], $extensions: { spring: { bounce } } } },
-    });
-    expect(() => compileTokens(withBounce('bounce.0'))).toThrow('must be a token reference');
-    expect(() => compileTokens(withBounce('{bounce.99}'))).toThrow('unknown token "bounce.99"');
-    expect(() => compileTokens(withBounce('{duration.100}'))).toThrow('is not a number token');
-    expect(() => compileTokens(sample({
-      bounce: { '0': { $type: 'number', $value: 2 } },
-      easing: { e: { $type: 'cubicBezier', $value: [0, 0, 1, 1], $extensions: { spring: { bounce: '{bounce.0}' } } } },
-    }))).toThrow('from 0 to 1');
-  });
-});
-
 describe('resolveTokenValue', () => {
   it('resolves a known token path, and throws on an unknown one', () => {
     const { raw } = compileTokens(sample());
@@ -153,9 +116,8 @@ describe('tokenCss and tokenLabel', () => {
     expect(tokenCss(raw, 'easing.linear')).toBe('cubic-bezier(0, 0, 1, 1)');
   });
 
-  it('tokenCss passes a literal through and has no value for a spring form', () => {
+  it('tokenCss passes a literal through', () => {
     expect(tokenCss(raw, '240ms')).toBe('240ms');
-    expect(tokenCss(raw, 'easing.expressive-settle.spring')).toBeUndefined();
   });
 
   it('tokenLabel names a token within its group', () => {
@@ -167,12 +129,13 @@ describe('tokenCss and tokenLabel', () => {
 describe('the real token file', () => {
   const { raw, meta } = compileTokens(tokensJson as unknown as DtcgGroup);
   // In token-file order. JS puts whole-number keys first, so the scales are compared smallest to largest.
-  const names = (kind: string): string[] => Object.keys(raw).filter(k => k.startsWith(`${kind}.`) && !k.endsWith('.spring')).map(k => k.slice(kind.length + 1));
+  const names = (kind: string): string[] => Object.keys(raw).filter(k => k.startsWith(`${kind}.`)).map(k => k.slice(kind.length + 1));
   const sorted = (kind: string): string[] => names(kind).sort((a, b) => Number(a) - Number(b));
 
   it('has no composite tokens and no motion root', () => {
     expect(names('transforms')).toEqual([]);
     expect(names('springs')).toEqual([]);
+    expect(names('bounce')).toEqual([]);
     expect(Object.keys(raw).some(k => k.startsWith('motion.'))).toBe(false);
   });
 
@@ -182,7 +145,6 @@ describe('the real token file', () => {
     expect(sorted('scale')).toEqual(['60', '75', '90', '95', '96', '97', '98', '99', '103', '106']);
     expect(sorted('opacity')).toEqual(['04', '08', '10', '56']);
     expect(sorted('delay')).toEqual(['40', '70', '120']);
-    expect(sorted('bounce')).toEqual(['0', '10', '25']);
   });
 
   it('each value matches its name', () => {
@@ -191,7 +153,6 @@ describe('the real token file', () => {
     }
     for (const n of names('scale')) expect(raw[`scale.${n}`]).toBeCloseTo(Number(n) / 100, 5);
     for (const n of names('opacity')) expect(raw[`opacity.${n}`]).toBeCloseTo(Number(n) / 100, 5);
-    for (const n of names('bounce')) expect(raw[`bounce.${n}`]).toBeCloseTo(Number(n) / 100, 5);
   });
 
   it('has the easings in system order', () => {
@@ -202,16 +163,12 @@ describe('the real token file', () => {
     ]);
   });
 
-  it('gives the standard and entrance easings bounce-0, settle bounce-10, bounce bounce-25, and the exits and linear none', () => {
-    const bounce = (e: string): unknown => (raw[springKey(`easing.${e}`)] as { token?: string } | undefined)?.token;
-    for (const e of ['productive-standard', 'productive-entrance', 'expressive-standard', 'expressive-entrance']) expect(bounce(e)).toBe('bounce.0');
-    expect(bounce('expressive-settle')).toBe('bounce.10');
-    expect(bounce('expressive-bounce')).toBe('bounce.25');
-    for (const e of ['productive-exit', 'expressive-exit', 'linear']) expect(bounce(e)).toBeUndefined();
+  it('has no spring forms: easing is the only family', () => {
+    expect(Object.keys(raw).some(k => k.endsWith('.spring'))).toBe(false);
   });
 
   it('every token has a status, and the two placeholder curves are experimental', () => {
-    for (const path of Object.keys(raw).filter(k => !k.endsWith('.spring'))) expect(meta[path]?.status).toMatch(/^(system|experimental)$/);
+    for (const path of Object.keys(raw)) expect(meta[path]?.status).toMatch(/^(system|experimental)$/);
     expect(meta['easing.expressive-settle']?.status).toBe('experimental');
     expect(meta['easing.expressive-bounce']?.status).toBe('experimental');
     expect(meta['duration.300']?.status).toBe('system');

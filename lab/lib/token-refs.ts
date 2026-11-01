@@ -1,5 +1,5 @@
-import type { MotionVersion, PageConfig, PlayMode } from './types.js';
-import { findRefs, isSpringForm, springKey } from './token-compiler.js';
+import type { MotionVersion, PageConfig } from './types.js';
+import { findRefs } from './token-compiler.js';
 import { stepsOf } from './motion-models.js';
 
 export interface TokenRefs {
@@ -16,8 +16,8 @@ export interface UsageEntry {
 export type UsageIndex = Map<string, UsageEntry[]>;
 
 // What one motion (the component's root, or one layer) uses: each token and where in the motion it
-// sits ("duration", "easing", "delay", "stagger", "spring bounce", "0% transform"), plus any
-// hard-coded values. bounce-0 means "no bounce" and is never listed.
+// sits ("duration", "easing", "delay", "stagger", "0% transform"), plus any
+// hard-coded values.
 export interface StepRefs {
   /** The layer's data-motion name; null for the component's root. */
   layer: string | null;
@@ -25,7 +25,7 @@ export interface StepRefs {
   hardcoded: { label: string; value: string }[];
 }
 
-function stepRefs(layer: string | null, version: MotionVersion, raw: Record<string, unknown>, withStagger: boolean, mode?: PlayMode): StepRefs {
+function stepRefs(layer: string | null, version: MotionVersion, raw: Record<string, unknown>, withStagger: boolean): StepRefs {
   const uses = new Map<string, string[]>();
   const hardcoded: { label: string; value: string }[] = [];
   const use = (token: string, where: string): void => {
@@ -46,13 +46,6 @@ function stepRefs(layer: string | null, version: MotionVersion, raw: Record<stri
   if (m.delay) check(m.delay, 'delay');
   if (withStagger && version.stagger) check(version.stagger, 'stagger');
 
-  // The bounce token counts when the motion plays as a spring: a spring version as authored (or under
-  // the spring lens), a tween only under the spring lens and only if its easing has a spring form.
-  const playsAsSpring = m.model === 'spring' ? mode !== 'easing' : mode === 'spring';
-  if (playsAsSpring) {
-    const form = raw[springKey(m.easing)];
-    if (isSpringForm(form) && form.bounce !== 0) use(form.token, 'spring bounce');
-  }
   if (m.model === 'tween') {
     const kfs = version.keyframes ?? [];
     kfs.forEach((kf, i) => {
@@ -67,10 +60,9 @@ function stepRefs(layer: string | null, version: MotionVersion, raw: Record<stri
 }
 
 // The tokens each motion of a version uses: the root first, then each layer. The stagger belongs
-// to the version, so it is listed with the root. With a play mode, it is what that lens plays (a
-// spring adds its bounce token); without one, the version as authored.
-export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>, mode?: PlayMode): StepRefs[] {
-  return stepsOf(version).map(({ name, version: step }) => stepRefs(name, step, raw, name === null, mode));
+// to the version, so it is listed with the root.
+export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>): StepRefs[] {
+  return stepsOf(version).map(({ name, version: step }) => stepRefs(name, step, raw, name === null));
 }
 
 // Every token a version uses, across its root and layers, and its hard-coded values (a layer's are
@@ -89,7 +81,7 @@ function ms(value: string | undefined, raw: Record<string, unknown>): number | u
 }
 
 // Pairing rules, as warnings and never errors: productive easings pair with 100–300ms, expressive
-// easings with 400–1200ms, and an easing with a bounce is for expressive motion only. A layer's
+// easings with 400–1200ms. A layer's
 // warnings start with its name.
 export function pairingWarnings(version: MotionVersion, raw: Record<string, unknown>): string[] {
   return stepsOf(version).flatMap(({ name, version: step }) => {
@@ -105,10 +97,6 @@ export function pairingWarnings(version: MotionVersion, raw: Record<string, unkn
       if (eName.startsWith('expressive-') && (time < 400 || time > 1200)) {
         warnings.push(`${eName} is an expressive easing: pair it with 400–1200ms, not ${time}ms`);
       }
-    }
-    const form = raw[springKey(easing)];
-    if (isSpringForm(form) && form.bounce > 0 && !eName.startsWith('expressive-')) {
-      warnings.push(`${eName} has a bounce, so it is for expressive motion only`);
     }
     return name ? warnings.map(w => `${name}: ${w}`) : warnings;
   });

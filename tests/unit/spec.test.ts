@@ -33,8 +33,8 @@ const spring = (properties: SpringProperty[], over: Partial<MotionVersion> = {})
 });
 
 const mixedSpring = spring([
-  { property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1, useSpring: true },
-  { property: 'opacity', from: 0, to: 1, useSpring: false },
+  { property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 },
+  { property: 'opacity', from: 0, to: 1 },
 ]);
 
 describe('trigger and reduced-motion metadata', () => {
@@ -160,45 +160,24 @@ describe('buildVersionCss: tween', () => {
 });
 
 describe('buildVersionCss: spring', () => {
-  it('ships the spring as one linear() curve, with no cubic-bezier fallback or @supports block', () => {
+  it('has no real spring in CSS: it plays from and to with the easing curve, with no linear() curve', () => {
     const css = buildVersionCss(mixedSpring, raw, { component: 'card' });
-    expect(css).toMatch(/animation-timing-function: linear\(0,/);
-    expect(css).not.toContain('@supports');
-    expect(css).not.toContain('cubic-bezier');
-    expect(css).not.toContain('fallback');
+    expect(css).not.toContain('linear(');
+    expect(css).toContain('animation-duration: var(--motion-duration-560, 560ms);');
+    expect(css).toContain('animation-timing-function: var(--motion-easing-expressive-bounce, cubic-bezier(');
+    expect(css).toMatch(/from \{[^}]*opacity: 0;[^}]*transform: scale\(0\.92\);/);
+    expect(css).toMatch(/to \{[^}]*opacity: 1;[^}]*transform: scale\(1\);/);
   });
 
-  it('says which easing it plays as a spring, with its bounce and derived duration', () => {
+  it('says it was authored as a spring and which easing CSS plays', () => {
     const css = buildVersionCss(mixedSpring, raw, { component: 'card' });
-    expect(css).toContain('/* spring of easing.expressive-bounce: bounce 0.25, 683ms (560ms / 0.82) */');
+    expect(css).toContain('/* authored as a spring of easing.expressive-bounce; CSS plays its easing, only a spring runtime (Motion) bounces */');
   });
 
-  it('splits spring and linear properties into two animations so opacity does not overshoot', () => {
+  it('is one animation, whatever the properties', () => {
     const css = buildVersionCss(mixedSpring, raw, { component: 'card' });
-    expect(css).toContain('animation-name: motion-card-v2, motion-card-v2-linear;');
-    expect(css).toContain('@keyframes motion-card-v2-linear {');
-    expect(css).toMatch(/animation-timing-function: linear\(0,[^;]*, linear;/);
-  });
-
-  it('keeps one animation when spring and linear parts both animate transform', () => {
-    const both = spring([
-      { property: 'transform', wrapTransform: 'scale', from: 0.9, to: 1, useSpring: true },
-      { property: 'transform', wrapTransform: 'translateY', from: 8, to: 0, unit: 'px', useSpring: false },
-    ]);
-    const css = buildVersionCss(both, raw, { component: 'card' });
     expect(css).toContain('animation-name: motion-card-v2;');
-    expect(css).toContain('share the spring curve');
-  });
-
-  it('a spring with only linear properties is linear, not a spring curve', () => {
-    const css = buildVersionCss(spring([{ property: 'opacity', from: 0, to: 1, useSpring: false }]), raw, { component: 'card' });
-    expect(css).toContain('animation-timing-function: linear;');
-    expect(css).not.toContain('linear(0');
-  });
-
-  it('a spring with an easing that has no spring form throws, naming the easing', () => {
-    const exit = spring([{ property: 'opacity', from: 0, to: 1 }], { model: { model: 'spring', duration: 'duration.300', easing: 'easing.productive-exit', properties: [{ property: 'opacity', from: 0, to: 1 }] } });
-    expect(() => buildVersionCss(exit, raw, { component: 'card' })).toThrow('easing.productive-exit');
+    expect(css).not.toContain('-linear');
   });
 });
 
@@ -238,16 +217,15 @@ describe('buildVersionExport', () => {
     expect(out.tokensCss).not.toContain('duration-400');
   });
 
-  it('a spring version exports its spring, not a fallback', () => {
+  it('a spring version exports its easing and says it was authored as a spring', () => {
     const springOut = buildVersionExport('card', mixedSpring, [mixedSpring], tokens);
-    expect(springOut.css).toContain('linear(0');
+    expect(springOut.css).not.toContain('linear(');
     expect(springOut.markdown).toContain('- Duration: duration.560 (560ms)');
     expect(springOut.markdown).toContain('- Easing: easing.expressive-bounce');
-    expect(springOut.markdown).toContain('Plays as a spring: bounce 0.25 (bounce.25), a spring duration of 683ms (the duration / 0.82)');
-    expect(springOut.markdown).toContain('Settles in about');
-    expect(springOut.markdown).not.toContain('allback');
-    expect(springOut.tokensCss).toContain('--motion-bounce-25: 0.25;');
+    expect(springOut.markdown).toContain('Authored as a spring');
+    expect(springOut.markdown).not.toContain('linear() curve');
   });
+
 
   it('exports every card version without throwing', () => {
     for (const v of cardVersions) {
