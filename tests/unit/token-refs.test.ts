@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getTokenRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex } from '../../lab/lib/token-refs.js';
+import { getTokenRefs, getStepRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex } from '../../lab/lib/token-refs.js';
 import type { MotionVersion } from '../../lab/lib/types.js';
 
 const raw: Record<string, unknown> = {
@@ -217,5 +217,107 @@ describe('buildPageUsageIndex', () => {
   it('ignores components with no registered default version', () => {
     const pages = [{ id: 'home', title: 'Home', components: [{ id: 'x', component: 'missing' }] }];
     expect(buildPageUsageIndex(pages, defaults, raw).size).toBe(0);
+  });
+});
+
+describe('getStepRefs: which tokens are used where', () => {
+  const keyframed: MotionVersion = {
+    ...tweenVersion,
+    stagger: 'delay.70',
+    model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-standard', delay: 'delay.70' },
+    keyframes: [
+      { opacity: '{opacity.56}', transform: 'translateY({distance.16})', offset: 0 },
+      { opacity: 1, transform: 'translateY(-{distance.16})', offset: 1 },
+    ],
+  };
+
+  it('says where each token sits in the motion: duration, easing, delay, stagger, a keyframe property', () => {
+    expect(getStepRefs(keyframed, raw)).toEqual([{
+      layer: null,
+      uses: [
+        { token: 'duration.300', where: ['duration'] },
+        { token: 'easing.productive-standard', where: ['easing'] },
+        { token: 'delay.70', where: ['delay', 'stagger'] },
+        { token: 'opacity.56', where: ['0% opacity'] },
+        { token: 'distance.16', where: ['0% transform', '100% transform'] },
+      ],
+      hardcoded: [],
+    }]);
+  });
+
+  it('a spring says its bounce token sits in the spring, and bounce-0 is not listed', () => {
+    expect(getStepRefs(bounceVersion, raw)[0]!.uses).toEqual([
+      { token: 'duration.560', where: ['duration'] },
+      { token: 'easing.expressive-bounce', where: ['easing'] },
+      { token: 'bounce.25', where: ['spring bounce'] },
+    ]);
+    expect(getStepRefs(flatSpring, raw)[0]!.uses.map(u => u.token)).not.toContain('bounce.0');
+  });
+
+  it('keyframes with no offset are placed evenly', () => {
+    const v: MotionVersion = {
+      ...tweenVersion,
+      keyframes: [{ transform: 'translateY({distance.16})' }, { transform: 'translateY(8px)' }, { opacity: '{opacity.56}' }],
+    };
+    expect(getStepRefs(v, raw)[0]!.uses).toContainEqual({ token: 'distance.16', where: ['0% transform'] });
+    expect(getStepRefs(v, raw)[0]!.uses).toContainEqual({ token: 'opacity.56', where: ['100% opacity'] });
+  });
+
+  describe('with layers', () => {
+    const layered: MotionVersion = {
+      ...tweenVersion,
+      stagger: 'delay.70',
+      keyframes: [{ transform: 'translateY({distance.16})', offset: 0 }, { transform: 'translateY(0px)', offset: 1 }],
+      layers: {
+        text: {
+          model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-standard', delay: 'delay.70' },
+          keyframes: [{ opacity: '{opacity.56}', offset: 0 }, { opacity: 1, offset: 1 }],
+        },
+        badge: { model: { model: 'tween', duration: '240ms', easing: 'easing.productive-exit' }, keyframes: [] },
+      },
+    };
+
+    it('lists the root first and then each layer, each with its own tokens', () => {
+      const steps = getStepRefs(layered, raw);
+      expect(steps.map(s => s.layer)).toEqual([null, 'text', 'badge']);
+      expect(steps[0]!.uses.map(u => u.token)).toEqual(['duration.300', 'easing.productive-standard', 'delay.70', 'distance.16']);
+      expect(steps[1]!.uses.map(u => u.token)).toEqual(['duration.100', 'easing.productive-standard', 'delay.70', 'opacity.56']);
+      expect(steps[2]!.uses.map(u => u.token)).toEqual(['easing.productive-exit']);
+    });
+
+    it('the stagger belongs to the version, so only the root lists it', () => {
+      const steps = getStepRefs(layered, raw);
+      expect(steps[0]!.uses.find(u => u.token === 'delay.70')!.where).toEqual(['stagger']);
+      expect(steps[1]!.uses.find(u => u.token === 'delay.70')!.where).toEqual(['delay']);
+      expect(steps.slice(1).some(st => st.uses.some(u => u.where.includes('stagger')))).toBe(false);
+    });
+
+    it('a layer\'s hard-coded value is its own, and the version-wide list names the layer', () => {
+      const steps = getStepRefs(layered, raw);
+      expect(steps[2]!.hardcoded).toEqual([{ label: 'duration', value: '240ms' }]);
+      expect(steps[0]!.hardcoded).toEqual([]);
+      expect(getTokenRefs(layered, raw).hardcoded).toEqual([{ label: 'badge duration', value: '240ms' }]);
+    });
+
+    it('getTokenRefs is every token across the root and the layers, once each', () => {
+      expect(getTokenRefs(layered, raw).tokens).toEqual([
+        'duration.300', 'easing.productive-standard', 'delay.70', 'distance.16', 'duration.100', 'opacity.56', 'easing.productive-exit',
+      ]);
+    });
+
+    it('the usage index counts a layer\'s tokens as used by the version', () => {
+      const index = buildUsageIndex([{ componentName: 'card', version: layered }], raw);
+      expect(index.get('opacity.56')![0]).toMatchObject({ componentName: 'card', versionId: 'v1' });
+      expect(index.get('duration.100')).toHaveLength(1);
+    });
+
+    it('pairing warnings cover the layers, led by the layer\'s name', () => {
+      const slow: MotionVersion = {
+        ...layered,
+        layers: { text: { model: { model: 'tween', duration: 'duration.1200', easing: 'easing.productive-standard' }, keyframes: [] } },
+      };
+      expect(pairingWarnings(slow, raw)).toEqual(['text: productive-standard is a productive easing: pair it with 100–300ms, not 1200ms']);
+      expect(pairingWarnings(layered, raw)).toEqual([]);
+    });
   });
 });

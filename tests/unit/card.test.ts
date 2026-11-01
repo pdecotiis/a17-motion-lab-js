@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTiming, resolveKeyframes, buildSpringWaapiKeyframes, springParts, validateMotionVersion } from '../../lab/lib/motion-models.js';
+import { resolveTiming, resolveKeyframes, buildSpringWaapiKeyframes, springParts, stepsOf, validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
 import type { DtcgGroup } from '../../lab/lib/types.js';
-import { v1, v2, v3, versions } from '../../components/card/motion.js';
+import { v1, v2, v3, v4, versions } from '../../components/card/motion.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { validateVersionMeta, filterVersions } from '../../lab/lib/version-meta.js';
 import { getTokenRefs, pairingWarnings } from '../../lab/lib/token-refs.js';
 
@@ -85,6 +87,24 @@ describe('Card motion versions', () => {
   });
 });
 
+describe('v4 (Fade Up, Text Follows: layers)', () => {
+  it('validates, forked from v1', () => {
+    expect(() => validateMotionVersion(v4)).not.toThrow();
+    expect(v4.forkedFrom).toBe('v1');
+  });
+
+  it('moves the card like v1 and gives the title and the text their own motion', () => {
+    expect(v4.model).toEqual({ ...v1.model });
+    expect(Object.keys(v4.layers!)).toEqual(['title', 'text']);
+    expect(stepsOf(v4).map(s => resolveTiming(s.version, raw).delay)).toEqual([0, 70, 120]);
+  });
+
+  it('every layer is a layer in the card markup', () => {
+    const markup = readFileSync(join(process.cwd(), 'components/card/markup.html'), 'utf8');
+    for (const name of Object.keys(v4.layers!)) expect(markup).toContain(`data-motion="${name}"`);
+  });
+});
+
 describe('Card tokens', () => {
   it('every version uses tokens that exist, with no hard-coded values and no pairing warnings', () => {
     for (const v of versions) {
@@ -96,7 +116,7 @@ describe('Card tokens', () => {
   });
 
   it('staggers with delay tokens', () => {
-    expect(versions.map(v => v.stagger)).toEqual(['delay.70', 'delay.120', 'delay.70']);
+    expect(versions.map(v => v.stagger)).toEqual(['delay.70', 'delay.120', 'delay.70', 'delay.70']);
   });
 });
 
@@ -112,6 +132,6 @@ describe('Card status and lineage', () => {
   });
 
   it('archived v3 is hidden from the default version list', () => {
-    expect(filterVersions(versions).map(v => v.id)).toEqual(['v1', 'v2']);
+    expect(filterVersions(versions).map(v => v.id)).toEqual(['v1', 'v2', 'v4']);
   });
 });

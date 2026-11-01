@@ -9,8 +9,8 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 **Tokens**: W3C DTCG JSON (`tokens/motion.json`) → CSS custom properties + raw values.
 **Components**: HTML/CSS prototypes with a `motion.ts` file that re-exports named motion versions, one file per version in `versions/`.
 **Library**: `/?view=library` lists every registered component as a scaled live preview (plays on hover). It builds from the component registry, so new components appear automatically; filters use `?status=…&archived=1&q=…`. Logic is in `lab/lib/library.ts`.
-**Live controls**: in the component view the Controls panel is two dropdowns, a **duration** and an **easing**, each a list of the system's tokens and nothing finer (no custom values, no delay). "Version default" means no override. Picking one replays the version with it and shows "Previewing, not saved". A spring version is only offered the easings that have a spring form, and a picked duration is its paired duration (the spring lasts that / 0.82). Helpers are in `lab/lib/control-options.ts`.
-**Tokens used**: a version's duration, easing and delay, a stagger that is a delay token, the tokens its keyframes name, and for a spring the bounce token of its easing. **bounce-0 means "no bounce" and is never listed.** Pairing warnings (below) show under it. `getTokenRefs(version, raw)` and `pairingWarnings(version, raw)` are in `lab/lib/token-refs.ts`; the Tokens view uses the same index for each token's "used by".
+**No controls in the component view.** A designer doesn't tweak duration or easing there: a motion change is a **new version** (fork, edit the version file, compare). The component view plays, replays and compares versions, and shows what each uses.
+**Tokens used**: what each motion of the open version uses, and **where in the motion** each token sits: its duration, easing and delay, a stagger that is a token, the tokens its keyframes name (`0% transform`), and for a spring its easing's bounce token (**bounce-0 means "no bounce" and is never listed**). A version with layers gets a group for the root and one per layer, so you can see the card's tokens apart from its text's. Pairing warnings show under it. `getStepRefs` (per motion), `getTokenRefs` (the whole version) and `pairingWarnings` are in `lab/lib/token-refs.ts`; the Tokens view uses the same index for each token's "used by".
 **Tokens view**: `/?view=tokens`. Tabs for duration, easing, distance, scale, opacity and delay; tokens run smallest to largest (easings in system order: productive standard, entrance, exit, then expressive, then linear). **A row is just the token name and a preview** (a curve for easings, a bar for durations and distances); notes, status, value, usage and old names are in the row's tooltip. The easing tab has an **Easing / Spring** switch (easing is the default): Spring shows each easing's bounce step (or "no spring") with a spring curve, and a **Bounces** table below. Bounce has no tab of its own. The curve maths is in `lab/lib/curve.ts`.
 **Pages**: `page.json` defines an ordered list of component instances for page-level motion review.
 **Motion maps**: URL-encoded state (shareable) + saved JSON presets.
@@ -36,7 +36,7 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 ## How to add a new component
 
 1. Create `components/<name>/` directory
-2. Add `markup.html` — the component's HTML structure. Add `data-motion-target` attribute to the element that will animate.
+2. Add `markup.html` — the component's HTML structure. Add `data-motion-target` to the element that will animate, and `data-motion="<layer>"` (kebab-case) to any inner element a version should move on its own (the title, the text…).
 3. Add `styles.css` — component styles using CSS variables from tokens
 4. Add `versions/v1.ts` — one file per version, exporting `v1` as a `MotionVersion` (see "How to add a new motion version").
 5. Add `motion.ts` — it defines no versions itself; it only re-exports the files in `versions/`, plus the `versions` array and `defaultVersion` string. Every component, hand-built or imported, uses this structure:
@@ -144,6 +144,23 @@ The token compiler (`lab/lib/token-compiler.ts`) reads `tokens/motion.json` and 
 - `springParts(model, raw)` in `lab/lib/motion-models.ts` resolves it to `{ bounce, durationMs, pairedMs, bounceToken }`.
 - Springs run a real physics simulation (`lab/lib/spring-engine.ts`). They animate via baked WAAPI keyframes and export as a CSS `linear()` timing function. We assume browsers that support `linear()`: there is no cubic-bezier fallback and no CSS-approximation mode.
 - Spring versions declare `properties[]` instead of `keyframes`.
+
+### Layers
+```ts
+{
+  id: 'v4', label: 'Fade Up, Text Follows',
+  model: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-entrance' },   // the root
+  keyframes: [ … ],
+  layers: {
+    title: { model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' }, keyframes: [ … ] },
+    text:  { model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.120' }, keyframes: [ … ] },
+  },
+}
+```
+- A version moves the component's root (`data-motion-target`) with its own `model` and `keyframes`, and may move **layers** too: `layers` is keyed by the `data-motion` name of an element inside the root, and each layer is a `MotionStep` (`model` plus `keyframes`, a tween or a spring) with **its own duration, easing and delay**. That is how the text moves differently from the card.
+- A layer shares the version's `stagger`, `trigger` and `reducedMotion`. Use `delay` (a delay token) to start a layer after the root. A layer name must be lowercase letters, numbers and hyphens; every element with that `data-motion` is animated.
+- `stepsOf(version)` in `lab/lib/motion-models.ts` lists the root (name `null`) and then each layer, each as a version of its own, so timing, usage and CSS work on a layer exactly as on the root.
+- CSS export: a layer gets its own `.motion-<component>-<version>-<layer>` class and `@keyframes`; `spec.md` has a "Layer: <name>" section for each. Playback cancels and replays the layers with the root, and the speed control reaches them.
 
 ## Testing rules
 

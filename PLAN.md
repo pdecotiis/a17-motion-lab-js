@@ -9,11 +9,11 @@ Motion Lab is a reusable template for iterating on motion for components importe
 
 ## Done
 
-- Shell: Vite + vanilla TS, Web Animations runtime, component view, live controls, compare, speed, stagger, light/dark, page view with motion map (URL state) and presets.
+- Shell: Vite + vanilla TS, Web Animations runtime, component view, compare, speed, stagger, light/dark, page view with motion map (URL state) and presets.
 - Library view: every component as a scaled live preview that plays on hover, with name search and the status filter; cards link to the component view.
 - Token architecture v2 (see Decisions and CLAUDE.md): primitives only, springs derived from easings, pairing warnings, token status, name-only token rows with tooltips, an Easing / Spring switch and a Bounces table, token references in keyframes, and a scale generator.
 - Token structure: primitives only, no composite tokens. Value-named scales: `duration` (100–1200ms), `distance` (4–48px), `scale` (60–106%), `opacity` (04–56%), `delay` (40/70/120ms, for short offsets and staggers), `bounce` (0/10/25). `easing` is the one semantic layer (productive/expressive standard, entrance, exit, expressive-settle, expressive-bounce, linear). Token paths have no `motion.` root, so they match the Figma variable collection one to one (`easing.productive-standard` is `easing/productive-standard` in Figma); CSS variables keep the prefix (`--motion-duration-300`). A motion step names a duration plus an easing directly.
-- Controls panel is two dropdowns, a duration and an easing from the system, nothing finer (no custom values, no delay). A spring is only offered easings that have a spring form.
+- No controls in the component view: motion changes are new versions. The panel that tweaked duration and easing is gone, along with its plumbing (`LiveControls`, `control-options`).
 - Shared preview config (`.claude/launch.json`): the app's one-click dev server on port 5173, for every project repo.
 - Spring engine; springs export as a CSS `linear()` curve. No cubic-bezier fallback and no CSS-approximation mode: we assume browsers that support `linear()`. The CSS / Spring toggle is gone.
 - Tokens view with usage ("used by", tokens per version, unused flagged).
@@ -33,8 +33,9 @@ Motion Lab is a reusable template for iterating on motion for components importe
 - `reference/old-motion-lab.html` (gitignored) is the old lab, for porting features only. Never copy client content from it.
 - The motion-only rule: versions change motion, never structure.
 - Motion tokens flow Motion Lab → Figma. `tokens/motion.json` is the source of truth for motion; Figma holds a read-only mirror in its own "Motion" variable collection. Visual variables still flow Figma → Motion Lab (import), so the two directions never share a collection.
-- Designers choose from named options, not granular values: in the component view they pick a duration and an easing from the system, never type one. To use a value the system doesn't have, an author adds a token (see token governance, on hold) or edits the version.
+- Motion changes are new versions, not tweaks. The component view has no controls (no duration or easing fields, no copy values), so a designer forks a version and edits it. Tokens come from the system: to use a value it doesn't have, an author adds a token (see token governance, on hold).
 - Springs are a view of easing, not a separate family: each easing carries a spring form `{ bounce: bounce-N }` (standard and entrance bounce-0, settle bounce-10, bounce bounce-25; the exits and linear have none). A spring's duration is always the paired duration / 0.82. Previews switch between easing and spring playback (Tokens view only); easing is the default.
+- A version can move more than the root: `layers`, keyed by the `data-motion` name of an inner element, each with its own duration, easing and delay (the card rises while its text rises and fades in). The component view's Tokens used panel is grouped by layer and says where each token sits in the motion.
 - Pairing rules are warnings, never errors: productive easings with 100–300ms, expressive with 400–1200ms, bounce easings expressive only.
 - Token status is `system` (approved) or `experimental`. New tokens start experimental; a renamed or merged token keeps the highest status of the tokens folded into it. `bounce-0` means "no bounce" and is never listed as a dependency.
 - Keyframes reference tokens (`translateY({distance.16})`, `-{distance.16}` for negatives). Spring `properties[]` `from`/`to` do not yet.
@@ -64,7 +65,7 @@ The pilot project repo was freshly created from the template and pulled the late
    - Open: an easing's spring form is a reference to a bounce token, so in Figma it is an alias to the `bounce/N` variable (or a string variable naming it). Status, notes and old names have no native Figma field: decide whether they go in the variable description.
    - Idempotent: re-running updates changed values and flags removed tokens instead of deleting them.
    - Show in the Tokens view whether each token is in sync with Figma.
-7. Low-friction access: define what a designer can do with no GitHub account and no setup. Candidates: use the hosted Lab (step 4) in the browser with the live controls and shareable motion-map URLs; submit a tweak back as a link or preset instead of a pull request; one org-level repo with a single admin step. Decide the tiers (reviewer / tweaker / author) before the second designer onboards.
+7. Low-friction access: define what a designer can do with no GitHub account and no setup. Candidates: use the hosted Lab (step 4) in the browser with shareable motion-map URLs; submit a tweak back as a link or preset instead of a pull request; one org-level repo with a single admin step. Decide the tiers (reviewer / tweaker / author) before the second designer onboards.
 8. Lower priority, since authoring stays in Claude (see Decisions). Spike (1–2 weeks, one question), only worth running if the setup friction in step 7 can't be reduced enough: can a Figma plugin be the authoring home for designers, with no GitHub? Take a selected frame, render it in the plugin's UI iframe, animate it with the existing runtime, fill the token dropdowns from Figma variables, save versions in the file. Decide go/no-go on two things: is a render from the node tree good enough without Claude's fix-up passes, and would a designer choose it over Figma's native motion for real work? If go, extract the engine (runtime, tokens, springs, spec export) as a library with two shells: this repo and the plugin. Figma Make is not a candidate base (per-file generated apps don't fit a shared template).
 
 ## Open questions

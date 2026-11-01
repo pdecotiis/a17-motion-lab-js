@@ -1,4 +1,4 @@
-import type { MotionVersion, TweenModel, SpringModel, SpringProperty, LiveControls } from './types.js';
+import type { MotionVersion, TweenModel, SpringModel, SpringProperty } from './types.js';
 import { springKeyframes, SPRING_DURATION_RATIO } from './spring-engine.js';
 import { isSpringForm, resolveRefs, springKey } from './token-compiler.js';
 import { isVersionStatus, isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
@@ -40,16 +40,15 @@ function resolveStr(value: string | undefined, raw: Record<string, unknown>, fal
 export function resolveTiming(
   version: MotionVersion,
   raw: Record<string, unknown>,
-  controls: LiveControls = {},
   playbackRate = 1,
 ): ResolvedTiming {
   if (version.model.model !== 'tween') {
     throw new Error(`resolveTiming: version "${version.id}" is a spring model — use buildSpringWaapiKeyframes instead`);
   }
   const model = version.model as TweenModel;
-  const durationStr = controls.duration ?? resolveStr(model.duration, raw, '300ms');
-  const easing = controls.easing ?? resolveStr(model.easing, raw, 'ease');
-  const delayStr = controls.delay ?? resolveStr(model.delay, raw, '0ms');
+  const durationStr = resolveStr(model.duration, raw, '300ms');
+  const easing = resolveStr(model.easing, raw, 'ease');
+  const delayStr = resolveStr(model.delay, raw, '0ms');
 
   return {
     duration: parseMs(durationStr) / playbackRate,
@@ -66,6 +65,20 @@ export function buildAnimationOptions(timing: ResolvedTiming): KeyframeAnimation
     delay: timing.delay,
     fill: timing.fill,
   };
+}
+
+// The motions of a version, each as a version of its own so everything that works on one motion
+// (timing, usage, CSS) works on a layer too: the component's root first (name null), then each layer
+// by its data-motion name. A layer shares the version's trigger, reduced-motion policy and stagger.
+export function stepsOf(version: MotionVersion): { name: string | null; version: MotionVersion }[] {
+  const { layers, ...root } = version;
+  return [
+    { name: null, version: root },
+    ...Object.entries(layers ?? {}).map(([name, step]) => ({
+      name,
+      version: { ...root, model: step.model, keyframes: step.keyframes },
+    })),
+  ];
 }
 
 // A spring's bounce and durations. The bounce comes from the easing's spring form (an easing with
@@ -98,23 +111,22 @@ export function resolveKeyframes(keyframes: Keyframe[] | undefined, raw: Record<
 export function buildSpringWaapiKeyframes(
   version: MotionVersion,
   raw: Record<string, unknown>,
-  options: { controls?: LiveControls; playbackRate?: number; reducedMotion?: boolean } = {},
+  options: { playbackRate?: number; reducedMotion?: boolean } = {},
 ): SpringWaapiResult {
   if (version.model.model !== 'spring') {
     throw new Error(`buildSpringWaapiKeyframes: version "${version.id}" is not a spring model`);
   }
   const model = version.model as SpringModel;
-  const { controls = {}, playbackRate = 1, reducedMotion = false } = options;
+  const { playbackRate = 1, reducedMotion = false } = options;
 
   // The spring's duration (ms) is the paired duration / 0.82; the bounce is the easing's
   const parts = springParts(model, raw);
-  const naturalDuration = controls.duration ? parseMs(controls.duration) / SPRING_DURATION_RATIO : parts.durationMs;
 
   // Resolve delay
-  const delayStr = controls.delay ?? resolveStr(model.delay, raw, '0ms');
+  const delayStr = resolveStr(model.delay, raw, '0ms');
   const delay = parseMs(delayStr) / playbackRate;
 
-  const bounce = controls.bounce ?? parts.bounce;
+  const { bounce, durationMs: naturalDuration } = parts;
 
   // Reduced motion: skip travel (transforms), keep opacity fade.
   if (reducedMotion) {
@@ -200,7 +212,7 @@ export function buildSpringWaapiKeyframes(
 }
 
 export function validateMotionVersion(version: MotionVersion): void {
-  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
+  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
   for (const key of Object.keys(version)) {
     if (!allowed.has(key)) {
       throw new Error(`MotionVersion "${version.id}" has disallowed property: "${key}"`);
@@ -253,6 +265,18 @@ export function validateMotionVersion(version: MotionVersion): void {
     }
     if (typeof model.duration !== 'string' || typeof model.easing !== 'string') {
       throw new Error(`MotionVersion "${version.id}" spring needs a duration and an easing`);
+    }
+  }
+
+  // Each layer is a motion of its own, checked like the root. Its name is a data-motion value.
+  for (const [name, step] of Object.entries(version.layers ?? {})) {
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) {
+      throw new Error(`MotionVersion "${version.id}" layer name "${name}" must be lowercase letters, numbers and hyphens, as in data-motion="${name}"`);
+    }
+    try {
+      validateMotionVersion({ id: version.id, label: version.label, model: step.model, keyframes: step.keyframes });
+    } catch (e) {
+      throw new Error(`${(e as Error).message} (layer "${name}")`);
     }
   }
 }

@@ -69,11 +69,21 @@ export interface MotionTrigger {
 // 'none': no animation, the element appears in its end state.
 export type ReducedMotionPolicy = 'fade' | 'none';
 
+// One motion: a tween or a spring, and the keyframes a tween plays.
+export interface MotionStep {
+  model: MotionModel;
+  keyframes?: Keyframe[];  // Required for tween; unused for spring (spring uses model.properties)
+}
+
 export interface MotionVersion {
   id: string;
   label: string;
   model: MotionModel;
   keyframes?: Keyframe[];  // Required for tween; unused for spring (spring uses model.properties)
+  // Motion for layers inside the component, beside the root's own (model, keyframes). The key is the
+  // name of a layer, the value of its data-motion attribute (e.g. 'title'). Each layer names its own
+  // duration, easing and delay, so text can move differently from the card.
+  layers?: Record<string, MotionStep>;
   stagger?: string;
   trigger?: MotionTrigger;               // absent = not specified; the spec says so rather than guessing
   reducedMotion?: ReducedMotionPolicy;   // absent = 'fade'
@@ -120,13 +130,4 @@ export interface DtcgToken {
 
 export interface DtcgGroup {
   [key: string]: DtcgToken | DtcgGroup;
-}
-
-// What the controls panel overrides while previewing: a duration token's ms, and for a tween an
-// easing curve or for a spring the bounce of the chosen easing. Not saved.
-export interface LiveControls {
-  duration?: string;
-  easing?: string;
-  delay?: string;
-  bounce?: number;
 }

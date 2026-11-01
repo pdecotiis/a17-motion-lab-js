@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTiming, resolveKeyframes, springParts, buildAnimationOptions, buildSpringWaapiKeyframes, validateMotionVersion } from '../../lab/lib/motion-models.js';
+import { resolveTiming, resolveKeyframes, springParts, stepsOf, buildAnimationOptions, buildSpringWaapiKeyframes, validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { SPRING_DURATION_RATIO } from '../../lab/lib/spring-engine.js';
 import type { MotionVersion } from '../../lab/lib/types.js';
 
@@ -14,6 +14,7 @@ const raw: Record<string, unknown> = {
   'easing.bounce': [0.34, 1.15, 0.64, 1],
   'easing.bounce.spring': { bounce: 0.25, token: 'bounce.25' },
   'distance.16': '16px',
+  'delay.70': '70ms',
 };
 
 const tweenVersion: MotionVersion = {
@@ -53,14 +54,8 @@ describe('resolveTiming - tween', () => {
   });
 
   it('respects playbackRate', () => {
-    const t = resolveTiming(tweenVersion, raw, {}, 2);
+    const t = resolveTiming(tweenVersion, raw, 2);
     expect(t.duration).toBe(150);
-  });
-
-  it('live controls override token values', () => {
-    const t = resolveTiming(tweenVersion, raw, { duration: '500ms', easing: 'linear' });
-    expect(t.duration).toBe(500);
-    expect(t.easing).toBe('linear');
   });
 
   it('throws when called on a spring version', () => {
@@ -100,14 +95,6 @@ describe('buildSpringWaapiKeyframes - spring', () => {
     const { duration: d1 } = buildSpringWaapiKeyframes(springVersion, raw, { playbackRate: 1 });
     const { duration: d2 } = buildSpringWaapiKeyframes(springVersion, raw, { playbackRate: 0.5 });
     expect(d2).toBeCloseTo(d1 * 2, 0);
-  });
-
-  it('live control overrides spring natural duration', () => {
-    const { duration: original } = buildSpringWaapiKeyframes(springVersion, raw);
-    const { duration: overridden } = buildSpringWaapiKeyframes(springVersion, raw, {
-      controls: { duration: '200ms' },
-    });
-    expect(overridden).not.toBeCloseTo(original, -1);
   });
 
   it('reduced motion: skips transform travel, keeps opacity fade with short duration', () => {
@@ -213,18 +200,6 @@ describe('springs are a view of easing', () => {
     expect(peak(grow('easing.bounce'))).toBeGreaterThan(1);
   });
 
-  it('a live preview duration is the paired duration, so the spring is that / 0.82', () => {
-    const base = buildSpringWaapiKeyframes(springVersion, raw);
-    const quick = buildSpringWaapiKeyframes(springVersion, raw, { controls: { duration: '140ms' } });
-    expect(quick.duration).toBeLessThan(base.duration);
-  });
-
-  it('a live preview bounce overrides the easing\'s', () => {
-    const flat = buildSpringWaapiKeyframes(springVersion, raw);
-    const bouncy = buildSpringWaapiKeyframes(springVersion, raw, { controls: { bounce: 0.25 } });
-    expect(bouncy.keyframes.length).not.toBe(flat.keyframes.length);
-  });
-
   it('validates with a duration and an easing; rejects a spring without either', () => {
     expect(() => validateMotionVersion(settle())).not.toThrow();
     expect(() => validateMotionVersion(settle({ easing: undefined as never }))).toThrow(/needs a duration and an easing/);
@@ -255,5 +230,66 @@ describe('references in keyframes', () => {
 
   it('keyframes with references still validate', () => {
     expect(() => validateMotionVersion(kfVersion)).not.toThrow();
+  });
+});
+
+describe('layers', () => {
+  const step = (over: Record<string, unknown> = {}) => ({
+    model: { model: 'tween' as const, duration: 'duration.300', easing: 'easing.ease-out', ...over },
+    keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
+  });
+  const layered: MotionVersion = {
+    ...tweenVersion,
+    stagger: 'delay.70',
+    layers: { title: step({ delay: 'delay.70' }), text: step({ duration: 'duration.140' }) },
+  };
+
+  it('stepsOf lists the root first, then each layer by name, each as a version of its own', () => {
+    const steps = stepsOf(layered);
+    expect(steps.map(s => s.name)).toEqual([null, 'title', 'text']);
+    expect(steps[0]!.version.model).toBe(tweenVersion.model);
+    expect(steps[1]!.version.model).toMatchObject({ delay: 'delay.70' });
+    expect(steps[2]!.version.model).toMatchObject({ duration: 'duration.140' });
+  });
+
+  it('a layer shares the version\'s stagger, trigger and reduced-motion policy, and has no layers of its own', () => {
+    const v: MotionVersion = { ...layered, trigger: { on: 'load' }, reducedMotion: 'none' };
+    for (const s of stepsOf(v)) {
+      expect(s.version.stagger).toBe('delay.70');
+      expect(s.version.trigger).toEqual({ on: 'load' });
+      expect(s.version.reducedMotion).toBe('none');
+      expect(s.version.layers).toBeUndefined();
+    }
+  });
+
+  it('a version with no layers has just the root', () => {
+    expect(stepsOf(tweenVersion).map(s => s.name)).toEqual([null]);
+  });
+
+  it('each layer times itself', () => {
+    const [, title, text] = stepsOf(layered);
+    expect(resolveTiming(title!.version, raw).delay).toBe(70);
+    expect(resolveTiming(text!.version, raw).duration).toBe(140);
+  });
+
+  it('a layer can be a spring', () => {
+    const v: MotionVersion = { ...tweenVersion, layers: { badge: { model: springVersion.model } } };
+    expect(buildSpringWaapiKeyframes(stepsOf(v)[1]!.version, raw).keyframes.length).toBeGreaterThan(2);
+  });
+
+  it('validates a version with layers', () => {
+    expect(() => validateMotionVersion(layered)).not.toThrow();
+  });
+
+  it('rejects a layer name that is not a data-motion value', () => {
+    expect(() => validateMotionVersion({ ...tweenVersion, layers: { 'Page Title': step() } })).toThrow(/layer name "Page Title"/);
+    expect(() => validateMotionVersion({ ...tweenVersion, layers: { '': step() } })).toThrow(/layer name/);
+  });
+
+  it('checks a layer like the root, and names the layer in the error', () => {
+    const noEasing = { model: { model: 'tween' as const, duration: 'duration.300' } } as never;
+    expect(() => validateMotionVersion({ ...tweenVersion, layers: { text: noEasing } })).toThrow(/needs a duration and an easing.*layer "text"/);
+    const structural = { ...step(), keyframes: [{ display: 'none' }] };
+    expect(() => validateMotionVersion({ ...tweenVersion, layers: { text: structural } })).toThrow(/structural property.*layer "text"/);
   });
 });
