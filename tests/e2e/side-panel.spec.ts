@@ -39,13 +39,24 @@ test.describe('Side panel', () => {
     }
   }
 
-  test('the tween never overshoots, under either runtime', async ({ page }) => {
-    for (const runtime of ['css', 'motion']) {
-      await page.goto(`/?view=component&component=side-panel&version=v1&runtime=${runtime}`);
-      const done = overshootPx(page);
-      await page.click('#replay-btn');
-      expect(await done, runtime).toBeLessThan(1);
-    }
+  test('the tween never overshoots under CSS, and under Motion only as far as the global bounce allows', async ({ page }) => {
+    await page.goto('/?view=component&component=side-panel&version=v1&runtime=css');
+    await expect(page.locator(ROOT)).toBeVisible();
+    let done = overshootPx(page);
+    await page.click('#replay-btn');
+    expect(await done, 'css').toBeLessThan(1);
+
+    await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion&bounce=0');
+    await expect(page.locator(ROOT)).toBeVisible();
+    done = overshootPx(page);
+    await page.click('#replay-btn');
+    expect(await done, 'motion, bounce 0').toBeLessThan(1);
+
+    await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion&bounce=50');
+    await expect(page.locator(ROOT)).toBeVisible();
+    done = overshootPx(page);
+    await page.click('#replay-btn');
+    expect(await done, 'motion, bounce 50').toBeGreaterThan(2);
   });
 
   test('the spring overshoots under Motion but not under CSS', async ({ page }) => {
@@ -55,19 +66,20 @@ test.describe('Side panel', () => {
     expect(await done).toBeLessThan(1);
 
     await page.click('#runtime-motion');
+    await expect(page.locator(ROOT)).toBeVisible();
     done = overshootPx(page);
     await page.click('#replay-btn');
     expect(await done).toBeGreaterThan(2);
   });
 
-  test('v3 plays everything as a spring under Motion: the panel bounces, the content does not', async ({ page }) => {
+  test('v3 plays everything as a spring under Motion: the panel keeps its bounce, the content uses the global one', async ({ page }) => {
     await page.goto('/?view=component&component=side-panel&version=v3&runtime=motion');
-    const note = ' (authored as easing, so no bounce)';
+    const note = ' (authored as easing; bounce is the global setting)';
     await expect(page.locator('#version-spec-meta dt:has-text("Playback") + dd')).toHaveText([
-      'Spring · bounce 0.5, 560ms',
-      `title: Spring · bounce 0, 300ms${note}`,
-      `list: Spring · bounce 0, 300ms${note}`,
-      `actions: Spring · bounce 0, 300ms${note}`,
+      'Spring · bounce 0.5 (bounce.50), 560ms',
+      `title: Spring · bounce 0.25 (bounce.25), 300ms${note}`,
+      `list: Spring · bounce 0.25 (bounce.25), 300ms${note}`,
+      `actions: Spring · bounce 0.25 (bounce.25), 300ms${note}`,
     ].join('\n'));
   });
 });

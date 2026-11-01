@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTiming, resolveKeyframes, stepsOf, playbackOf, describePlayback, buildAnimationOptions, validateMotionVersion } from '../../lab/lib/motion-models.js';
+import { resolveBounce, resolveTiming, resolveKeyframes, stepsOf, playbackOf, describePlayback, buildAnimationOptions, validateMotionVersion } from '../../lab/lib/motion-models.js';
 import type { MotionVersion } from '../../lab/lib/types.js';
 
 const raw: Record<string, unknown> = {
@@ -95,10 +95,17 @@ describe('validateMotionVersion', () => {
     expect(() => validateMotionVersion(bad)).toThrow('properties array');
   });
 
-  it('rejects a spring bounce outside 0 to 1, or not a number', () => {
-    for (const bounce of [-0.1, 1.5, undefined as never]) {
+  it('accepts a spring with a bounce token, a number from 0 to 1, or no bounce (the global setting)', () => {
+    for (const bounce of ['bounce.50', 0, 0.5, 1, undefined]) {
+      const ok: MotionVersion = { ...springVersion, model: { ...(springVersion.model as object), bounce } as MotionVersion['model'] };
+      expect(() => validateMotionVersion(ok), String(bounce)).not.toThrow();
+    }
+  });
+
+  it('rejects a spring bounce outside 0 to 1, or neither a token nor a number', () => {
+    for (const bounce of [-0.1, 1.5, '', true as never]) {
       const bad: MotionVersion = { ...springVersion, model: { ...(springVersion.model as object), bounce } as MotionVersion['model'] };
-      expect(() => validateMotionVersion(bad)).toThrow('bounce must be a number from 0 to 1');
+      expect(() => validateMotionVersion(bad)).toThrow('bounce must be a bounce token or a number from 0 to 1');
     }
   });
 
@@ -113,6 +120,21 @@ describe('a spring version', () => {
     expect(() => validateMotionVersion(springVersion)).not.toThrow();
     expect(() => validateMotionVersion({ ...springVersion, model: { ...(springVersion.model as object), easing: undefined } as never })).toThrow(/needs a duration and an easing/);
     expect(() => validateMotionVersion({ ...tweenVersion, model: { model: 'tween', duration: 'duration.300' } as never })).toThrow(/needs a duration and an easing/);
+  });
+});
+
+describe('resolveBounce', () => {
+  const tokens = { 'bounce.25': 0.25, 'bounce.bad': 2 };
+  it('resolves a token path or takes a number as it is', () => {
+    expect(resolveBounce('bounce.25', tokens)).toBe(0.25);
+    expect(resolveBounce(0.4, tokens)).toBe(0.4);
+    expect(resolveBounce(0, tokens)).toBe(0);
+  });
+
+  it('throws on an unknown token, or a value outside 0 to 1', () => {
+    expect(() => resolveBounce('bounce.99', tokens)).toThrow('Unknown bounce token: "bounce.99"');
+    expect(() => resolveBounce('bounce.bad', tokens)).toThrow('must be from 0 to 1');
+    expect(() => resolveBounce(1.5, tokens)).toThrow('must be from 0 to 1');
   });
 });
 

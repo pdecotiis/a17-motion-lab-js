@@ -10,7 +10,7 @@ export const v2: MotionVersion = {
     model: 'spring',
     duration: 'duration.560',
     easing: 'easing.expressive-entrance',
-    bounce: 0.5,
+    bounce: 'bounce.50',
     properties: [
       { property: 'transform', wrapTransform: 'translateX', unit: 'px', from: 48, to: 0 },
       { property: 'opacity', from: 0, to: 1 },

@@ -34,7 +34,7 @@ describe('Side panel motion versions', () => {
 
   describe('v2 (Slide In, Spring)', () => {
     it('is a spring with a visible bounce', () => {
-      expect(v2.model).toMatchObject({ model: 'spring', bounce: 0.5, duration: 'duration.560' });
+      expect(v2.model).toMatchObject({ model: 'spring', bounce: 'bounce.50', duration: 'duration.560' });
     });
 
     it('CSS plays its from/to values along the easing, with no overshoot', () => {
@@ -48,6 +48,7 @@ describe('Side panel motion versions', () => {
 
     it('Motion plays it as a real spring: its bounce, its duration as the visual duration', () => {
       expect(motionArgsOf(v2, raw).options).toEqual({ type: 'spring', visualDuration: 0.56, bounce: 0.5, delay: 0 });
+      expect(motionArgsOf(v2, raw, { globalBounce: 'bounce.0' }).options.bounce).toBe(0.5);
     });
   });
 
@@ -58,10 +59,10 @@ describe('Side panel motion versions', () => {
       expect(stepsOf(v3).map(s => playbackOf(s.version, raw).delay).slice(1)).toEqual([70, 120, 120]);
     });
 
-    it('everything is a spring under Motion: the panel bounces, the layers have no bounce', () => {
+    it('everything is a spring under Motion: the panel keeps its bounce, the layers use the global bounce', () => {
       const [root, ...layers] = stepsOf(v3);
       expect(motionArgsOf(root!.version, raw).options).toMatchObject({ type: 'spring', bounce: 0.5 });
-      for (const l of layers) expect(motionArgsOf(l.version, raw).options).toMatchObject({ type: 'spring', bounce: 0 });
+      for (const l of layers) expect(motionArgsOf(l.version, raw).options).toMatchObject({ type: 'spring', bounce: 0.25 });
     });
   });
 });

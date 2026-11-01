@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toMotionKeyframes, motionArgsOf, describeMotionArgs } from '../../lab/lib/motion-args.js';
+import { toMotionKeyframes, motionArgsOf, describeMotionArgs, DEFAULT_BOUNCE } from '../../lab/lib/motion-args.js';
 import { runtimeFromParam, cssHandle } from '../../lab/lib/runtime.js';
 import type { MotionVersion } from '../../lab/lib/types.js';
 
@@ -9,6 +9,9 @@ const raw: Record<string, unknown> = {
   'easing.entrance': [0, 0, 0.38, 0.9],
   'delay.70': '70ms',
   'distance.16': '16px',
+  'bounce.0': 0,
+  'bounce.25': 0.25,
+  'bounce.50': 0.5,
 };
 
 const tween: MotionVersion = {
@@ -25,7 +28,7 @@ const spring: MotionVersion = {
   id: 'v2',
   label: 'Scale In',
   model: {
-    model: 'spring', duration: 'duration.300', easing: 'easing.entrance', bounce: 0.3,
+    model: 'spring', duration: 'duration.300', easing: 'easing.entrance', bounce: 'bounce.50',
     properties: [
       { property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 },
       { property: 'opacity', from: 0, to: 1 },
@@ -47,23 +50,49 @@ describe('toMotionKeyframes', () => {
 });
 
 describe('motionArgsOf: under Motion every motion is a spring', () => {
-  it('a tween plays as a spring with no bounce: its duration is when it arrives, and its easing is not used', () => {
+  it('a tween plays as a spring with the global bounce: its duration is when it arrives, its easing is not used', () => {
     const a = motionArgsOf(tween, raw);
-    expect(a.options).toEqual({ type: 'spring', visualDuration: 0.22, bounce: 0, delay: 0.07 });
+    expect(a.options).toEqual({ type: 'spring', visualDuration: 0.22, bounce: 0.25, delay: 0.07 });
+    expect(a.bounceToken).toBe('bounce.25');
     expect(a.keyframes).toEqual({ opacity: [0, 1], transform: ['translateY(16px)', 'translateY(0)'] });
-    expect(a.note).toBe('authored as easing, so no bounce');
+    expect(a.note).toBe('authored as easing; bounce is the global setting');
     expect(JSON.stringify(a)).not.toContain('ease');
+  });
+
+  it('the global bounce setting changes every motion that names no bounce of its own', () => {
+    expect(motionArgsOf(tween, raw, { globalBounce: 'bounce.0' }).options.bounce).toBe(0);
+    expect(motionArgsOf(tween, raw, { globalBounce: 'bounce.50' }).options.bounce).toBe(0.5);
+    const unset: MotionVersion = { ...spring, model: { ...(spring.model as object), bounce: undefined } as MotionVersion['model'] };
+    expect(motionArgsOf(unset, raw, { globalBounce: 'bounce.50' }).options.bounce).toBe(0.5);
+    expect(motionArgsOf(unset, raw).note).toBe('bounce is the global setting');
+  });
+
+  it('defaults the global bounce to Motion\'s own default, bounce.25', () => {
+    expect(DEFAULT_BOUNCE).toBe('bounce.25');
+    expect(motionArgsOf(tween, raw).options.bounce).toBe(0.25);
   });
 
   it('adds the stagger to the delay', () => {
     expect(motionArgsOf(tween, raw, { extraDelayMs: 140 }).options.delay).toBeCloseTo(0.21, 6);
   });
 
-  it('a spring version keeps its own bounce, with its duration as the visual duration', () => {
-    const a = motionArgsOf(spring, raw);
-    expect(a.options).toEqual({ type: 'spring', visualDuration: 0.3, bounce: 0.3, delay: 0 });
+  it('a spring version that names a bounce token keeps it, whatever the global setting', () => {
+    const a = motionArgsOf(spring, raw, { globalBounce: 'bounce.0' });
+    expect(a.options).toEqual({ type: 'spring', visualDuration: 0.3, bounce: 0.5, delay: 0 });
+    expect(a.bounceToken).toBe('bounce.50');
     expect(a.keyframes).toEqual({ transform: ['scale(0.92)', 'scale(1)'], opacity: [0, 1] });
     expect(a.note).toBeUndefined();
+  });
+
+  it('a spring version may use a plain number: no token, so no token in the line', () => {
+    const literal: MotionVersion = { ...spring, model: { ...(spring.model as object), bounce: 0.4 } as MotionVersion['model'] };
+    const a = motionArgsOf(literal, raw);
+    expect(a.options.bounce).toBe(0.4);
+    expect(a.bounceToken).toBeUndefined();
+  });
+
+  it('an unknown bounce token throws, naming it', () => {
+    expect(() => motionArgsOf(tween, raw, { globalBounce: 'bounce.99' })).toThrow('Unknown bounce token: "bounce.99"');
   });
 
   it('plays start to end: a tween with frames between skips them, and says so', () => {
@@ -90,9 +119,9 @@ describe('motionArgsOf: under Motion every motion is a spring', () => {
 });
 
 describe('describeMotionArgs', () => {
-  it('says what plays, in a line, always a spring', () => {
-    expect(describeMotionArgs(motionArgsOf(tween, raw))).toBe('Spring · bounce 0, 220ms (authored as easing, so no bounce)');
-    expect(describeMotionArgs(motionArgsOf(spring, raw))).toBe('Spring · bounce 0.3, 300ms');
+  it('says what plays, in a line, always a spring, with its bounce token', () => {
+    expect(describeMotionArgs(motionArgsOf(tween, raw))).toBe('Spring · bounce 0.25 (bounce.25), 220ms (authored as easing; bounce is the global setting)');
+    expect(describeMotionArgs(motionArgsOf(spring, raw))).toBe('Spring · bounce 0.5 (bounce.50), 300ms');
   });
 });
 

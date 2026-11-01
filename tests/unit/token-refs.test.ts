@@ -14,6 +14,9 @@ const raw: Record<string, unknown> = {
   'distance.16': '16px',
   'opacity.56': 0.56,
   'delay.70': '70ms',
+  'bounce.0': 0,
+  'bounce.25': 0.25,
+  'bounce.50': 0.5,
 };
 
 const tweenVersion: MotionVersion = {
@@ -259,6 +262,31 @@ describe('getStepRefs: which tokens are used where', () => {
     const steps = getStepRefs(layered, raw, 'motion');
     expect(steps[0]!.uses.map(u => u.token)).toEqual(['duration.560']);
     expect(steps[1]!.uses.map(u => u.token)).toEqual(['duration.300']);
+  });
+
+  it('under Motion every motion lists a bounce: its own token, else the global setting', () => {
+    const tokenSpring: MotionVersion = { ...bounceVersion, model: { ...(bounceVersion.model as object), bounce: 'bounce.50' } as MotionVersion['model'] };
+    expect(getStepRefs(tokenSpring, raw, 'motion', 'bounce.25')[0]!.uses).toEqual([
+      { token: 'duration.560', where: ['duration'] },
+      { token: 'bounce.50', where: ['bounce'] },
+    ]);
+    expect(getStepRefs(tweenVersion, raw, 'motion', 'bounce.25')[0]!.uses).toEqual([
+      { token: 'duration.300', where: ['duration'] },
+      { token: 'bounce.25', where: ['bounce'] },
+    ]);
+    expect(getStepRefs(tweenVersion, raw, 'motion', 'bounce.0')[0]!.uses.map(u => u.token)).toEqual(['duration.300', 'bounce.0']);
+  });
+
+  it('under Motion a plain-number bounce is hard-coded, not a token', () => {
+    expect(getStepRefs(bounceVersion, raw, 'motion', 'bounce.25')[0]!.hardcoded).toEqual([{ label: 'bounce', value: '0.25' }]);
+    expect(getStepRefs(bounceVersion, raw, 'css')[0]!.hardcoded).toEqual([]);
+  });
+
+  it('under CSS no bounce is listed; as authored only a spring\'s own bounce token is', () => {
+    const tokenSpring: MotionVersion = { ...bounceVersion, model: { ...(bounceVersion.model as object), bounce: 'bounce.50' } as MotionVersion['model'] };
+    expect(getStepRefs(tokenSpring, raw, 'css')[0]!.uses.map(u => u.token)).toEqual(['duration.560', 'easing.expressive-bounce']);
+    expect(getStepRefs(tokenSpring, raw)[0]!.uses.map(u => u.token)).toEqual(['duration.560', 'easing.expressive-bounce', 'bounce.50']);
+    expect(getStepRefs(tweenVersion, raw)[0]!.uses.map(u => u.token)).toEqual(['duration.300', 'easing.productive-standard']);
   });
 
   it('keyframes with no offset are placed evenly', () => {

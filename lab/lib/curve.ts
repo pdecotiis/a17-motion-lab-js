@@ -1,3 +1,5 @@
+import { spring } from 'motion';
+
 // A motion curve for the Tokens view: progress (y) over time (x), the classic easing graph.
 // x runs 0 → 1 across the duration; y runs 0 → 1 and may leave that range when the motion
 // overshoots (an easing with a control point above 1).
@@ -13,6 +15,22 @@ export interface Curve {
 function withRange(points: { x: number; y: number }[], durationMs: number): Curve {
   const ys = points.map(p => p.y);
   return { points, yMin: Math.min(0, ...ys), yMax: Math.max(1, ...ys), durationMs };
+}
+
+// A spring (0 → 1) as Motion plays it: sampled from Motion's own spring generator, not from any
+// maths of ours. `visualDuration` is when it visually arrives.
+export function springCurve(bounce: number, visualDurationMs: number): Curve {
+  const generator = spring({ keyframes: [0, 1], visualDuration: visualDurationMs / 1000, bounce });
+  const values: number[] = [];
+  let t = 0;
+  for (let done = false; !done && t <= 4000; t += 16) {
+    const r = generator.next(t);
+    values.push(r.value);
+    done = r.done;
+  }
+  values.push(1);
+  const last = values.length - 1;
+  return withRange(values.map((y, i) => ({ x: i / last, y })), last * 16);
 }
 
 // A cubic-bezier easing, sampled along the curve.

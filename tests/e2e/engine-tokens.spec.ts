@@ -23,16 +23,27 @@ test.describe('Tokens used', () => {
 
   test('under Motion no motion lists an easing: everything is a spring, from its duration', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v2&runtime=motion');
-    await expect(chips(page)).toHaveText(['duration.300', 'delay.120']);
-    await expect(wheres(page)).toHaveText(['duration', 'stagger']);
+    await expect(chips(page)).toHaveText(['duration.300', 'bounce.0', 'delay.120']);
+    await expect(wheres(page)).toHaveText(['duration', 'bounce', 'stagger']);
     await page.goto('/?view=component&component=card&version=v1&runtime=motion');
-    await expect(chips(page)).toHaveText(['duration.220', 'delay.70', 'distance.16']);
+    await expect(chips(page)).toHaveText(['duration.220', 'bounce.25', 'delay.70', 'distance.16']);
     await page.goto('/?view=component&component=side-panel&version=v3&runtime=motion');
     await expect(page.locator('.lab-tokens-layer')).toHaveText(['root', 'title', 'list', 'actions']);
     await expect(chips(page)).not.toContainText(['easing.productive-entrance']);
     await expect(page.locator('#tokens-used-list')).not.toContainText('easing.');
+    await expect(chips(page).first()).toHaveText('duration.560');
+    await expect(page.locator('#tokens-used-list')).toContainText('bounce.50');
     await page.click('#runtime-css');
     await expect(page.locator('#tokens-used-list')).toContainText('easing.expressive-entrance');
+    await expect(page.locator('#tokens-used-list')).not.toContainText('bounce.');
+  });
+
+  test('the global bounce setting changes the bounce token every motion without its own lists', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1&runtime=motion');
+    await expect(chips(page)).toContainText(['bounce.25']);
+    await page.goto('/?view=component&component=card&version=v1&runtime=motion&bounce=50');
+    await expect(chips(page)).toContainText(['bounce.50']);
+    await expect(chips(page)).not.toContainText(['bounce.25']);
   });
 
   test('a version with layers groups the tokens by motion: the root, then each layer', async ({ page }) => {

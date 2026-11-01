@@ -47,7 +47,8 @@ function motionLines(version: MotionVersion, raw: Record<string, unknown>): stri
     `- Easing: ${describeValue(m.easing, raw, 'ease')}`,
   ];
   if (m.model === 'spring') {
-    lines.push('- Authored as a spring: CSS plays its easing curve over the duration; only a spring runtime (Motion) bounces');
+    const b = m.bounce === undefined ? 'the global bounce setting' : typeof m.bounce === 'string' ? describeValue(m.bounce, raw, '0') : `${m.bounce} (hard-coded, not a token)`;
+    lines.push(`- Authored as a spring, bounce: ${b}. CSS plays its easing curve over the duration; only a spring runtime (Motion) bounces`);
   }
   lines.push(`- Delay: ${m.delay ? describeValue(m.delay, raw, '0ms') : '0ms'}`);
   if (version.stagger) lines.push(`- Stagger: ${stagger(version.stagger, raw)} between siblings`);

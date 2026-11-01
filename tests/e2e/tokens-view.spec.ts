@@ -84,6 +84,21 @@ test.describe('Tokens view', () => {
     await expect.poll(async () => Number(await dot.getAttribute('cx'))).toBeGreaterThan(before + 20);
   });
 
+  test('Bounce shows only under Motion: three tokens, each with a spring curve from Motion', async ({ page }) => {
+    await page.goto('/?view=tokens');
+    await expect(page.locator('.lab-tokens-subtab', { hasText: 'Bounce' })).toHaveCount(0);
+    await page.click('#runtime-motion');
+    await open(page, 'Bounce');
+    await expect(page.locator('.lab-token-name')).toHaveText(['bounce.0', 'bounce.25', 'bounce.50']);
+    await expect(page.locator('#bounce-control')).toHaveValue('bounce.25');
+    await expect(page.locator('.lab-tokens-table .lab-curve')).toHaveCount(3);
+    const tip = (key: string) => page.locator('.lab-token-row', { hasText: key }).getAttribute('title');
+    expect(await tip('bounce.25')).toContain('Used by: the global bounce setting');
+    expect(await tip('bounce.50')).toContain('Used by: side-panel/v2');
+    await page.click('#runtime-css');
+    await expect(page.locator('.lab-tokens-subtab', { hasText: 'Bounce' })).toHaveCount(0);
+  });
+
   test('the easing view is just easings: no bounce column, no Bounces table, no Easing / Spring switch', async ({ page }) => {
     await open(page, 'Easing');
     await expect(page.locator('.lab-tokens-table')).toHaveCount(1);

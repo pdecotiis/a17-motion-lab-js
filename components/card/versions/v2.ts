@@ -1,6 +1,6 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 
-// Scale In is authored as a spring: duration.300 is when it visually arrives, with no bounce. CSS has
+// Scale In is authored as a spring: duration.300 is when it visually arrives, bounce.0 means no overshoot. CSS has
 // no real spring, so the lab plays and exports its from/to values with the easing curve; only a spring
 // runtime (Motion) plays it as a spring.
 export const v2: MotionVersion = {
@@ -10,7 +10,7 @@ export const v2: MotionVersion = {
     model: 'spring',
     duration: 'duration.300',
     easing: 'easing.productive-entrance',
-    bounce: 0,
+    bounce: 'bounce.0',
     properties: [
       { property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 },
       { property: 'opacity', from: 0, to: 1 },

@@ -26,7 +26,7 @@ export interface StepRefs {
   hardcoded: { label: string; value: string }[];
 }
 
-function stepRefs(layer: string | null, version: MotionVersion, raw: Record<string, unknown>, withStagger: boolean, runtime?: Runtime): StepRefs {
+function stepRefs(layer: string | null, version: MotionVersion, raw: Record<string, unknown>, withStagger: boolean, runtime?: Runtime, globalBounce?: string): StepRefs {
   const uses = new Map<string, string[]>();
   const hardcoded: { label: string; value: string }[] = [];
   const use = (token: string, where: string): void => {
@@ -46,6 +46,16 @@ function stepRefs(layer: string | null, version: MotionVersion, raw: Record<stri
   // Under Motion everything plays as a spring, from its duration and bounce: easing is CSS only.
   if (runtime !== 'motion') check(m.easing, 'easing');
   if (m.delay) check(m.delay, 'delay');
+  // The bounce a spring plays with. Under Motion every motion has one: its own, else the global setting.
+  // As authored (no runtime) only a spring that names its own counts; under CSS none does.
+  const own = m.model === 'spring' ? m.bounce : undefined;
+  if (runtime === 'motion') {
+    if (typeof own === 'number') hardcoded.push({ label: 'bounce', value: String(own) });
+    else if (own ?? globalBounce) check(own ?? globalBounce, 'bounce');
+  } else if (runtime === undefined && own !== undefined) {
+    if (typeof own === 'number') hardcoded.push({ label: 'bounce', value: String(own) });
+    else check(own, 'bounce');
+  }
   if (withStagger && version.stagger) check(version.stagger, 'stagger');
 
   if (m.model === 'tween') {
@@ -63,9 +73,10 @@ function stepRefs(layer: string | null, version: MotionVersion, raw: Record<stri
 
 // The tokens each motion of a version uses: the root first, then each layer. The stagger belongs
 // to the version, so it is listed with the root. With a runtime, it is what that runtime uses: under
-// Motion nothing uses an easing (every motion is a spring). Without one, the version as authored (what exports).
-export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>, runtime?: Runtime): StepRefs[] {
-  return stepsOf(version).map(({ name, version: step }) => stepRefs(name, step, raw, name === null, runtime));
+// Motion nothing uses an easing (every motion is a spring) and each uses a bounce: its own, else
+// `globalBounce`. Without a runtime, the version as authored (what exports).
+export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>, runtime?: Runtime, globalBounce?: string): StepRefs[] {
+  return stepsOf(version).map(({ name, version: step }) => stepRefs(name, step, raw, name === null, runtime, globalBounce));
 }
 
 // Every token a version uses, across its root and layers, and its hard-coded values (a layer's are

@@ -155,6 +155,15 @@ export function describePlayback(p: Playback): string {
   return p.note ? `${text} (${p.note})` : text;
 }
 
+// A bounce as a number from 0 to 1: a token path ("bounce.50") resolves through the tokens, a number
+// is used as it is. An unknown token, or a value outside 0 to 1, throws.
+export function resolveBounce(value: string | number, raw: Record<string, unknown>): number {
+  const v = typeof value === 'string' ? raw[value] : value;
+  if (typeof v !== 'number') throw new Error(`Unknown bounce token: "${String(value)}"`);
+  if (v < 0 || v > 1) throw new Error(`Bounce "${String(value)}" must be from 0 to 1`);
+  return v;
+}
+
 export function validateMotionVersion(version: MotionVersion): void {
   const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
   for (const key of Object.keys(version)) {
@@ -210,8 +219,9 @@ export function validateMotionVersion(version: MotionVersion): void {
     if (typeof model.duration !== 'string' || typeof model.easing !== 'string') {
       throw new Error(`MotionVersion "${version.id}" spring needs a duration and an easing`);
     }
-    if (typeof model.bounce !== 'number' || model.bounce < 0 || model.bounce > 1) {
-      throw new Error(`MotionVersion "${version.id}" spring bounce must be a number from 0 to 1`);
+    if (model.bounce !== undefined && !(typeof model.bounce === 'string' && model.bounce !== '')
+      && !(typeof model.bounce === 'number' && model.bounce >= 0 && model.bounce <= 1)) {
+      throw new Error(`MotionVersion "${version.id}" spring bounce must be a bounce token or a number from 0 to 1`);
     }
   }
 

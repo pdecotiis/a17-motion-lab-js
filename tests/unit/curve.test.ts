@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bezierCurve, curvePath, curveYAt, toX, toY } from '../../lab/lib/curve.js';
+import { bezierCurve, springCurve, curvePath, curveYAt, toX, toY } from '../../lab/lib/curve.js';
 
 describe('bezierCurve', () => {
   it('a linear easing is the diagonal', () => {
@@ -20,6 +20,21 @@ describe('bezierCurve', () => {
     const c = bezierCurve([0.34, 1.56, 0.64, 1]);
     expect(c.yMax).toBeGreaterThan(1);
     expect(c.yMin).toBe(0);
+  });
+});
+
+describe('springCurve (Motion\'s own spring)', () => {
+  it('no bounce does not overshoot; more bounce overshoots further', () => {
+    expect(springCurve(0, 600).yMax).toBeCloseTo(1, 2);
+    expect(springCurve(0.5, 600).yMax).toBeGreaterThan(springCurve(0.25, 600).yMax);
+    expect(springCurve(0.25, 600).yMax).toBeGreaterThan(1);
+  });
+
+  it('starts at 0 and settles at 1', () => {
+    const c = springCurve(0.25, 600);
+    expect(c.points[0]).toEqual({ x: 0, y: 0 });
+    expect(c.points.at(-1)).toEqual({ x: 1, y: 1 });
+    expect(c.durationMs).toBeGreaterThan(0);
   });
 });
 

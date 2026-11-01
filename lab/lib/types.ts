@@ -28,16 +28,16 @@ export interface SpringProperty {
   wrapTransform?: string;
 }
 
-// A spring names the same primitives as a tween, a duration and an easing, plus its own bounce
-// (0 = no bounce, 1 = very bouncy; a plain number, not a token). Only a runtime with real springs
-// plays it as one (Motion, with the duration as its visual duration); the lab never simulates a
-// spring itself. Anywhere else (CSS) it plays its from/to values with the easing curve over the
-// duration.
+// A spring names the same primitives as a tween, a duration and an easing, and may name its own
+// bounce: a bounce token (`bounce.50`) or a plain number from 0 (no bounce) to 1 (very bouncy).
+// Without one it uses the global bounce setting, as every tween does. Only Motion plays it as a
+// spring (the duration is its visual duration); the lab never simulates a spring itself. Under CSS
+// it plays its from/to values with the easing curve over the duration.
 export type SpringModel = {
   model: 'spring';
   duration: string;
   easing: string;
-  bounce: number;
+  bounce?: string | number;
   delay?: string;
   properties: SpringProperty[];
 };

@@ -135,7 +135,6 @@ describe('the real token file', () => {
   it('has no composite tokens and no motion root', () => {
     expect(names('transforms')).toEqual([]);
     expect(names('springs')).toEqual([]);
-    expect(names('bounce')).toEqual([]);
     expect(Object.keys(raw).some(k => k.startsWith('motion.'))).toBe(false);
   });
 
@@ -145,6 +144,7 @@ describe('the real token file', () => {
     expect(sorted('scale')).toEqual(['60', '75', '90', '95', '96', '97', '98', '99', '103', '106']);
     expect(sorted('opacity')).toEqual(['04', '08', '10', '56']);
     expect(sorted('delay')).toEqual(['40', '70', '120']);
+    expect(sorted('bounce')).toEqual(['0', '25', '50']);
   });
 
   it('each value matches its name', () => {
@@ -153,6 +153,13 @@ describe('the real token file', () => {
     }
     for (const n of names('scale')) expect(raw[`scale.${n}`]).toBeCloseTo(Number(n) / 100, 5);
     for (const n of names('opacity')) expect(raw[`opacity.${n}`]).toBeCloseTo(Number(n) / 100, 5);
+  });
+
+  it('bounce tokens are Motion\'s own: no bounce, its default, a clear one, each from 0 to 1', () => {
+    expect(raw['bounce.0']).toBe(0);
+    expect(raw['bounce.25']).toBe(0.25);
+    expect(raw['bounce.50']).toBe(0.5);
+    expect(tokensJson.bounce['25' as keyof typeof tokensJson.bounce]).toBeDefined();
   });
 
   it('has the easings in system order', () => {
