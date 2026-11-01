@@ -166,6 +166,34 @@ html, body {
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
 }
+/* Accordion panels (component view sidebar): a native <details>, the title is the summary */
+.lab-accordion { padding: 0; }
+.lab-accordion > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.lab-accordion > summary::-webkit-details-marker { display: none; }
+.lab-accordion > summary::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-right: 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 120ms;
+}
+.lab-accordion[open] > summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+.lab-accordion > summary:hover { color: var(--color-text); }
+.lab-accordion > summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; border-radius: var(--radius); }
+.lab-accordion__body { padding: 0 14px 14px; }
+
 .lab-control-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
 .lab-control-group:last-child { margin-bottom: 0; }
 .lab-controls__hint { font-size: 12px; margin: 0 0 10px; }

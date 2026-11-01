@@ -129,3 +129,63 @@ test.describe('Motion map status', () => {
     await expect(select.locator('option[value="v3"]')).toHaveCount(1);
   });
 });
+
+test.describe('Sidebar accordions', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+  });
+
+  const accordions = (page: import('@playwright/test').Page) => page.locator('.lab-sidebar > details.lab-accordion');
+  const summary = (page: import('@playwright/test').Page, title: string) => page.locator('.lab-sidebar > details > summary', { hasText: title });
+
+  test('the panels are accordions, in the order Version, Tokens Used, Version history, Generated CSS', async ({ page }) => {
+    await expect(accordions(page).locator('> summary')).toHaveText(['Version', 'Tokens Used', 'Version history', 'Generated CSS']);
+  });
+
+  test('Version and Tokens Used are open by default; Version history and Generated CSS are closed', async ({ page }) => {
+    await expect(accordions(page).nth(0)).toHaveAttribute('open', '');
+    await expect(accordions(page).nth(1)).toHaveAttribute('open', '');
+    await expect(accordions(page).nth(2)).not.toHaveAttribute('open', '');
+    await expect(accordions(page).nth(3)).not.toHaveAttribute('open', '');
+    await expect(page.locator('#version-tabs')).toBeVisible();
+    await expect(page.locator('#tokens-used-list')).toBeVisible();
+    await expect(page.locator('#version-history')).toBeHidden();
+    await expect(page.locator('#css-pre')).toBeHidden();
+  });
+
+  test('clicking a title opens and closes its panel', async ({ page }) => {
+    await summary(page, 'Version history').click();
+    await expect(page.locator('#version-history')).toBeVisible();
+    await expect(page.locator('#version-history li')).toHaveCount(4);
+    await summary(page, 'Version history').click();
+    await expect(page.locator('#version-history')).toBeHidden();
+
+    await summary(page, 'Generated CSS').click();
+    await expect(page.locator('#css-pre')).toBeVisible();
+    await expect(page.locator('#css-pre')).toContainText('@keyframes motion-card-v1');
+
+    await summary(page, 'Tokens Used').click();
+    await expect(page.locator('#tokens-used-list')).toBeHidden();
+  });
+
+  test('the title can be opened from the keyboard', async ({ page }) => {
+    await summary(page, 'Generated CSS').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#css-pre')).toBeVisible();
+  });
+
+  test('Compare with stays a plain panel, always showing its select, after the accordions', async ({ page }) => {
+    await expect(page.locator('.lab-sidebar > details')).toHaveCount(4);
+    await expect(page.locator('.lab-sidebar > section')).toHaveCount(1);
+    await expect(page.locator('.lab-sidebar > section')).toContainText('Compare with');
+    await expect(page.locator('#compare-select')).toBeVisible();
+    const last = await page.locator('.lab-sidebar > *').last().evaluate(el => el.tagName);
+    expect(last).toBe('SECTION');
+  });
+
+  test('replay and the version tabs still work from the open Version panel', async ({ page }) => {
+    await page.click('#replay-btn');
+    await page.click('[data-version-id="v2"]');
+    await expect(page).toHaveURL(/version=v2/);
+  });
+});

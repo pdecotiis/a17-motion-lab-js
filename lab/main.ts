@@ -316,27 +316,36 @@ function renderComponentView(params: URLSearchParams): void {
         </div>
       </div>
       <aside class="lab-sidebar">
-        <section class="lab-controls" aria-label="Version controls">
-          <h3 class="lab-controls__title">Version</h3>
-          <div id="version-filter"></div>
-          <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
-          <p class="lab-lineage" id="version-lineage"></p>
-          <dl class="lab-spec-meta" id="version-spec-meta"></dl>
-          <button class="lab-btn" id="replay-btn">Replay</button>
-        </section>
-        <section class="lab-controls" aria-label="Version history">
-          <h3 class="lab-controls__title">Version history</h3>
-          <ol class="lab-history" id="version-history"></ol>
-        </section>
-        <section class="lab-controls" aria-label="Tokens Used">
-          <h3 class="lab-controls__title">Tokens Used</h3>
-          <div id="tokens-used-list"></div>
-        </section>
-        <section class="lab-controls" aria-label="Generated CSS">
-          <h3 class="lab-controls__title">Generated CSS</h3>
-          <pre class="lab-css-pre" id="css-pre"></pre>
-          <button class="lab-btn lab-btn--sm" id="copy-css-btn">Copy CSS</button>
-        </section>
+        <!-- Accordions: Version and Tokens Used open, the rest closed. Compare stays a plain panel. -->
+        <details class="lab-controls lab-accordion" open>
+          <summary class="lab-controls__title">Version</summary>
+          <div class="lab-accordion__body">
+            <div id="version-filter"></div>
+            <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
+            <p class="lab-lineage" id="version-lineage"></p>
+            <dl class="lab-spec-meta" id="version-spec-meta"></dl>
+            <button class="lab-btn" id="replay-btn">Replay</button>
+          </div>
+        </details>
+        <details class="lab-controls lab-accordion" open>
+          <summary class="lab-controls__title">Tokens Used</summary>
+          <div class="lab-accordion__body">
+            <div id="tokens-used-list"></div>
+          </div>
+        </details>
+        <details class="lab-controls lab-accordion">
+          <summary class="lab-controls__title">Version history</summary>
+          <div class="lab-accordion__body">
+            <ol class="lab-history" id="version-history"></ol>
+          </div>
+        </details>
+        <details class="lab-controls lab-accordion">
+          <summary class="lab-controls__title">Generated CSS</summary>
+          <div class="lab-accordion__body">
+            <pre class="lab-css-pre" id="css-pre"></pre>
+            <button class="lab-btn lab-btn--sm" id="copy-css-btn">Copy CSS</button>
+          </div>
+        </details>
         <section class="lab-controls" aria-label="Compare">
           <h3 class="lab-controls__title">Compare with</h3>
           <select class="lab-select" id="compare-select">
