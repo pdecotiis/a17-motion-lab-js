@@ -19,6 +19,10 @@
         <button class="lab-nav__btn" data-view="tokens" aria-pressed="false">Tokens</button>
       </nav>
       <div class="lab-header__controls">
+        <div class="lab-segmented" role="group" aria-label="Playback">
+          <button type="button" class="lab-segmented__btn" id="play-easing" aria-pressed="true" title="Play every version as its easing curve">Easing</button>
+          <button type="button" class="lab-segmented__btn" id="play-spring" aria-pressed="false" title="Play every version as the easing's spring">Spring</button>
+        </div>
         <label class="lab-control-label">
           Speed
           <select id="speed-control" class="lab-select">

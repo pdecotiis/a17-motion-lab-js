@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTiming, resolveKeyframes, springParts, stepsOf, buildAnimationOptions, buildSpringWaapiKeyframes, validateMotionVersion } from '../../lab/lib/motion-models.js';
+import { resolveTiming, resolveKeyframes, springParts, stepsOf, playbackOf, describePlayback, buildAnimationOptions, buildSpringWaapiKeyframes, validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { SPRING_DURATION_RATIO } from '../../lab/lib/spring-engine.js';
 import type { MotionVersion } from '../../lab/lib/types.js';
 
@@ -291,5 +291,128 @@ describe('layers', () => {
     expect(() => validateMotionVersion({ ...tweenVersion, layers: { text: noEasing } })).toThrow(/needs a duration and an easing.*layer "text"/);
     const structural = { ...step(), keyframes: [{ display: 'none' }] };
     expect(() => validateMotionVersion({ ...tweenVersion, layers: { text: structural } })).toThrow(/structural property.*layer "text"/);
+  });
+});
+
+describe('the playback lens: playbackOf', () => {
+  const withEasing = (v: MotionVersion, easing: string, duration = 'duration.300'): MotionVersion =>
+    ({ ...v, model: { ...(v.model as object), easing, duration } as MotionVersion['model'] });
+  const spring = (p: ReturnType<typeof playbackOf>): number => p.springMs!;
+
+  describe('a tween', () => {
+    it('as easing plays its keyframes over the duration, with the easing curve', () => {
+      const p = playbackOf(tweenVersion, raw, 'easing');
+      expect(p).toMatchObject({ as: 'easing', duration: 300, delay: 0, easing: 'cubic-bezier(0, 0, 0.2, 1)', pairedMs: 300 });
+      expect(p.keyframes).toEqual(tweenVersion.keyframes);
+      expect(p.note).toBeUndefined();
+    });
+
+    it('as a spring plays the same keyframes with the easing\'s spring as the timing function', () => {
+      const p = playbackOf(tweenVersion, raw, 'spring');
+      expect(p.as).toBe('spring');
+      expect(p.keyframes).toEqual(tweenVersion.keyframes);
+      expect(p.easing).toMatch(/^linear\(0,/);
+      expect(p).toMatchObject({ bounce: 0, bounceToken: 'bounce.0', pairedMs: 300 });
+      expect(spring(p)).toBeCloseTo(300 / 0.82, 6);
+    });
+
+    it('lasts until the spring settles, not its nominal duration', () => {
+      const p = playbackOf(withEasing(tweenVersion, 'easing.settle'), raw, 'spring');
+      expect(p.duration).toBeGreaterThan(0);
+      expect(p.duration).not.toBe(300);
+    });
+
+    it('takes the bounce of the easing: settle bounces, so its curve overshoots 1', () => {
+      const flat = playbackOf(tweenVersion, raw, 'spring');
+      const settle = playbackOf(withEasing(tweenVersion, 'easing.settle'), raw, 'spring');
+      expect(settle).toMatchObject({ bounce: 0.1, bounceToken: 'bounce.10' });
+      const peak = (easing: string): number => Math.max(...[...easing.matchAll(/(-?[\d.]+)(?: [\d.]+%)?(?=[,)])/g)].map(m => Number(m[1])));
+      expect(peak(flat.easing)).toBeLessThanOrEqual(1);
+      expect(peak(settle.easing)).toBeGreaterThan(1);
+    });
+
+    it('an easing with no spring form (an exit, linear, a literal) plays as easing, with a note', () => {
+      for (const easing of ['easing.exit', 'ease-in']) {
+        const p = playbackOf(withEasing(tweenVersion, easing), raw, 'spring');
+        expect(p.as).toBe('easing');
+        expect(p.easing).not.toMatch(/^linear\(/);
+        expect(p.note).toMatch(/has no spring form, so it plays as easing/);
+      }
+    });
+
+    it('the lens only matters under spring: easing never has a note', () => {
+      expect(playbackOf(withEasing(tweenVersion, 'easing.exit'), raw, 'easing').note).toBeUndefined();
+    });
+  });
+
+  describe('a spring version', () => {
+    it('as a spring plays its physics: baked keyframes on a linear timing function', () => {
+      const p = playbackOf(springVersion, raw, 'spring');
+      expect(p).toMatchObject({ as: 'spring', easing: 'linear', bounce: 0, bounceToken: 'bounce.0' });
+      expect(p.keyframes.length).toBeGreaterThan(2);
+      expect(spring(p)).toBeCloseTo(300 / 0.82, 6);
+    });
+
+    it('as easing plays its from and to values with the easing curve over the duration', () => {
+      const p = playbackOf(springVersion, raw, 'easing');
+      expect(p).toMatchObject({ as: 'easing', duration: 300, easing: 'cubic-bezier(0, 0, 0.2, 1)' });
+      expect(p.springMs).toBeUndefined();
+      expect(p.keyframes).toEqual([
+        { offset: 0, transform: 'scale(0.92)', opacity: 0 },
+        { offset: 1, transform: 'scale(1)', opacity: 1 },
+      ]);
+    });
+
+    it('as easing works for an easing with no spring form, since it is not a spring', () => {
+      expect(playbackOf(withEasing(springVersion, 'easing.exit'), raw, 'easing').as).toBe('easing');
+    });
+  });
+
+  describe('timing', () => {
+    it('the playback rate scales duration and delay, under either lens', () => {
+      const delayed: MotionVersion = { ...tweenVersion, model: { model: 'tween', duration: 'duration.300', easing: 'easing.ease-out', delay: 'delay.70' } };
+      expect(playbackOf(delayed, raw, 'easing', { playbackRate: 2 })).toMatchObject({ duration: 150, delay: 35 });
+      const slow = playbackOf(delayed, raw, 'spring', { playbackRate: 0.5 });
+      const normal = playbackOf(delayed, raw, 'spring');
+      expect(slow.duration).toBeCloseTo(normal.duration * 2, 6);
+      expect(slow.delay).toBe(140);
+    });
+
+    it('another duration token changes the spring too: shorter duration, shorter spring', () => {
+      const quick = playbackOf(withEasing(tweenVersion, 'easing.ease-out', 'duration.140'), raw, 'spring');
+      expect(spring(quick)).toBeCloseTo(140 / 0.82, 6);
+      expect(quick.duration).toBeLessThan(playbackOf(tweenVersion, raw, 'spring').duration);
+    });
+  });
+
+  describe('reduced motion', () => {
+    it('is the short opacity-only fade under either lens, and for either kind of version', () => {
+      for (const v of [tweenVersion, springVersion]) {
+        for (const mode of ['easing', 'spring'] as const) {
+          const p = playbackOf(v, raw, mode, { reducedMotion: true });
+          expect(p.duration, `${v.id} ${mode}`).toBeLessThanOrEqual(150);
+          for (const kf of p.keyframes) expect(Object.keys(kf).filter(k => k !== 'offset')).toEqual(['opacity']);
+        }
+      }
+    });
+
+    it('a spring lens uses a linear timing function for the fade; easing keeps its curve', () => {
+      expect(playbackOf(tweenVersion, raw, 'spring', { reducedMotion: true }).easing).toBe('linear');
+      expect(playbackOf(tweenVersion, raw, 'easing', { reducedMotion: true }).easing).toBe('cubic-bezier(0, 0, 0.2, 1)');
+    });
+  });
+
+  describe('describePlayback', () => {
+    it('says what plays, in a line', () => {
+      expect(describePlayback(playbackOf(tweenVersion, raw, 'easing'))).toBe('Easing · ease-out, 300ms');
+      expect(describePlayback(playbackOf(tweenVersion, raw, 'spring'))).toBe('Spring · ease-out, bounce 0, 366ms');
+      expect(describePlayback(playbackOf(withEasing(tweenVersion, 'easing.settle'), raw, 'spring')))
+        .toBe('Spring · settle, bounce 0.1 (bounce.10), 366ms');
+    });
+
+    it('adds why, when a spring was asked for and the easing has none', () => {
+      expect(describePlayback(playbackOf(withEasing(tweenVersion, 'easing.exit'), raw, 'spring')))
+        .toBe('Easing · exit, 300ms (exit has no spring form, so it plays as easing)');
+    });
   });
 });

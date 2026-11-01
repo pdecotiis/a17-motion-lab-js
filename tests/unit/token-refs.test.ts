@@ -321,3 +321,45 @@ describe('getStepRefs: which tokens are used where', () => {
     });
   });
 });
+
+describe('getStepRefs under a playback lens', () => {
+  const tweenBounce: MotionVersion = {
+    ...tweenVersion,
+    model: { model: 'tween', duration: 'duration.560', easing: 'easing.expressive-bounce' },
+  };
+  const bounces = (v: MotionVersion, mode?: 'easing' | 'spring'): string[] =>
+    getStepRefs(v, raw, mode)[0]!.uses.filter(u => u.where.includes('spring bounce')).map(u => u.token);
+
+  it('a tween adds its easing\'s bounce token only when it plays as a spring', () => {
+    expect(bounces(tweenBounce)).toEqual([]);
+    expect(bounces(tweenBounce, 'easing')).toEqual([]);
+    expect(bounces(tweenBounce, 'spring')).toEqual(['bounce.25']);
+  });
+
+  it('bounce-0 is never listed, even when a tween plays as a spring', () => {
+    expect(bounces(tweenVersion, 'spring')).toEqual([]);
+    expect(getStepRefs(tweenVersion, raw, 'spring')[0]!.uses.map(u => u.token)).toEqual(['duration.300', 'easing.productive-standard']);
+  });
+
+  it('an easing with no spring form adds nothing under the spring lens', () => {
+    const exit: MotionVersion = { ...tweenVersion, model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-exit' } };
+    expect(getStepRefs(exit, raw, 'spring')[0]!.uses.map(u => u.token)).toEqual(['duration.100', 'easing.productive-exit']);
+  });
+
+  it('a spring version lists its bounce as authored and under the spring lens, but not when it plays as easing', () => {
+    expect(bounces(bounceVersion)).toEqual(['bounce.25']);
+    expect(bounces(bounceVersion, 'spring')).toEqual(['bounce.25']);
+    expect(bounces(bounceVersion, 'easing')).toEqual([]);
+  });
+
+  it('applies to layers too', () => {
+    const layered: MotionVersion = { ...tweenVersion, layers: { text: { model: tweenBounce.model, keyframes: [] } } };
+    expect(getStepRefs(layered, raw, 'spring')[1]!.uses.map(u => u.token)).toContain('bounce.25');
+    expect(getStepRefs(layered, raw, 'easing')[1]!.uses.map(u => u.token)).not.toContain('bounce.25');
+  });
+
+  it('the version as a whole (getTokenRefs, what exports) ignores the lens', () => {
+    expect(getTokenRefs(tweenBounce, raw).tokens).toEqual(['duration.560', 'easing.expressive-bounce']);
+    expect(getTokenRefs(bounceVersion, raw).tokens).toContain('bounce.25');
+  });
+});

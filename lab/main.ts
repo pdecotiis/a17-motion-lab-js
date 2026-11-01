@@ -1,13 +1,13 @@
 import tokensJson from '../tokens/motion.json';
 import type {
-  MotionVersion, PageConfig, MotionMap, ComponentModule, Preset, DtcgGroup,
+  MotionVersion, PageConfig, MotionMap, ComponentModule, Preset, DtcgGroup, PlayMode,
 } from './lib/types.js';
 import { compileTokens, applyTokensToDom, springKey, isSpringForm, tokenLabel } from './lib/token-compiler.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
-import { resolveTiming, resolveKeyframes, buildAnimationOptions, buildSpringWaapiKeyframes, stepsOf } from './lib/motion-models.js';
+import { playbackOf, describePlayback, stepsOf } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
 import { validatePreset } from './lib/presets.js';
-import { prefersReducedMotion, getEffectiveDuration, getEffectiveKeyframes } from './lib/reduced-motion.js';
+import { prefersReducedMotion } from './lib/reduced-motion.js';
 import {
   VERSION_STATUSES, STATUS_LABELS, getVersionStatus, filterVersions, describeLineage, filterFromParams,
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
@@ -127,6 +127,10 @@ const pageUsageIndex: PageUsageIndex = buildPageUsageIndex(Object.values(pageMod
 // ── State ──────────────────────────────────────────────────────────────────
 
 let playbackRate = 1;
+// How versions play: as their easing curve (default) or as the easing's spring. The URL (?play=spring)
+// wins, then this tab's last choice, so the lens survives links between views.
+const PLAY_MODE_KEY = 'a17-motion-lab-play-mode';
+let playMode: PlayMode = readPlayMode();
 let currentTheme: 'light' | 'dark' = 'light';
 let activeAnimations: Animation[] = [];
 
@@ -144,6 +148,41 @@ themeToggle.addEventListener('click', () => {
   document.documentElement.setAttribute('data-theme', currentTheme);
   themeToggle.textContent = currentTheme === 'dark' ? '☾' : '☀';
 });
+
+// ── Playback lens ──────────────────────────────────────────────────────────
+
+function readPlayMode(): PlayMode {
+  const fromUrl = new URLSearchParams(window.location.search).get('play');
+  if (fromUrl === 'spring' || fromUrl === 'easing') return fromUrl;
+  try {
+    return sessionStorage.getItem(PLAY_MODE_KEY) === 'spring' ? 'spring' : 'easing';
+  } catch {
+    return 'easing';
+  }
+}
+
+const playButtons = [...document.querySelectorAll<HTMLButtonElement>('.lab-segmented__btn')].filter(b => b.id.startsWith('play-'));
+function renderPlayToggle(): void {
+  for (const btn of playButtons) {
+    const active = btn.id === `play-${playMode}`;
+    btn.classList.toggle('lab-segmented__btn--active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  }
+}
+renderPlayToggle();
+for (const btn of playButtons) {
+  btn.addEventListener('click', () => {
+    const next: PlayMode = btn.id === 'play-spring' ? 'spring' : 'easing';
+    if (next === playMode) return;
+    playMode = next;
+    const params = new URLSearchParams(window.location.search);
+    if (next === 'spring') params.set('play', 'spring'); else params.delete('play');
+    window.history.replaceState(null, '', params.toString() ? `?${params.toString()}` : window.location.pathname);
+    try { sessionStorage.setItem(PLAY_MODE_KEY, next); } catch { /* storage can be blocked */ }
+    renderPlayToggle();
+    route();
+  });
+}
 
 // ── Speed control ──────────────────────────────────────────────────────────
 
@@ -193,7 +232,7 @@ function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 
   return rootAnim;
 }
 
-// One motion on one element.
+// One motion on one element, as the playback lens plays it (easing or spring).
 function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number): Animation {
   const isReduced = prefersReducedMotion();
   // A stagger is a delay token (delay.70) or a literal (80ms).
@@ -205,31 +244,13 @@ function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number)
     return el.animate([{}], { duration: 0, fill: 'both' });
   }
 
-  if (version.model.model === 'spring') {
-    const { keyframes, duration, delay } = buildSpringWaapiKeyframes(version, raw, {
-      playbackRate,
-      reducedMotion: isReduced,
-    });
-    const anim = el.animate(keyframes, {
-      duration,
-      easing: 'linear',
-      delay: delay + staggerDelay,
-      fill: 'both',
-    });
-    anim.playbackRate = playbackRate;
-    return anim;
-  }
-
-  // Tween: WAAPI with cubic-bezier easing from tokens.
-  const timing = resolveTiming(version, raw, playbackRate);
-  const effectiveDuration = getEffectiveDuration(timing.duration);
-  const effectiveKeyframes = getEffectiveKeyframes(resolveKeyframes(version.keyframes, raw), isReduced);
-  const options = buildAnimationOptions({
-    ...timing,
-    duration: effectiveDuration,
-    delay: timing.delay + staggerDelay,
+  const p = playbackOf(version, raw, playMode, { playbackRate, reducedMotion: isReduced });
+  const anim = el.animate(p.keyframes, {
+    duration: p.duration,
+    easing: p.easing,
+    delay: p.delay + staggerDelay,
+    fill: 'both',
   });
-  const anim = el.animate(effectiveKeyframes, options);
   anim.playbackRate = playbackRate;
   return anim;
 }
@@ -316,27 +337,36 @@ function renderComponentView(params: URLSearchParams): void {
         </div>
       </div>
       <aside class="lab-sidebar">
-        <section class="lab-controls" aria-label="Version controls">
-          <h3 class="lab-controls__title">Version</h3>
-          <div id="version-filter"></div>
-          <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
-          <p class="lab-lineage" id="version-lineage"></p>
-          <dl class="lab-spec-meta" id="version-spec-meta"></dl>
-          <button class="lab-btn" id="replay-btn">Replay</button>
-        </section>
-        <section class="lab-controls" aria-label="Version history">
-          <h3 class="lab-controls__title">Version history</h3>
-          <ol class="lab-history" id="version-history"></ol>
-        </section>
-        <section class="lab-controls" aria-label="Tokens Used">
-          <h3 class="lab-controls__title">Tokens Used</h3>
-          <div id="tokens-used-list"></div>
-        </section>
-        <section class="lab-controls" aria-label="Generated CSS">
-          <h3 class="lab-controls__title">Generated CSS</h3>
-          <pre class="lab-css-pre" id="css-pre"></pre>
-          <button class="lab-btn lab-btn--sm" id="copy-css-btn">Copy CSS</button>
-        </section>
+        <!-- Accordions: Version and Tokens Used open, the rest closed. Compare stays a plain panel. -->
+        <details class="lab-controls lab-accordion" open>
+          <summary class="lab-controls__title">Version</summary>
+          <div class="lab-accordion__body">
+            <div id="version-filter"></div>
+            <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
+            <p class="lab-lineage" id="version-lineage"></p>
+            <dl class="lab-spec-meta" id="version-spec-meta"></dl>
+            <button class="lab-btn" id="replay-btn">Replay</button>
+          </div>
+        </details>
+        <details class="lab-controls lab-accordion" open>
+          <summary class="lab-controls__title">Tokens Used</summary>
+          <div class="lab-accordion__body">
+            <div id="tokens-used-list"></div>
+          </div>
+        </details>
+        <details class="lab-controls lab-accordion">
+          <summary class="lab-controls__title">Version history</summary>
+          <div class="lab-accordion__body">
+            <ol class="lab-history" id="version-history"></ol>
+          </div>
+        </details>
+        <details class="lab-controls lab-accordion">
+          <summary class="lab-controls__title">Generated CSS</summary>
+          <div class="lab-accordion__body">
+            <pre class="lab-css-pre" id="css-pre"></pre>
+            <button class="lab-btn lab-btn--sm" id="copy-css-btn">Copy CSS</button>
+          </div>
+        </details>
         <section class="lab-controls" aria-label="Compare">
           <h3 class="lab-controls__title">Compare with</h3>
           <select class="lab-select" id="compare-select">
@@ -383,6 +413,9 @@ function renderComponentView(params: URLSearchParams): void {
   const specRows: [string, string, boolean][] = [
     ['Plays', triggerText ?? 'Trigger not specified', triggerText === null],
     ['Reduced motion', REDUCED_MOTION_LABELS[getReducedMotionPolicy(version)], false],
+    // What is playing under the lens, one line per motion (the root, then each layer).
+    ['Playback', stepsOf(version).map(({ name, version: step }) =>
+      `${name ? `${name}: ` : ''}${describePlayback(playbackOf(step, raw, playMode))}`).join('\n'), false],
   ];
   for (const [label, text, muted] of specRows) {
     const dt = document.createElement('dt');
@@ -445,7 +478,7 @@ function renderComponentView(params: URLSearchParams): void {
   // Tokens Used section
   const tokensList = document.getElementById('tokens-used-list')!;
   // A layer (the text, say) can move differently from the card, so each motion gets its own group.
-  const steps = getStepRefs(version, raw);
+  const steps = getStepRefs(version, raw, playMode);
   if (steps.every(st => st.uses.length === 0 && st.hardcoded.length === 0)) {
     const p = document.createElement('p');
     p.className = 'lab-text-muted';
