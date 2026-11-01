@@ -287,3 +287,100 @@ describe('keyframes that name tokens', () => {
     expect(() => buildVersionCss(tween({ keyframes: [{ transform: 'translateY({distance.99})' }, { transform: 'none' }] }), raw)).toThrow('{distance.99}');
   });
 });
+
+describe('layers', () => {
+  const rise = (offset: string): Keyframe[] => [
+    { opacity: 0, transform: `translateY({distance.${offset}})`, offset: 0 },
+    { opacity: 1, transform: 'translateY(0px)', offset: 1 },
+  ];
+  const layered = tween({
+    status: 'approved',
+    stagger: 'delay.70',
+    layers: {
+      title: { model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' }, keyframes: rise('8') },
+      text: { model: { model: 'tween', duration: 'duration.140', easing: 'easing.productive-standard', delay: 'delay.120' }, keyframes: rise('12') },
+    },
+  });
+  const css = buildVersionCss(layered, raw, { component: 'card' });
+
+  it('the root keeps its class and each layer gets its own, with its own keyframes', () => {
+    expect(css).toContain('.motion-card-v1 {');
+    expect(css).toContain('.motion-card-v1-title {');
+    expect(css).toContain('.motion-card-v1-text {');
+    expect(css).toContain('@keyframes motion-card-v1-title {');
+    expect(css).toContain('animation-name: motion-card-v1-text;');
+  });
+
+  it('says which element each layer class goes on', () => {
+    expect(css).toContain('/* Layer title: add .motion-card-v1-title to the element marked data-motion="title" when the trigger fires. */');
+  });
+
+  it('each layer uses its own tokens', () => {
+    const title = css.slice(css.indexOf('.motion-card-v1-title {'));
+    expect(title).toContain('animation-duration: var(--motion-duration-300, 300ms);');
+    const text = css.slice(css.indexOf('.motion-card-v1-text {'));
+    expect(text).toContain('animation-duration: var(--motion-duration-140, 140ms);');
+    expect(text).toContain('animation-timing-function: var(--motion-easing-productive-standard,');
+    expect(css.slice(css.indexOf('@keyframes motion-card-v1-text {'))).toContain('translateY(var(--motion-distance-12, 12px))');
+  });
+
+  it('a layer is offset by its own delay and by the version\'s stagger', () => {
+    expect(css).toContain('animation-delay: calc(70ms + var(--motion-index, 0) * var(--motion-delay-70, 70ms));');
+    expect(css).toContain('animation-delay: calc(120ms + var(--motion-index, 0) * var(--motion-delay-70, 70ms));');
+  });
+
+  it('every layer has its own reduced-motion block', () => {
+    expect(css.match(/@media \(prefers-reduced-motion: reduce\)/g)).toHaveLength(3);
+    expect(css).toContain('@keyframes motion-card-v1-title-reduced {');
+  });
+
+  it('a version with no layers is unchanged', () => {
+    const plain = buildVersionCss(tween(), raw, { component: 'card' });
+    expect(plain).not.toContain('Layer');
+    expect(plain.match(/@media/g)).toHaveLength(1);
+  });
+
+  describe('spec.md and tokens.css', () => {
+    const out = buildVersionExport('card', layered, [layered], tokens);
+
+    it('describes each layer on its own: where it goes, what animates, its timing', () => {
+      expect(out.markdown).toContain('## Layer: title');
+      expect(out.markdown).toContain('Add `.motion-card-v1-title` to the element marked `data-motion="title"`.');
+      expect(out.markdown).toContain('## Layer: text');
+      expect(out.markdown).toContain("The component's root element");
+      const text = out.markdown.slice(out.markdown.indexOf('## Layer: text'));
+      expect(text).toContain('- Duration: duration.140 (140ms)');
+      expect(text).toContain('- Delay: delay.120 (120ms)');
+      expect(text).toContain('- 0%: opacity 0, transform translateY(12px)');
+    });
+
+    it('a layer does not repeat the stagger, which belongs to the whole component', () => {
+      expect(out.markdown.match(/- Stagger:/g)).toHaveLength(1);
+    });
+
+    it('lists the tokens by motion, with where each one sits', () => {
+      const tokensSection = out.markdown.slice(out.markdown.indexOf('## Tokens'));
+      expect(tokensSection).toContain('- **root**');
+      expect(tokensSection).toContain('- **title**');
+      expect(tokensSection).toContain('  - `duration.140` (duration)');
+      expect(tokensSection).toContain('  - `distance.12` (0% transform)');
+    });
+
+    it('tokens.css defines the variables the layers use too', () => {
+      expect(out.tokensCss).toContain('--motion-duration-140: 140ms;');
+      expect(out.tokensCss).toContain('--motion-distance-12: 12px;');
+      expect(out.tokensCss).toContain('--motion-delay-120: 120ms;');
+    });
+
+    it('says how to use the layer classes', () => {
+      expect(out.markdown).toContain("and each layer's class (above) to its element");
+    });
+
+    it('a version with no layers lists tokens flat, as before', () => {
+      const plain = buildVersionExport('card', tween(), [tween()], tokens).markdown;
+      expect(plain).not.toContain('## Layer');
+      expect(plain).not.toContain('- **root**');
+      expect(plain).toContain('- `duration.220` (duration)');
+    });
+  });
+});

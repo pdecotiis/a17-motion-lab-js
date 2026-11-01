@@ -1,7 +1,7 @@
 import type { MotionVersion, TweenModel, SpringModel, SpringProperty } from './types.js';
 import { springKeyframes, springToLinear } from './spring-engine.js';
 import { resolveRefs, tokenVarName } from './token-compiler.js';
-import { springParts } from './motion-models.js';
+import { springParts, stepsOf } from './motion-models.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { describeTrigger, getReducedMotionPolicy, getVersionStatus } from './version-meta.js';
 
@@ -121,24 +121,9 @@ function block(selector: string, lines: string[], indent = ''): string[] {
   return [`${indent}${selector} {`, ...lines.map(l => `${indent}  ${l}`), `${indent}}`];
 }
 
-export function buildVersionCss(
-  version: MotionVersion,
-  raw: Record<string, unknown>,
-  options: CssOptions = {},
-): string {
-  const { component = 'component' } = options;
-  const name = `motion-${component}-${version.id}`;
+// One motion (the root's or a layer's) as @keyframes, a class and its reduced-motion block.
+function stepCss(version: MotionVersion, raw: Record<string, unknown>, name: string, stagger: string | undefined): string[] {
   const out: string[] = [];
-  // A stagger may be a delay token (delay.70) or a literal (80ms).
-  const stagger = version.stagger ? cssValue(version.stagger, raw, version.stagger) : undefined;
-
-  out.push(`/* ${component} ${version.id}: ${version.label} (${getVersionStatus(version)}) */`);
-  const trigger = describeTrigger(version.trigger);
-  out.push(
-    trigger
-      ? `/* Plays: ${trigger}. Add .${name} when the trigger fires. */`
-      : `/* Plays: trigger not specified, confirm with the designer. Add .${name} when it should play. */`,
-  );
 
   let reducedFrames: { at: string; decls: string[] }[] | null = null;
   // Same easing the version uses (tween), or linear (spring), matching the lab's reduced-motion run.
@@ -238,5 +223,31 @@ export function buildVersionCss(
   }
   out.push('}');
 
+  return out;
+}
+
+export function buildVersionCss(
+  version: MotionVersion,
+  raw: Record<string, unknown>,
+  options: CssOptions = {},
+): string {
+  const { component = 'component' } = options;
+  const base = `motion-${component}-${version.id}`;
+  // A stagger may be a delay token (delay.70) or a literal (80ms). It offsets the whole component,
+  // layers included (a layer sits inside the element that carries --motion-index).
+  const stagger = version.stagger ? cssValue(version.stagger, raw, version.stagger) : undefined;
+
+  const out: string[] = [`/* ${component} ${version.id}: ${version.label} (${getVersionStatus(version)}) */`];
+  const trigger = describeTrigger(version.trigger);
+  out.push(
+    trigger
+      ? `/* Plays: ${trigger}. Add .${base} when the trigger fires. */`
+      : `/* Plays: trigger not specified, confirm with the designer. Add .${base} when it should play. */`,
+  );
+
+  for (const { name, version: step } of stepsOf(version)) {
+    if (name) out.push('', `/* Layer ${name}: add .${base}-${name} to the element marked data-motion="${name}" when the trigger fires. */`);
+    out.push(...stepCss(step, raw, name ? `${base}-${name}` : base, stagger));
+  }
   return out.join('\n');
 }

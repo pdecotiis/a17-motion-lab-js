@@ -30,7 +30,7 @@ The lab opens at http://localhost:5173.
 ## What the lab does
 
 - **Library view:** every component as a scaled live preview. Hover (or focus) a card to play it, search by name, and filter by version status. Click a card to open the component.
-- **Component view:** play any motion version with live controls, speed and stagger, light/dark, and side-by-side compare. Duration, easing and delay are picked from the system's tokens; "Custom…" is there when nothing fits, and flagged as not a token.
+- **Component view:** play a motion version with speed and stagger, light/dark, and side-by-side compare. It shows the tokens each motion uses and where (the card and its text can use different ones). There are no controls: a motion change is a new version.
 - **Page view:** an ordered list of component instances (`pages/<id>/page.json`) for reviewing motion in context. A motion map shows every version, with its state kept in the URL so it can be shared, plus saved presets.
 - **Motion models:** tween and spring. Springs run a real physics simulation and export as a CSS `linear()` curve (no fallback: browsers without `linear()` are not supported).
 - **Tokens view:** motion tokens (W3C DTCG JSON) with where each is used, tokens per version, and unused tokens flagged.

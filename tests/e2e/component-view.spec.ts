@@ -20,68 +20,45 @@ test.describe('Component view', () => {
     await replayBtn.click();
   });
 
-  const playedTiming = (page: import('@playwright/test').Page) =>
-    page.evaluate(() => {
-      const el = document.querySelector<HTMLElement>('#preview-inner-primary [data-motion-target]')!;
-      const timing = (el.getAnimations()[0]!.effect as KeyframeEffect).getTiming();
-      return { duration: timing.duration as number, easing: timing.easing as string };
-    });
+  const timingOf = (page: import('@playwright/test').Page, selector: string) =>
+    page.evaluate((sel) => {
+      const el = document.querySelector<HTMLElement>(sel)!;
+      const anim = el.getAnimations()[0]!;
+      const t = (anim.effect as KeyframeEffect).getTiming();
+      return { duration: t.duration as number, delay: t.delay as number, rate: anim.playbackRate };
+    }, selector);
 
-  const EASINGS = [
-    'productive-standard', 'productive-entrance', 'productive-exit',
-    'expressive-standard', 'expressive-entrance', 'expressive-exit', 'expressive-settle', 'expressive-bounce',
-    'linear',
-  ];
-
-  test('controls are two dropdowns, a duration and an easing from the system, and nothing finer', async ({ page }) => {
-    await expect(page.locator('#ctrl-duration option')).toHaveText([
-      'Version default · 220ms', '100ms', '140ms', '220ms', '300ms', '400ms', '560ms', '800ms', '1200ms',
-    ]);
-    await expect(page.locator('#ctrl-easing option')).toHaveText(['Version default · productive-entrance', ...EASINGS]);
-    for (const id of ['ctrl-transform', 'ctrl-delay', 'ctrl-duration-custom', 'ctrl-easing-custom']) {
+  test('there are no controls: motion changes are new versions, not tweaks in the component view', async ({ page }) => {
+    await expect(page.locator('[aria-label="Live controls"]')).toHaveCount(0);
+    for (const id of ['ctrl-duration', 'ctrl-easing', 'ctrl-transform', 'copy-values-btn', 'live-overrides']) {
       await expect(page.locator(`#${id}`)).toHaveCount(0);
     }
   });
 
-  test('picking a duration and an easing replays the version with them and says it is not saved', async ({ page }) => {
-    expect(await playedTiming(page)).toEqual({ duration: 220, easing: 'cubic-bezier(0, 0, 0.38, 0.9)' });
-
-    await page.selectOption('#ctrl-duration', 'duration.560');
-    expect((await playedTiming(page)).duration).toBe(560);
-    await expect(page.locator('#live-overrides')).toContainText('Previewing, not saved');
-    await expect(page.locator('#live-overrides')).toContainText('duration: 560ms instead of 220ms');
-
-    await page.selectOption('#ctrl-easing', 'easing.expressive-entrance');
-    expect(await playedTiming(page)).toEqual({ duration: 560, easing: 'cubic-bezier(0, 0, 0.3, 1)' });
-    await expect(page.locator('#live-overrides')).toContainText('easing: expressive-entrance instead of productive-entrance');
-
-    await page.selectOption('#ctrl-duration', '');
-    await page.selectOption('#ctrl-easing', '');
-    await expect(page.locator('#live-overrides')).toBeEmpty();
-    expect(await playedTiming(page)).toEqual({ duration: 220, easing: 'cubic-bezier(0, 0, 0.38, 0.9)' });
+  test('a version with layers plays each layer on its element with its own timing', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v4');
+    const inner = '#preview-inner-primary';
+    expect(await timingOf(page, `${inner} [data-motion-target]`)).toMatchObject({ duration: 220, delay: 0 });
+    expect(await timingOf(page, `${inner} [data-motion="title"]`)).toMatchObject({ duration: 300, delay: 70 });
+    expect(await timingOf(page, `${inner} [data-motion="text"]`)).toMatchObject({ duration: 300, delay: 120 });
   });
 
-  test('a spring version offers only the easings that have a spring form, and plays the pick as a spring', async ({ page }) => {
-    await page.goto('/?view=component&component=card&version=v2');
-    await expect(page.locator('#ctrl-duration option').first()).toHaveText('Version default · 300ms');
-    await expect(page.locator('#ctrl-easing option')).toHaveText([
-      'Version default · productive-entrance',
-      'productive-standard', 'productive-entrance',
-      'expressive-standard', 'expressive-entrance', 'expressive-settle', 'expressive-bounce',
-    ]);
-    const before = (await playedTiming(page)).duration;
-
-    await page.selectOption('#ctrl-easing', 'easing.expressive-bounce');
-    await expect(page.locator('#live-overrides')).toContainText('easing: expressive-bounce instead of productive-entrance');
-    expect((await playedTiming(page)).duration).not.toBe(before);
-
-    await page.selectOption('#ctrl-easing', '');
-    await page.selectOption('#ctrl-duration', 'duration.140');
-    expect((await playedTiming(page)).duration).toBeLessThan(before);
+  test('replay restarts the layers too, and the speed control reaches them', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v4');
+    await page.selectOption('#speed-control', '0.25');
+    expect((await timingOf(page, '#preview-inner-primary [data-motion="title"]')).rate).toBe(0.25);
+    await page.click('#replay-btn');
+    const restarted = await page.evaluate(() => {
+      const el = document.querySelector<HTMLElement>('#preview-inner-primary [data-motion="text"]')!;
+      return { time: Number(el.getAnimations()[0]!.currentTime), rate: el.getAnimations()[0]!.playbackRate };
+    });
+    expect(restarted.rate).toBe(0.25);
+    expect(restarted.time).toBeLessThan(200);
   });
 
-  test('copy values button exists', async ({ page }) => {
-    await expect(page.locator('#copy-values-btn')).toBeVisible();
+  test('a version with no layers animates only its root', async ({ page }) => {
+    const inside = await page.evaluate(() => document.querySelector('#preview-inner-primary [data-motion-target]')!.getAnimations({ subtree: true }).length);
+    expect(inside).toBe(1);
   });
 
   test('compare select is present', async ({ page }) => {
@@ -104,7 +81,7 @@ test.describe('Version status and lineage', () => {
     await page.goto('/?view=component&component=card&version=v2');
     await expect(page.locator('.lab-version-tab[data-version-id="v2"] .lab-status-badge')).toHaveText('In progress');
     await expect(page.locator('#version-lineage')).toHaveText('Forked from v1: Fade Up');
-    await expect(page.locator('#version-history li')).toHaveCount(3);
+    await expect(page.locator('#version-history li')).toHaveCount(4);
     await expect(page.locator('#version-history li[data-version-id="v3"] .lab-status-badge')).toHaveText('Archived');
   });
 

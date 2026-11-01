@@ -1,8 +1,8 @@
 import type { MotionVersion, TweenModel, SpringModel } from './types.js';
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
-import { getTokenRefs } from './token-refs.js';
-import { resolveKeyframes, springParts } from './motion-models.js';
+import { getStepRefs, getTokenRefs } from './token-refs.js';
+import { resolveKeyframes, springParts, stepsOf } from './motion-models.js';
 import { springKeyframes } from './spring-engine.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import {
@@ -98,6 +98,7 @@ export function buildVersionExport(
   const { raw, cssVars } = tokens;
   const name = `motion-${component}-${version.id}`;
   const css = buildVersionCss(version, raw, { component });
+  const layers = stepsOf(version).filter(s => s.name !== null);
 
   const used = getTokenRefs(version, raw).tokens;
   const varLines = used.filter(t => cssVarFor(t, cssVars)).map(t => `  ${cssVarFor(t, cssVars)};`);
@@ -118,12 +119,28 @@ export function buildVersionExport(
     '',
     '## What animates',
     '',
+    ...(layers.length ? ['The component\'s root element (the one marked `data-motion-target`):', ''] : []),
     ...animatedLines(version, raw),
     '',
     '## Timing',
     '',
     ...motionLines(version, raw),
     '',
+    // Each layer is a motion of its own: it names its own duration, easing and delay.
+    ...layers.flatMap(({ name: layer, version: step }) => [
+      `## Layer: ${layer}`,
+      '',
+      `Add \`.${name}-${layer}\` to the element marked \`data-motion="${layer}"\`.`,
+      '',
+      '### What animates',
+      '',
+      ...animatedLines(step, raw),
+      '',
+      '### Timing',
+      '',
+      ...motionLines({ ...step, stagger: undefined }, raw),
+      '',
+    ]),
     '## Reduced motion',
     '',
     ...reducedMotionLines(version),
@@ -131,14 +148,14 @@ export function buildVersionExport(
     '## Using it',
     '',
     '1. Load `tokens.css` (or any stylesheet that defines the same custom properties) and `motion.css`.',
-    `2. Add the class \`.${name}\` to the animated element when the trigger fires.`,
-    ...(version.stagger ? ['3. Set `--motion-index: 0, 1, 2…` on each sibling to stagger them.'] : []),
+    `2. Add the class \`.${name}\` to the animated element when the trigger fires${layers.length ? ', and each layer\'s class (above) to its element' : ''}.`,
+    ...(version.stagger ? [`3. Set \`--motion-index: 0, 1, 2…\` on each sibling to stagger them.`] : []),
     '',
     'The CSS is plain and stack-neutral. On GSAP, Motion or another library, take the numbers from this file instead.',
     '',
     '## Tokens',
     '',
-    ...(used.length ? used.map(t => `- \`${t}\``) : ['- None']),
+    ...tokenLines(version, raw),
     '',
     '## Not covered by this spec',
     '',
@@ -149,6 +166,14 @@ export function buildVersionExport(
   ];
 
   return { css: `${css}\n`, tokensCss, markdown: md.join('\n') };
+}
+
+// The tokens used and where: one flat list for a single motion, grouped by motion when there are layers.
+function tokenLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
+  const steps = getStepRefs(version, raw);
+  const line = (u: { token: string; where: string[] }, pad = ''): string => `${pad}- \`${u.token}\` (${u.where.join(', ')})`;
+  if (steps.length === 1) return steps[0]!.uses.length ? steps[0]!.uses.map(u => line(u)) : ['- None'];
+  return steps.flatMap(s => [`- **${s.layer ?? 'root'}**`, ...(s.uses.length ? s.uses.map(u => line(u, '  ')) : ['  - None'])]);
 }
 
 function cssVarFor(path: string, cssVars: Record<string, string>): string | null {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  compileTokens, resolveTokenValue, tokenVarName, springKey, isSpringForm, findRefs, resolveRefs,
+  compileTokens, resolveTokenValue, tokenVarName, springKey, isSpringForm, findRefs, resolveRefs, tokenCss, tokenLabel,
 } from '../../lab/lib/token-compiler.js';
 import type { DtcgGroup } from '../../lab/lib/types.js';
 import tokensJson from '../../tokens/motion.json';
@@ -141,6 +141,26 @@ describe('references in keyframes', () => {
 
   it('throws on an unknown token, or one with no single value', () => {
     expect(() => resolveRefs('{distance.99}', raw)).toThrow('Unknown token reference: "{distance.99}"');
+  });
+});
+
+describe('tokenCss and tokenLabel', () => {
+  const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
+
+  it('tokenCss returns durations as strings and easings as cubic-bezier()', () => {
+    expect(tokenCss(raw, 'duration.300')).toBe('300ms');
+    expect(tokenCss(raw, 'easing.productive-standard')).toBe('cubic-bezier(0.2, 0, 0.38, 0.9)');
+    expect(tokenCss(raw, 'easing.linear')).toBe('cubic-bezier(0, 0, 1, 1)');
+  });
+
+  it('tokenCss passes a literal through and has no value for a spring form', () => {
+    expect(tokenCss(raw, '240ms')).toBe('240ms');
+    expect(tokenCss(raw, 'easing.expressive-settle.spring')).toBeUndefined();
+  });
+
+  it('tokenLabel names a token within its group', () => {
+    expect(tokenLabel('easing.productive-standard')).toBe('productive-standard');
+    expect(tokenLabel('duration.300')).toBe('300');
   });
 });
 

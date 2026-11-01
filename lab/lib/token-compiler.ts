@@ -146,6 +146,20 @@ export function resolveTokenValue(path: string, raw: Record<string, unknown>): u
   throw new Error(`Unknown token path: "${path}"`);
 }
 
+// The CSS value of a duration or easing token, e.g. "300ms" or "cubic-bezier(0.2, 0, 0.38, 0.9)".
+// A literal (not a token path) is returned as is.
+export function tokenCss(raw: Record<string, unknown>, path: string): string | undefined {
+  const v = path in raw ? raw[path] : path;
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v) && v.length === 4) return `cubic-bezier(${v.join(', ')})`;
+  return undefined;
+}
+
+// A token's name within its group: "easing.productive-standard" → "productive-standard", "duration.300" → "300".
+export function tokenLabel(path: string): string {
+  return path.slice(path.indexOf('.') + 1);
+}
+
 // ── References in keyframes ────────────────────────────────────────────────
 // A keyframe value may name tokens: "translateY({distance.16})", "{opacity.56}". A leading minus
 // negates one: "translateY(-{distance.16})".
