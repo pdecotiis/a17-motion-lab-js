@@ -19,6 +19,10 @@
         <button class="lab-nav__btn" data-view="tokens" aria-pressed="false">Tokens</button>
       </nav>
       <div class="lab-header__controls">
+        <div class="lab-segmented" role="group" aria-label="Runtime">
+          <button type="button" class="lab-segmented__btn" id="runtime-css" aria-pressed="true" title="Play with CSS: each version's easing curve">CSS</button>
+          <button type="button" class="lab-segmented__btn" id="runtime-motion" aria-pressed="false" title="Play with Motion (motion.dev), with real springs">Motion</button>
+        </div>
         <label class="lab-control-label">
           Speed
           <select id="speed-control" class="lab-select">

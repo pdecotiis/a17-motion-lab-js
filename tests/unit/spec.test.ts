@@ -27,7 +27,7 @@ const tween = (over: Partial<MotionVersion> = {}): MotionVersion => ({
 const spring = (properties: SpringProperty[], over: Partial<MotionVersion> = {}): MotionVersion => ({
   id: 'v2',
   label: 'Scale In',
-  model: { model: 'spring', duration: 'duration.560', easing: 'easing.expressive-bounce', properties },
+  model: { model: 'spring', duration: 'duration.560', easing: 'easing.expressive-bounce', bounce: 0.25, properties },
   forkedFrom: 'v1',
   ...over,
 });

@@ -30,6 +30,7 @@ const springVersion: MotionVersion = {
     model: 'spring',
     duration: 'duration.300',
     easing: 'easing.ease-out',
+    bounce: 0.2,
     properties: [
       { property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 },
       { property: 'opacity', from: 0, to: 1 },
@@ -92,6 +93,13 @@ describe('validateMotionVersion', () => {
       model: { ...springVersion.model as any, properties: [] },
     };
     expect(() => validateMotionVersion(bad)).toThrow('properties array');
+  });
+
+  it('rejects a spring bounce outside 0 to 1, or not a number', () => {
+    for (const bounce of [-0.1, 1.5, undefined as never]) {
+      const bad: MotionVersion = { ...springVersion, model: { ...(springVersion.model as object), bounce } as MotionVersion['model'] };
+      expect(() => validateMotionVersion(bad)).toThrow('bounce must be a number from 0 to 1');
+    }
   });
 
   it('rejects unknown top-level properties', () => {

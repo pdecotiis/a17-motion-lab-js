@@ -30,6 +30,7 @@ const bounceVersion: MotionVersion = {
     model: 'spring',
     duration: 'duration.560',
     easing: 'easing.expressive-bounce',
+    bounce: 0.25,
     properties: [{ property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 }],
   },
 };

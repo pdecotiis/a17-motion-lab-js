@@ -246,3 +246,98 @@ test.describe('Playback (CSS runtime)', () => {
     expect(easings.every(e => e.startsWith('cubic-bezier'))).toBe(true);
   });
 });
+
+// The runtime switch: CSS (default) plays each version's easing curve; Motion (motion.dev) is a real
+// animation library and the only runtime that plays a spring as one.
+test.describe('Runtime (CSS / Motion)', () => {
+  const ROOT = '#preview-inner-primary [data-motion-target]';
+  const playbackRow = (page: import('@playwright/test').Page) =>
+    page.locator('#version-spec-meta dt:has-text("Playback") + dd');
+  const opacityOf = (page: import('@playwright/test').Page) =>
+    page.evaluate((sel) => Number(getComputedStyle(document.querySelector<HTMLElement>(sel)!).opacity), ROOT);
+
+  test('the header has a CSS / Motion switch, CSS by default', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    await expect(page.locator('#runtime-css')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('under Motion a tween plays its easing, a spring version plays as a real spring', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    await page.click('#runtime-motion');
+    await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
+    await expect(playbackRow(page)).toHaveText('Easing · productive-entrance, 220ms');
+
+    await page.goto('/?view=component&component=card&version=v2&runtime=motion');
+    await expect(playbackRow(page)).toHaveText('Spring · bounce 0, 300ms');
+    await page.click('#runtime-css');
+    await expect(playbackRow(page)).toHaveText('Easing · productive-entrance, 300ms (authored as a spring; CSS plays its easing)');
+  });
+
+  test('Motion plays the motion: it starts away from the end state and arrives', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v2&runtime=motion');
+    await page.click('#replay-btn');
+    await expect.poll(() => opacityOf(page), { timeout: 400 }).toBeLessThan(1);
+    await expect.poll(() => opacityOf(page), { timeout: 3000 }).toBe(1);
+  });
+
+  test('the speed control reaches Motion too', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v2&runtime=motion');
+    await page.selectOption('#speed-control', '0.25');
+    await page.click('#replay-btn');
+    await page.waitForTimeout(600);
+    expect(await opacityOf(page)).toBeLessThan(1);
+  });
+
+  test('the choice is in the URL, and leaves it again under CSS', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    await page.click('#runtime-motion');
+    await expect(page).toHaveURL(/runtime=motion/);
+    await page.click('#runtime-css');
+    await expect(page).not.toHaveURL(/runtime=/);
+    const native = await page.evaluate((sel) => document.querySelector<HTMLElement>(sel)!.getAnimations().length, ROOT);
+    expect(native).toBe(1);
+  });
+
+  test('it holds across the nav and across links between views', async ({ page }) => {
+    await page.goto('/?view=library');
+    await page.click('#runtime-motion');
+    await page.locator('.lab-library-card').first().click();
+    await expect(page).toHaveURL(/view=component/);
+    await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
+    await page.click('.lab-nav__btn[data-view="page"]');
+    await expect(page).toHaveURL(/view=page/);
+    await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('layers play under Motion too, and the Playback row names each motion', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v4&runtime=motion');
+    await expect(playbackRow(page)).toHaveText([
+      'Easing · productive-entrance, 220ms',
+      'title: Easing · productive-entrance, 300ms',
+      'text: Easing · productive-entrance, 300ms',
+    ].join('\n'));
+    await expect.poll(() => page.evaluate(() =>
+      Number(getComputedStyle(document.querySelector<HTMLElement>('#preview-inner-primary [data-motion="text"]')!).opacity)), { timeout: 3000 }).toBe(1);
+  });
+
+  test('exports are as authored whatever the runtime: the CSS is the same', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated CSS' }).click();
+    const before = await page.locator('#css-pre').textContent();
+    await page.goto('/?view=component&component=card&version=v1&runtime=motion');
+    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated CSS' }).click();
+    expect(await page.locator('#css-pre').textContent()).toBe(before);
+  });
+
+  test('a Motion version with no console errors in the library and page views', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(e.message));
+    page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+    for (const url of ['/?view=library&runtime=motion', '/?view=page&page=home&runtime=motion']) {
+      await page.goto(url);
+      await page.waitForTimeout(500);
+    }
+    expect(errors).toEqual([]);
+  });
+});

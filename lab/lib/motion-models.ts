@@ -210,6 +210,9 @@ export function validateMotionVersion(version: MotionVersion): void {
     if (typeof model.duration !== 'string' || typeof model.easing !== 'string') {
       throw new Error(`MotionVersion "${version.id}" spring needs a duration and an easing`);
     }
+    if (typeof model.bounce !== 'number' || model.bounce < 0 || model.bounce > 1) {
+      throw new Error(`MotionVersion "${version.id}" spring bounce must be a number from 0 to 1`);
+    }
   }
 
   // Each layer is a motion of its own, checked like the root. Its name is a data-motion value.

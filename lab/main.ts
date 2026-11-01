@@ -8,6 +8,9 @@ import { playbackOf, describePlayback, stepsOf } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
 import { validatePreset } from './lib/presets.js';
 import { prefersReducedMotion } from './lib/reduced-motion.js';
+import { animate as motionAnimate } from 'motion';
+import { motionArgsOf, describeMotionArgs } from './lib/motion-args.js';
+import { cssHandle, runtimeFromParam, RUNTIMES, type PlayHandle, type Runtime } from './lib/runtime.js';
 import {
   VERSION_STATUSES, STATUS_LABELS, getVersionStatus, filterVersions, describeLineage, filterFromParams,
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
@@ -127,7 +130,11 @@ const pageUsageIndex: PageUsageIndex = buildPageUsageIndex(Object.values(pageMod
 
 let playbackRate = 1;
 let currentTheme: 'light' | 'dark' = 'light';
-let activeAnimations: Animation[] = [];
+let activeAnimations: PlayHandle[] = [];
+// Which runtime plays the motion: CSS (default) or Motion. The URL (?runtime=motion) wins, then this
+// tab's last choice, so the choice survives links between views.
+const RUNTIME_KEY = 'a17-motion-lab-runtime';
+let runtime: Runtime = readRuntime();
 
 // ── Reduced motion ─────────────────────────────────────────────────────────
 
@@ -144,12 +151,47 @@ themeToggle.addEventListener('click', () => {
   themeToggle.textContent = currentTheme === 'dark' ? '☾' : '☀';
 });
 
+// ── Runtime switch ─────────────────────────────────────────────────────────
+
+function readRuntime(): Runtime {
+  const fromUrl = new URLSearchParams(window.location.search).get('runtime');
+  if (fromUrl !== null) return runtimeFromParam(fromUrl);
+  try {
+    return runtimeFromParam(sessionStorage.getItem(RUNTIME_KEY));
+  } catch {
+    return 'css';
+  }
+}
+
+const runtimeButtons = RUNTIMES.map(r => document.getElementById(`runtime-${r}`) as HTMLButtonElement);
+function renderRuntimeToggle(): void {
+  for (const btn of runtimeButtons) {
+    const active = btn.id === `runtime-${runtime}`;
+    btn.classList.toggle('lab-segmented__btn--active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  }
+}
+renderRuntimeToggle();
+for (const btn of runtimeButtons) {
+  btn.addEventListener('click', () => {
+    const next = runtimeFromParam(btn.id.replace('runtime-', ''));
+    if (next === runtime) return;
+    runtime = next;
+    const params = new URLSearchParams(window.location.search);
+    if (next === 'motion') params.set('runtime', 'motion'); else params.delete('runtime');
+    window.history.replaceState(null, '', params.toString() ? `?${params.toString()}` : window.location.pathname);
+    try { sessionStorage.setItem(RUNTIME_KEY, next); } catch { /* storage can be blocked */ }
+    renderRuntimeToggle();
+    route();
+  });
+}
+
 // ── Speed control ──────────────────────────────────────────────────────────
 
 const speedControl = document.getElementById('speed-control') as HTMLSelectElement;
 speedControl.addEventListener('change', () => {
   playbackRate = parseFloat(speedControl.value);
-  activeAnimations.forEach(a => { a.playbackRate = playbackRate; });
+  activeAnimations.forEach(a => { a.speed = playbackRate; });
 });
 
 // ── Nav ────────────────────────────────────────────────────────────────────
@@ -175,11 +217,12 @@ function parseMsLocal(value: string): number {
 // ── Animation helpers ──────────────────────────────────────────────────────
 
 // Plays a version: its root motion on `el`, and each layer's motion on the elements inside it marked
-// data-motion="<layer>". Every animation is tracked in activeAnimations, so the speed control reaches
-// them. Returns the root's animation.
-function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 0): Animation {
+// data-motion="<layer>". Every motion is tracked in activeAnimations, so the speed control reaches
+// them. Returns the root's handle.
+function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 0): PlayHandle {
   el.getAnimations({ subtree: true }).forEach(a => a.cancel());
-  activeAnimations = activeAnimations.filter(a => a.playState !== 'finished');
+  activeAnimations.filter(h => el.contains(h.target)).forEach(h => h.cancel());
+  activeAnimations = activeAnimations.filter(h => !h.finished && !el.contains(h.target));
 
   const [root, ...layers] = stepsOf(version);
   const rootAnim = playStep(el, root!.version, staggerIndex);
@@ -192,19 +235,35 @@ function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 
   return rootAnim;
 }
 
-// One motion on one element, as the CSS runtime plays it.
-function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number): Animation {
+// One motion on one element, played by the current runtime. The speed control sets the runtime's own
+// speed, so durations and delays here are at normal speed.
+function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number): PlayHandle {
   const isReduced = prefersReducedMotion();
   // A stagger is a delay token (delay.70) or a literal (80ms).
   const staggerMs = version.stagger ? parseFloat(String(version.stagger in raw ? raw[version.stagger] : version.stagger)) : 0;
-  const staggerDelay = (staggerMs * staggerIndex) / playbackRate;
+  const staggerDelay = staggerMs * staggerIndex;
 
   // reducedMotion: 'none' means no animation at all: the element shows its end state.
   if (isReduced && getReducedMotionPolicy(version) === 'none') {
-    return el.animate([{}], { duration: 0, fill: 'both' });
+    return cssHandle(el, el.animate([{}], { duration: 0, fill: 'both' }));
   }
 
-  const p = playbackOf(version, raw, { playbackRate, reducedMotion: isReduced });
+  if (runtime === 'motion') {
+    const { keyframes, options } = motionArgsOf(version, raw, { reducedMotion: isReduced, extraDelayMs: staggerDelay });
+    const controls = motionAnimate(el, keyframes, options);
+    controls.speed = playbackRate;
+    return {
+      target: el,
+      get speed() { return controls.speed; },
+      set speed(v: number) { controls.speed = v; },
+      get time() { return controls.time; },
+      set time(v: number) { controls.time = v; },
+      get finished() { return controls.state === 'finished'; },
+      cancel() { controls.cancel(); },
+    };
+  }
+
+  const p = playbackOf(version, raw, { reducedMotion: isReduced });
   const anim = el.animate(p.keyframes, {
     duration: p.duration,
     easing: p.easing,
@@ -212,7 +271,7 @@ function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number)
     fill: 'both',
   });
   anim.playbackRate = playbackRate;
-  return anim;
+  return cssHandle(el, anim);
 }
 
 // ── Version status helpers ─────────────────────────────────────────────────
@@ -375,7 +434,9 @@ function renderComponentView(params: URLSearchParams): void {
     ['Reduced motion', REDUCED_MOTION_LABELS[getReducedMotionPolicy(version)], false],
     // What is playing, one line per motion (the root, then each layer).
     ['Playback', stepsOf(version).map(({ name, version: step }) =>
-      `${name ? `${name}: ` : ''}${describePlayback(playbackOf(step, raw))}`).join('\n'), false],
+      `${name ? `${name}: ` : ''}${runtime === 'motion'
+        ? describeMotionArgs(step, motionArgsOf(step, raw))
+        : describePlayback(playbackOf(step, raw))}`).join('\n'), false],
   ];
   for (const [label, text, muted] of specRows) {
     const dt = document.createElement('dt');
@@ -416,7 +477,7 @@ function renderComponentView(params: URLSearchParams): void {
     primaryInner.querySelector<HTMLElement>('[data-motion-target]') ??
     (primaryInner.firstElementChild as HTMLElement);
 
-  function playAnimation(target: HTMLElement, vid: string): Animation {
+  function playAnimation(target: HTMLElement, vid: string): PlayHandle {
     return animateElement(target, getVersion(componentName, vid));
   }
 
@@ -524,8 +585,8 @@ function renderComponentView(params: URLSearchParams): void {
       (secondaryInner.firstElementChild as HTMLElement);
     const pAnim = playAnimation(primaryTarget, versionId);
     const sAnim = playAnimation(secondaryTarget, compareVid);
-    pAnim.currentTime = 0;
-    sAnim.currentTime = 0;
+    pAnim.time = 0;
+    sAnim.time = 0;
   });
 }
 
@@ -600,7 +661,7 @@ function renderPageView(params: URLSearchParams): void {
 
   const pageGrid = document.getElementById('page-grid')!;
   const motionMapPanel = document.getElementById('motion-map-panel')!;
-  const componentAnims = new Map<string, Animation>();
+  const componentAnims = new Map<string, PlayHandle>();
 
   function renderComponents(currentStaggerMs: number): void {
     pageGrid.innerHTML = '';
