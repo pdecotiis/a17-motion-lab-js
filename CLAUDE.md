@@ -9,9 +9,9 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 **Tokens**: W3C DTCG JSON (`tokens/motion.json`) → CSS custom properties + raw values.
 **Components**: HTML/CSS prototypes with a `motion.ts` file that re-exports named motion versions, one file per version in `versions/`.
 **Library**: `/?view=library` lists every registered component as a scaled live preview (plays on hover). It builds from the component registry, so new components appear automatically; filters use `?status=…&archived=1&q=…`. Logic is in `lab/lib/library.ts`.
-**Live controls**: in the component view the Controls panel is one dropdown of the system's named options, and nothing finer. A tween picks from the **transforms** (`transforms.*`: a duration and an easing together); a spring picks from the **spring tokens** (`springs.*`). "Version default" means no override. Picking one replays the version with it and shows "Previewing, not saved". There are no duration, easing or delay fields and no free-form values: to change what a version uses, edit the version file (use a transform). Helpers are in `lab/lib/control-options.ts`.
-**Tokens used**: follows the CSS / Spring engine toggle. A spring version lists its spring token in both modes, plus the fallback easing only in CSS mode. A tween that uses a transform lists the transform and the duration and easing tokens it names. `getTokenRefs(version, raw, { mode })` in `lab/lib/token-refs.ts`; without `mode` it lists every token (used by the Tokens view).
-**Tokens view**: `/?view=tokens`, groups in the order Transforms, Duration, Easing, Springs, Distance. Transforms, easings and springs preview as a classic curve graph (progress over time, with 0 and 1 marked and overshoot shown); click it to run a dot along the curve. Durations and distances keep a bar. A transform's value is two badges (its duration and its easing) instead of raw values. The curve maths is in `lab/lib/curve.ts`.
+**Live controls**: in the component view the Controls panel is two dropdowns, a **duration** and an **easing**, each a list of the system's tokens and nothing finer (no custom values, no delay). "Version default" means no override. Picking one replays the version with it and shows "Previewing, not saved". A spring version is only offered the easings that have a spring form, and a picked duration is its paired duration (the spring lasts that / 0.82). Helpers are in `lab/lib/control-options.ts`.
+**Tokens used**: a version's duration, easing and delay, a stagger that is a delay token, the tokens its keyframes name, and for a spring the bounce token of its easing. **bounce-0 means "no bounce" and is never listed.** Pairing warnings (below) show under it. `getTokenRefs(version, raw)` and `pairingWarnings(version, raw)` are in `lab/lib/token-refs.ts`; the Tokens view uses the same index for each token's "used by".
+**Tokens view**: `/?view=tokens`. Tabs for duration, easing, distance, scale, opacity and delay; tokens run smallest to largest (easings in system order: productive standard, entrance, exit, then expressive, then linear). **A row is just the token name and a preview** (a curve for easings, a bar for durations and distances); notes, status, value, usage and old names are in the row's tooltip. The easing tab has an **Easing / Spring** switch (easing is the default): Spring shows each easing's bounce step (or "no spring") with a spring curve, and a **Bounces** table below. Bounce has no tab of its own. The curve maths is in `lab/lib/curve.ts`.
 **Pages**: `page.json` defines an ordered list of component instances for page-level motion review.
 **Motion maps**: URL-encoded state (shareable) + saved JSON presets.
 
@@ -29,7 +29,7 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 
 - **Components**: `kebab-case` folder names (e.g. `card`, `hero-banner`)
 - **Motion versions**: `v1`, `v2`, `v3` — sequential integers, never skip
-- **Token paths**: dot notation (e.g. `duration.250`)
+- **Token paths**: dot notation, group first, no `motion` root, value-named except easing (e.g. `duration.300`, `easing.productive-standard`, `distance.16`)
 - **Page IDs**: match folder name (e.g. `pages/home/page.json` has `"id": "home"`)
 - **Preset IDs**: `kebab-case` matching the filename
 
@@ -61,7 +61,7 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
    export const v3: MotionVersion = {
      id: 'v3',
      label: 'Descriptive Name',
-     model: { model: 'tween', transform: 'transforms.entrance' },
+     model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-standard' },
      keyframes: [ /* only motion properties */ ],
      status: 'in-progress',   // new versions always start in-progress
      forkedFrom: 'v1',        // the version this was copied from (required)
@@ -91,53 +91,59 @@ reducedMotion: 'fade',                                   // what prefers-reduced
 - `reducedMotion`: `'fade'` (absent = fade: transforms dropped, opacity fade of at most 150ms, `REDUCED_MOTION_FADE_MS`) or `'none'` (no animation, end state shown). The lab's playback and the exported CSS follow the same rule, so what a designer sees under reduced motion is what ships. Versions with no opacity change get no animation under `'fade'`.
 - Both validate in `validateMotionVersion`, show in the component view ("Plays", "Reduced motion"), and carry through `forkVersion`.
 
-**Generated CSS and spec export.** The "Generated CSS" panel and `npm run spec` share one generator (`lab/lib/css-output.ts`): plain, stack-neutral CSS with named `@keyframes motion-<component>-<version>`, a `.motion-<component>-<version>` class, token custom properties with the literal value as fallback (`var(--motion-duration-250, 250ms)`), a stagger index (`--motion-index`) and a `prefers-reduced-motion` block. Springs ship as `linear()` behind `@supports`, with the cubic-bezier fallback; spring and linear properties become two animations so linear fades don't overshoot.
+**Generated CSS and spec export.** The "Generated CSS" panel and `npm run spec` share one generator (`lab/lib/css-output.ts`): plain, stack-neutral CSS with named `@keyframes motion-<component>-<version>`, a `.motion-<component>-<version>` class, token custom properties with the literal value as fallback (`var(--motion-duration-300, 300ms)`), a stagger index (`--motion-index`) and a `prefers-reduced-motion` block. A spring ships as a `linear()` curve (browsers without `linear()` are not supported, so there is no fallback); spring and linear properties become two animations so linear fades don't overshoot.
 
 `npm run spec -- <component> [version] [--out <dir>]` writes `export/<component>/<version>/` (gitignored) with `motion.css`, `tokens.css` and `spec.md` (`lab/lib/spec.ts`). No version = every approved version; an explicit version exports whatever its status and says so in `spec.md`. `spec.md` also lists what the lab can't verify: the production element, layout and environment, and performance.
 
 ## Token types
 
-| `$type`         | CSS output                        | Example `$value`                       |
-|-----------------|-----------------------------------|----------------------------------------|
-| `duration`      | CSS custom property (e.g. `150ms`)| `"150ms"`                              |
-| `cubicBezier`   | `cubic-bezier(...)` string        | `[0.0, 0.0, 0.2, 1.0]`               |
-| `dimension`     | CSS length value                  | `"16px"`                               |
-| `custom-spring` | JS only (raw object, no CSS var)  | `{ "bounce": 0.4, "duration": 600 }`  |
-| `transition`    | JS only (no CSS var; the CSS uses the duration and easing variables it names) | `{ "duration": "{duration.250}", "timingFunction": "{easing.productive.entrance}" }` |
+Tokens are **primitives only**: no composite tokens, no component-specific names. A motion step names its primitives directly, a duration plus an easing (`duration.300` + `easing.productive-standard`).
 
-Token groups: `duration.*`, `easing.*`, `transforms.*`, `distance.*`, `springs.*`. Token paths use dot notation and have no `motion` root: `duration.250`, `easing.productive.entrance`, `transforms.entrance`, `springs.bouncy`. CSS variables add a `motion` prefix and drop the dots, so they can't collide with other custom properties: `duration.250` → `--motion-duration-250`.
+| Kind (group) | `$type` | Names | Values | CSS variable |
+|---|---|---|---|---|
+| `duration` | `duration` | `100 140 220 300 400 560 800 1200` | ms | `--motion-duration-300` |
+| `easing` | `cubicBezier` | `productive-standard/-entrance/-exit`, `expressive-standard/-entrance/-exit`, `expressive-settle`, `expressive-bounce`, `linear` | `[x1, y1, x2, y2]` | `--motion-easing-productive-standard` |
+| `bounce` | `number` | `0 10 25` | 0, 0.1, 0.25 | `--motion-bounce-10` |
+| `distance` | `dimension` | `4 8 12 16 24 32 40 48` | px | `--motion-distance-16` |
+| `scale` | `number` | `60 75 90 95 96 97 98 99 103 106` | percent as a number (0.95) | `--motion-scale-95` |
+| `opacity` | `number` | `04 08 10 56` | percent as a number (0.04) | `--motion-opacity-04` |
+| `delay` | `duration` | `40 70 120` | ms, for short offsets and staggers (longer delays use the duration scale) | `--motion-delay-70` |
 
-**Figma mapping.** `tokens/motion.json` is shaped like the Figma variable collection it mirrors: the file is the collection (no root group), and each group is a Figma variable group, so `easing.productive.standard` here is `easing/productive/standard` in Figma (dots become slashes). Keep names and nesting identical in both so the sync (see PLAN.md) is a straight copy. Figma variables are boolean, number, string and color only, so a transform or spring has to be stored as several variables (or aliases) there.
+Gesture **thresholds** are part of the system but have no tokens here yet (no values were supplied).
 
-**Transforms** are named combinations of a duration and an easing (`entrance`, `exit`, `standard`, `emphasized`). A `transition` token's `duration` and `timingFunction` are `{token.path}` references (checked when the tokens compile: the token must exist and be the right kind) or literal values; an optional `delay` works the same way. The compiler stores a transform in `raw` as `{ duration, easing, delay? }` token paths. Springs are not transforms.
+Scale kinds are **named by their value** (`duration.300` is 300ms, `scale.95` is 95%); **easing is the one semantic layer**. Token paths use dot notation with no `motion` root; CSS variables add a `motion` prefix and drop the dots, so they can't collide with other custom properties.
 
-**Seed values** (`tokens/motion.json`): durations are named by their value (`duration.50`, `100`, `150`, `200`, `250`, `400`, `700`). Easings are two sets, `productive` and `expressive`, each with `standard`, `entrance` and `exit` (`easing.productive.entrance`, so the CSS variable is `--motion-easing-productive-entrance`). The transforms combine them: `entrance` = 250 + productive.entrance, `exit` = 150 + productive.exit, `standard` = 200 + productive.standard, `emphasized` = 400 + expressive.entrance. The spring tokens carry no fallback easing; when one has a `fallback`, the CSS-mode approximation uses it, otherwise a curve derived from the bounce.
+**Figma mapping.** `tokens/motion.json` is shaped like the Figma variable collection it mirrors: the file is the collection (no root group) and each group is a variable group, so `easing.productive-standard` here is `easing/productive-standard` in Figma (dots become slashes). Keep names identical in both so the sync (see PLAN.md) is a straight copy.
 
-The token compiler (`lab/lib/token-compiler.ts`) reads `tokens/motion.json` and outputs:
-- CSS custom properties applied to `:root` at startup
-- A `raw` map for JS-side resolution (used by motion models)
+**Springs are a view of easing, not a separate family.** An easing token carries a spring form in `$extensions`: `"spring": { "bounce": "{bounce.10}" }` (a reference to a bounce token). The compiler keeps the easing's value as is and adds a derived entry `<path>.spring` (`{ bounce, token }`, see `springKey` / `isSpringForm`), which is not a token in the file. The standard and entrance easings (productive and expressive) use `bounce.0`, `expressive-settle` uses `bounce.10`, `expressive-bounce` uses `bounce.25`; **the two exits and `linear` have none** (a spring can't ease in). A spring's own duration is **always its paired duration / 0.82** (`SPRING_DURATION_RATIO` in `lab/lib/spring-engine.ts`); previews switch between easing and spring playback.
+
+**Pairing rules** (warnings, never errors; `pairingWarnings`): productive easings pair with 100–300ms, expressive easings with 400–1200ms, and an easing with a bounce is for expressive motion only. Shown under "Tokens used".
+
+**Status.** Every token is `system` (approved) or `experimental`, in `$extensions.status`. A token with no status is experimental, as **new tokens start experimental**. **A renamed or merged token keeps the highest status of the tokens folded into it** (system outranks experimental). Notes are `$description`; old names are `$extensions.oldNames` (shown with usage in the Tokens view tooltip). `expressive-settle` and `expressive-bounce` currently hold **placeholder curves** (experimental) until the system values are set.
+
+**References in keyframes.** A tween keyframe value may name tokens: `translateY({distance.16})`, `{opacity.56}`, `scale({scale.95})`; a leading minus negates one (`translateY(-{distance.16})`, the "-distance-N" form). Playback resolves them to values (`resolveKeyframes`); the CSS export writes `var(--motion-distance-16, 16px)` and `calc(-1 * var(…))` for a negative; they count as usage. An unknown reference throws. Spring `properties[]` `from`/`to` are still plain numbers.
+
+**Scaling the primitives.** `npm run tokens:scale -- <duration|distance|delay> <fibonacci|ratio> [--base N] [--steps N]` (`scripts/scale-tokens.ts`) regenerates one kind from a scale and follows the renames through the version files (see the file header). Names are values, so a new scale renames tokens: step i keeps the old step's status and notes and records its old name in `oldNames`; extra steps start experimental; folded steps keep the highest status. Not for `easing`, `bounce`, `scale` or `opacity`.
+
+The token compiler (`lab/lib/token-compiler.ts`) reads `tokens/motion.json` and returns `{ cssVars, raw, meta }`: the CSS custom properties applied to `:root` at startup, a flat `raw` map by path for the motion models, and each token's notes, status and old names.
 
 ## Motion model rules
 
 ### Tween model
 ```ts
-{ model: 'tween', transform: 'transforms.entrance', delay?: '0ms' }
-// or, giving the timing directly:
-{ model: 'tween', duration: 'duration.250', easing: 'easing.productive.entrance', delay?: '0ms' }
+{ model: 'tween', duration: 'duration.300', easing: 'easing.productive-standard', delay?: 'delay.40' }
 ```
-- **Prefer a `transform`.** It names a duration and an easing together, and it is what the Controls panel offers. Set a transform, or both `duration` and `easing`, never a mix (`validateMotionVersion` fails otherwise).
-- `duration` and `easing` can be a token path or a literal value (`"250ms"`, `"ease-out"`, `"cubic-bezier(...)"`)
-- `delay` stays on the version and wins over a transform's own delay.
-- `tweenParts(model, raw)` in `lab/lib/motion-models.ts` expands either form to duration, easing and delay; resolving an unknown transform throws.
+- `duration` and `easing` are token paths, or literal values (`"300ms"`, `"ease-out"`, `"cubic-bezier(...)"`; a literal is flagged as hard-coded). `delay` and `stagger` may be delay tokens or literals.
+- A tween plays its easing curve.
 
 ### Spring model
 ```ts
-{ model: 'spring', bounce: 0.4, duration: 'springs.bouncy', delay?: '0ms', properties: [{ property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 }] }
+{ model: 'spring', duration: 'duration.300', easing: 'easing.expressive-settle', delay?: 'delay.40', properties: [{ property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 }] }
 ```
-- `bounce`: 0–1 (0 = no bounce, 1 = maximum bounce)
-- `duration`: token path or literal ms value
-- Springs run a real physics simulation (`lab/lib/spring-engine.ts`). They animate via baked WAAPI keyframes, and compile to a CSS `linear()` timing function (cubic-bezier is used only for the "CSS" engine-mode approximation)
-- Spring versions declare `properties[]` instead of `keyframes`
+- The same primitives as a tween. The **bounce comes from the easing's spring form** (an easing with none, such as an exit or `linear`, throws), and the spring lasts the paired duration / 0.82.
+- `springParts(model, raw)` in `lab/lib/motion-models.ts` resolves it to `{ bounce, durationMs, pairedMs, bounceToken }`.
+- Springs run a real physics simulation (`lab/lib/spring-engine.ts`). They animate via baked WAAPI keyframes and export as a CSS `linear()` timing function. We assume browsers that support `linear()`: there is no cubic-bezier fallback and no CSS-approximation mode.
+- Spring versions declare `properties[]` instead of `keyframes`.
 
 ## Testing rules
 
@@ -151,7 +157,7 @@ tests/e2e/_template.spec.ts    → copy to tests/e2e/<component>.spec.ts
 - `validateMotionVersion(v)` does not throw (no structural keyframe props, no extra properties)
 - Tween versions: `resolveTiming(v, raw)` produces a numeric `duration` > 0 (`resolveTiming` is tween-only and throws on spring versions)
 - Tween versions: `resolveTiming(v, raw)` produces a string `easing` containing `cubic-bezier`
-- Token paths (e.g. `duration.250`, `transforms.entrance`) resolve to expected concrete values
+- Token paths (e.g. `duration.300`, `easing.productive-standard`) resolve to expected concrete values; a spring's easing has a spring form
 
 ### E2E test coverage required per component
 - Component renders visibly at `/?view=component&component=<name>`
@@ -229,6 +235,7 @@ Before saving and before sending for review, bring in the latest `main`. If some
 |----------------------|-------------------------------------------------|
 | `npm run figma:import -- <manifest.json>` | Import a Figma frame as a component |
 | `npm run spec -- <component> [version]` | Export motion.css, tokens.css and spec.md for a developer |
+| `npm run tokens:scale -- <kind> <scale>` | Regenerate duration, distance or delay from fibonacci or a ratio |
 | `npm run dev`        | Start Vite dev server (http://localhost:5173)   |
 | `npm run build`      | Build to `dist/` with relative paths            |
 | `npm run typecheck`  | TypeScript type check (no emit)                 |

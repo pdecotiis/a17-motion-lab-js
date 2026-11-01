@@ -13,8 +13,8 @@ const mockV2: MotionVersion = {
   label: 'V2',
   model: {
     model: 'spring',
-    bounce: 0.4,
     duration: '600ms',
+    easing: 'easing.expressive-bounce',
     properties: [
       { property: 'transform', wrapTransform: 'scale', from: 0.9, to: 1, span: 1, useSpring: true },
     ],

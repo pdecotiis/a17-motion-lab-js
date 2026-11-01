@@ -1,6 +1,6 @@
 import type { MotionVersion, TweenModel, SpringModel, SpringProperty, LiveControls } from './types.js';
-import { springKeyframes, springToCubicBezierString } from './spring-engine.js';
-import { isTransformValue } from './token-compiler.js';
+import { springKeyframes, SPRING_DURATION_RATIO } from './spring-engine.js';
+import { isSpringForm, resolveRefs, springKey } from './token-compiler.js';
 import { isVersionStatus, isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
 
 export interface ResolvedTiming {
@@ -36,20 +36,6 @@ function resolveStr(value: string | undefined, raw: Record<string, unknown>, fal
   return value;
 }
 
-// A tween's duration, easing and delay as token paths or literals. A `transform` expands to the
-// duration and easing it names; the model's own delay wins over the transform's.
-export function tweenParts(
-  model: TweenModel,
-  raw: Record<string, unknown>,
-): { duration?: string; easing?: string; delay?: string } {
-  if (model.transform === undefined) {
-    return { duration: model.duration, easing: model.easing, delay: model.delay };
-  }
-  const t = raw[model.transform];
-  if (!isTransformValue(t)) throw new Error(`Unknown transform token: "${model.transform}"`);
-  return { duration: t.duration, easing: t.easing, delay: model.delay ?? t.delay };
-}
-
 // resolveTiming is for tween models only → WAAPI with cubic-bezier easing.
 export function resolveTiming(
   version: MotionVersion,
@@ -61,10 +47,9 @@ export function resolveTiming(
     throw new Error(`resolveTiming: version "${version.id}" is a spring model — use buildSpringWaapiKeyframes instead`);
   }
   const model = version.model as TweenModel;
-  const parts = tweenParts(model, raw);
-  const durationStr = controls.duration ?? resolveStr(parts.duration, raw, '300ms');
-  const easing = controls.easing ?? resolveStr(parts.easing, raw, 'ease');
-  const delayStr = controls.delay ?? resolveStr(parts.delay, raw, '0ms');
+  const durationStr = controls.duration ?? resolveStr(model.duration, raw, '300ms');
+  const easing = controls.easing ?? resolveStr(model.easing, raw, 'ease');
+  const delayStr = controls.delay ?? resolveStr(model.delay, raw, '0ms');
 
   return {
     duration: parseMs(durationStr) / playbackRate,
@@ -83,6 +68,30 @@ export function buildAnimationOptions(timing: ResolvedTiming): KeyframeAnimation
   };
 }
 
+// A spring's bounce and durations. The bounce comes from the easing's spring form (an easing with
+// none, such as an exit or linear, can't be a spring); the spring's duration is the paired duration
+// / 0.82. `bounceToken` is the bounce token the easing names.
+export function springParts(
+  model: SpringModel,
+  raw: Record<string, unknown>,
+): { bounce: number; durationMs: number; pairedMs: number; bounceToken: string } {
+  const form = raw[springKey(model.easing)];
+  if (!isSpringForm(form)) {
+    throw new Error(`Easing "${model.easing}" has no spring form, so a spring can't use it (exits and linear have none)`);
+  }
+  const pairedMs = parseMs(resolveStr(model.duration, raw, '300ms'));
+  return { bounce: form.bounce, durationMs: pairedMs / SPRING_DURATION_RATIO, pairedMs, bounceToken: form.token };
+}
+
+// A tween's keyframes with token references ("{distance.16}") replaced by their values.
+export function resolveKeyframes(keyframes: Keyframe[] | undefined, raw: Record<string, unknown>): Keyframe[] {
+  return (keyframes ?? []).map(kf =>
+    Object.fromEntries(
+      Object.entries(kf).map(([k, v]) => [k, typeof v === 'string' ? resolveRefs(v, raw) : v]),
+    ) as Keyframe,
+  );
+}
+
 // Build WAAPI keyframes from the spring simulation for entrance animations.
 // Each property in model.properties is simulated (or linearly interpolated).
 // The easing on the WAAPI animation is always 'linear' — the shape is baked into the keyframes.
@@ -97,23 +106,15 @@ export function buildSpringWaapiKeyframes(
   const model = version.model as SpringModel;
   const { controls = {}, playbackRate = 1, reducedMotion = false } = options;
 
-  // Resolve natural duration (ms) and bounce from token or literal
-  const tokenVal = model.duration in raw ? raw[model.duration] : null;
-  let naturalDuration: number;
-  if (tokenVal && typeof tokenVal === 'object' && 'duration' in tokenVal) {
-    naturalDuration = (tokenVal as { duration: number }).duration;
-  } else if (typeof tokenVal === 'string') {
-    naturalDuration = parseMs(tokenVal);
-  } else {
-    naturalDuration = parseMs(model.duration);
-  }
-  if (controls.duration) naturalDuration = parseMs(controls.duration);
+  // The spring's duration (ms) is the paired duration / 0.82; the bounce is the easing's
+  const parts = springParts(model, raw);
+  const naturalDuration = controls.duration ? parseMs(controls.duration) / SPRING_DURATION_RATIO : parts.durationMs;
 
   // Resolve delay
   const delayStr = controls.delay ?? resolveStr(model.delay, raw, '0ms');
   const delay = parseMs(delayStr) / playbackRate;
 
-  const bounce = controls.bounce ?? model.bounce;
+  const bounce = controls.bounce ?? parts.bounce;
 
   // Reduced motion: skip travel (transforms), keep opacity fade.
   if (reducedMotion) {
@@ -198,72 +199,6 @@ export function buildSpringWaapiKeyframes(
   return { keyframes, duration: settleDuration / playbackRate, delay };
 }
 
-// CSS fallback for spring versions: 2-frame WAAPI animation with cubic-bezier easing
-// derived from the spring's bounce. Same from/to values, same duration — no simulation.
-export function buildSpringCssKeyframes(
-  version: MotionVersion,
-  raw: Record<string, unknown>,
-  options: { controls?: LiveControls; playbackRate?: number; reducedMotion?: boolean } = {},
-): SpringWaapiResult {
-  if (version.model.model !== 'spring') {
-    throw new Error(`buildSpringCssKeyframes: version "${version.id}" is not a spring model`);
-  }
-  const model = version.model as SpringModel;
-  const { controls = {}, playbackRate = 1, reducedMotion = false } = options;
-
-  const tokenVal = model.duration in raw ? raw[model.duration] : null;
-  let naturalDuration: number;
-  if (tokenVal && typeof tokenVal === 'object' && 'duration' in tokenVal) {
-    naturalDuration = (tokenVal as { duration: number }).duration;
-  } else if (typeof tokenVal === 'string') {
-    naturalDuration = parseMs(tokenVal);
-  } else {
-    naturalDuration = parseMs(model.duration);
-  }
-  if (controls.duration) naturalDuration = parseMs(controls.duration);
-
-  const delayStr = controls.delay ?? resolveStr(model.delay, raw, '0ms');
-  const delay = parseMs(delayStr) / playbackRate;
-  const duration = naturalDuration / playbackRate;
-
-  const easing = controls.easing ?? springToCubicBezierString(controls.bounce ?? model.bounce);
-
-  // Build 2-frame keyframes from property from/to values
-  const startKf: Keyframe = { offset: 0 };
-  const endKf: Keyframe = { offset: 1 };
-  const startTransform: string[] = [];
-  const endTransform: string[] = [];
-
-  for (const prop of model.properties) {
-    const unit = prop.unit ?? '';
-    if (prop.wrapTransform) {
-      startTransform.push(`${prop.wrapTransform}(${prop.from}${unit})`);
-      endTransform.push(`${prop.wrapTransform}(${prop.to}${unit})`);
-    } else if (!unit) {
-      (startKf as Record<string, unknown>)[prop.property] = prop.from;
-      (endKf as Record<string, unknown>)[prop.property] = prop.to;
-    } else {
-      (startKf as Record<string, unknown>)[prop.property] = `${prop.from}${unit}`;
-      (endKf as Record<string, unknown>)[prop.property] = `${prop.to}${unit}`;
-    }
-  }
-  if (startTransform.length) startKf.transform = startTransform.join(' ');
-  if (endTransform.length) endKf.transform = endTransform.join(' ');
-
-  if (reducedMotion) {
-    const opacityProp = model.properties.find(p => p.property === 'opacity');
-    if (opacityProp) {
-      const rStart: Keyframe = { offset: 0, opacity: opacityProp.from };
-      const rEnd: Keyframe = { offset: 1, opacity: opacityProp.to };
-      if (endKf.transform) { rStart.transform = endKf.transform; rEnd.transform = endKf.transform; }
-      return { keyframes: [rStart, rEnd], duration: 150, delay };
-    }
-    return { keyframes: [endKf], duration: 0, delay };
-  }
-
-  return { keyframes: [startKf, endKf], duration, delay, easing };
-}
-
 export function validateMotionVersion(version: MotionVersion): void {
   const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
   for (const key of Object.keys(version)) {
@@ -297,13 +232,9 @@ export function validateMotionVersion(version: MotionVersion): void {
   }
 
   if (version.model.model === 'tween') {
-    const { transform, duration, easing } = version.model;
-    if (transform !== undefined) {
-      if (duration !== undefined || easing !== undefined) {
-        throw new Error(`MotionVersion "${version.id}" sets a transform, so it must not also set duration or easing`);
-      }
-    } else if (duration === undefined || easing === undefined) {
-      throw new Error(`MotionVersion "${version.id}" tween needs a transform, or both duration and easing`);
+    const { duration, easing } = version.model;
+    if (typeof duration !== 'string' || typeof easing !== 'string') {
+      throw new Error(`MotionVersion "${version.id}" tween needs a duration and an easing`);
     }
     const kfs = version.keyframes ?? [];
     const structuralProps = ['display', 'position', 'width', 'height', 'content', 'innerHTML'];
@@ -319,6 +250,9 @@ export function validateMotionVersion(version: MotionVersion): void {
     const model = version.model as SpringModel;
     if (!Array.isArray(model.properties) || model.properties.length === 0) {
       throw new Error(`MotionVersion "${version.id}" spring model must have a non-empty properties array`);
+    }
+    if (typeof model.duration !== 'string' || typeof model.easing !== 'string') {
+      throw new Error(`MotionVersion "${version.id}" spring needs a duration and an easing`);
     }
   }
 }

@@ -15,9 +15,9 @@ const { raw } = tokens;
 const tween = (over: Partial<MotionVersion> = {}): MotionVersion => ({
   id: 'v1',
   label: 'Fade Up',
-  model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive.entrance' },
+  model: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-entrance' },
   keyframes: [
-    { opacity: 0, transform: 'translateY(16px)', offset: 0 },
+    { opacity: 0, transform: 'translateY({distance.16})', offset: 0 },
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
   lineage: 'imported from test',
@@ -27,7 +27,7 @@ const tween = (over: Partial<MotionVersion> = {}): MotionVersion => ({
 const spring = (properties: SpringProperty[], over: Partial<MotionVersion> = {}): MotionVersion => ({
   id: 'v2',
   label: 'Scale In',
-  model: { model: 'spring', bounce: 0.4, duration: 'springs.bouncy', properties },
+  model: { model: 'spring', duration: 'duration.560', easing: 'easing.expressive-bounce', properties },
   forkedFrom: 'v1',
   ...over,
 });
@@ -99,7 +99,7 @@ describe('buildVersionCss: tween', () => {
   });
 
   it('uses token custom properties with the literal value as fallback', () => {
-    expect(css).toContain('animation-duration: var(--motion-duration-250, 250ms);');
+    expect(css).toContain('animation-duration: var(--motion-duration-220, 220ms);');
     expect(css).toContain('animation-timing-function: var(--motion-easing-productive-entrance, cubic-bezier(0, 0, 0.38, 0.9));');
   });
 
@@ -111,6 +111,11 @@ describe('buildVersionCss: tween', () => {
 
   it('staggers with an index the developer sets', () => {
     expect(css).toContain('animation-delay: calc(var(--motion-index, 0) * 80ms);');
+  });
+
+  it('a stagger that is a delay token uses its custom property', () => {
+    const staggered = buildVersionCss(tween({ stagger: 'delay.70' }), raw, { component: 'card' });
+    expect(staggered).toContain('animation-delay: calc(var(--motion-index, 0) * var(--motion-delay-70, 70ms));');
   });
 
   it('keeps every keyframe, in offset order, with kebab-case properties', () => {
@@ -155,24 +160,24 @@ describe('buildVersionCss: tween', () => {
 });
 
 describe('buildVersionCss: spring', () => {
-  it('CSS mode is one cubic-bezier animation with no linear()', () => {
-    const css = buildVersionCss(mixedSpring, raw, { mode: 'css', component: 'card' });
+  it('ships the spring as one linear() curve, with no cubic-bezier fallback or @supports block', () => {
+    const css = buildVersionCss(mixedSpring, raw, { component: 'card' });
+    expect(css).toMatch(/animation-timing-function: linear\(0,/);
     expect(css).not.toContain('@supports');
-    expect(css).not.toContain('linear(');
-    expect(css).toContain('animation-name: motion-card-v2;');
+    expect(css).not.toContain('cubic-bezier');
+    expect(css).not.toContain('fallback');
   });
 
-  it('Spring mode bakes linear() behind @supports, with the cubic-bezier as the fallback', () => {
-    const css = buildVersionCss(mixedSpring, raw, { mode: 'spring', component: 'card' });
-    expect(css).toContain('@supports (animation-timing-function: linear(0, 1)) {');
-    expect(css).toMatch(/animation-timing-function: linear\(0,/);
-    expect(css).toMatch(/animation-timing-function: cubic-bezier\(/);
+  it('says which easing it plays as a spring, with its bounce and derived duration', () => {
+    const css = buildVersionCss(mixedSpring, raw, { component: 'card' });
+    expect(css).toContain('/* spring of easing.expressive-bounce: bounce 0.25, 683ms (560ms / 0.82) */');
   });
 
   it('splits spring and linear properties into two animations so opacity does not overshoot', () => {
-    const css = buildVersionCss(mixedSpring, raw, { mode: 'spring', component: 'card' });
+    const css = buildVersionCss(mixedSpring, raw, { component: 'card' });
     expect(css).toContain('animation-name: motion-card-v2, motion-card-v2-linear;');
     expect(css).toContain('@keyframes motion-card-v2-linear {');
+    expect(css).toMatch(/animation-timing-function: linear\(0,[^;]*, linear;/);
   });
 
   it('keeps one animation when spring and linear parts both animate transform', () => {
@@ -180,15 +185,20 @@ describe('buildVersionCss: spring', () => {
       { property: 'transform', wrapTransform: 'scale', from: 0.9, to: 1, useSpring: true },
       { property: 'transform', wrapTransform: 'translateY', from: 8, to: 0, unit: 'px', useSpring: false },
     ]);
-    const css = buildVersionCss(both, raw, { mode: 'spring', component: 'card' });
+    const css = buildVersionCss(both, raw, { component: 'card' });
     expect(css).toContain('animation-name: motion-card-v2;');
     expect(css).toContain('share the spring curve');
   });
 
   it('a spring with only linear properties is linear, not a spring curve', () => {
-    const css = buildVersionCss(spring([{ property: 'opacity', from: 0, to: 1, useSpring: false }]), raw, { mode: 'spring', component: 'card' });
-    expect(css).not.toContain('@supports');
+    const css = buildVersionCss(spring([{ property: 'opacity', from: 0, to: 1, useSpring: false }]), raw, { component: 'card' });
     expect(css).toContain('animation-timing-function: linear;');
+    expect(css).not.toContain('linear(0');
+  });
+
+  it('a spring with an easing that has no spring form throws, naming the easing', () => {
+    const exit = spring([{ property: 'opacity', from: 0, to: 1 }], { model: { model: 'spring', duration: 'duration.300', easing: 'easing.productive-exit', properties: [{ property: 'opacity', from: 0, to: 1 }] } });
+    expect(() => buildVersionCss(exit, raw, { component: 'card' })).toThrow('easing.productive-exit');
   });
 });
 
@@ -204,8 +214,8 @@ describe('buildVersionExport', () => {
 
   it('states the trigger, the timing tokens with values, and the reduced-motion rule', () => {
     expect(out.markdown).toContain('When scrolled into view (20% visible, first time only)');
-    expect(out.markdown).toContain('Duration: duration.250 (250ms)');
-    expect(out.markdown).toContain('Easing: easing.productive.entrance (cubic-bezier(0, 0, 0.38, 0.9))');
+    expect(out.markdown).toContain('Duration: duration.220 (220ms)');
+    expect(out.markdown).toContain('Easing: easing.productive-entrance (cubic-bezier(0, 0, 0.38, 0.9))');
     expect(out.markdown).toContain('Fade only, no movement.');
     expect(out.markdown).toContain('Set `--motion-index');
   });
@@ -222,15 +232,21 @@ describe('buildVersionExport', () => {
   });
 
   it('tokens.css holds only the custom properties the version uses', () => {
-    expect(out.tokensCss).toContain('--motion-duration-250: 250ms;');
+    expect(out.tokensCss).toContain('--motion-duration-220: 220ms;');
     expect(out.tokensCss).toContain('--motion-easing-productive-entrance: cubic-bezier(0, 0, 0.38, 0.9);');
+    expect(out.tokensCss).toContain('--motion-distance-16: 16px;');
     expect(out.tokensCss).not.toContain('duration-400');
   });
 
-  it('motion.css is the Spring-mode CSS for the version', () => {
+  it('a spring version exports its spring, not a fallback', () => {
     const springOut = buildVersionExport('card', mixedSpring, [mixedSpring], tokens);
-    expect(springOut.css).toContain('@supports');
+    expect(springOut.css).toContain('linear(0');
+    expect(springOut.markdown).toContain('- Duration: duration.560 (560ms)');
+    expect(springOut.markdown).toContain('- Easing: easing.expressive-bounce');
+    expect(springOut.markdown).toContain('Plays as a spring: bounce 0.25 (bounce.25), a spring duration of 683ms (the duration / 0.82)');
     expect(springOut.markdown).toContain('Settles in about');
+    expect(springOut.markdown).not.toContain('allback');
+    expect(springOut.tokensCss).toContain('--motion-bounce-25: 0.25;');
   });
 
   it('exports every card version without throwing', () => {
@@ -240,33 +256,34 @@ describe('buildVersionExport', () => {
   });
 });
 
-describe('transform versions', () => {
-  const t = tween({
-    model: { model: 'tween', transform: 'transforms.entrance' },
-    status: 'approved',
+describe('keyframes that name tokens', () => {
+  const kf = tween({
+    keyframes: [
+      { opacity: '{opacity.56}', transform: 'translateY(-{distance.16}) scale({scale.95})', offset: 0 },
+      { opacity: 1, transform: 'translateY(0px)', offset: 1 },
+    ],
   });
 
-  it('CSS uses the duration and easing variables the transform names', () => {
-    const css = buildVersionCss(t, raw, { component: 'card' });
-    expect(css).toContain('/* transform transforms.entrance: duration.250, easing.productive.entrance */');
-    expect(css).toContain('animation-duration: var(--motion-duration-250, 250ms);');
-    expect(css).toContain('animation-timing-function: var(--motion-easing-productive-entrance, cubic-bezier(0, 0, 0.38, 0.9));');
+  it('the CSS uses each token\'s custom property with the value as fallback, and a negative becomes calc', () => {
+    const css = buildVersionCss(kf, raw, { component: 'card' });
+    expect(css).toContain('opacity: var(--motion-opacity-56, 0.56);');
+    expect(css).toContain('transform: translateY(calc(-1 * var(--motion-distance-16, 16px))) scale(var(--motion-scale-95, 0.95));');
   });
 
-  it('is the same animation as the granular version, apart from the comment', () => {
-    const strip = (s: string): string => s.replace(/\/\* transform [^*]*\*\/\n/, '').replace(/\n\n+/g, '\n');
-    expect(strip(buildVersionCss(t, raw, { component: 'card' }))).toBe(strip(buildVersionCss(tween({ status: 'approved' }), raw, { component: 'card' })));
+  it('the reduced-motion fade uses the opacity token too', () => {
+    const css = buildVersionCss(kf, raw, { component: 'card' });
+    expect(css.slice(css.indexOf('@media'))).toContain('opacity: var(--motion-opacity-56, 0.56);');
   });
 
-  it('spec.md names the transform and what it resolves to', () => {
-    const { markdown } = buildVersionExport('card', t, [t], tokens);
-    expect(markdown).toContain('- Transform: transforms.entrance');
-    expect(markdown).toContain('Duration: duration.250 (250ms)');
+  it('spec.md shows the resolved values; tokens.css defines the variables the keyframes use', () => {
+    const { markdown, tokensCss } = buildVersionExport('card', kf, [kf], tokens);
+    expect(markdown).toContain('translateY(-16px) scale(0.95)');
+    expect(tokensCss).toContain('--motion-opacity-56: 0.56;');
+    expect(tokensCss).toContain('--motion-scale-95: 0.95;');
+    expect(tokensCss).toContain('--motion-distance-16: 16px;');
   });
 
-  it('tokens.css defines the duration and easing variables the CSS needs', () => {
-    const { tokensCss } = buildVersionExport('card', t, [t], tokens);
-    expect(tokensCss).toContain('--motion-duration-250: 250ms;');
-    expect(tokensCss).toContain('--motion-easing-productive-entrance: cubic-bezier(0, 0, 0.38, 0.9);');
+  it('a reference to a token that does not exist throws', () => {
+    expect(() => buildVersionCss(tween({ keyframes: [{ transform: 'translateY({distance.99})' }, { transform: 'none' }] }), raw)).toThrow('{distance.99}');
   });
 });

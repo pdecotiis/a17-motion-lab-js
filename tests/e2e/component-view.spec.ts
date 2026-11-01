@@ -20,53 +20,64 @@ test.describe('Component view', () => {
     await replayBtn.click();
   });
 
-  const playedDuration = (page: import('@playwright/test').Page) =>
+  const playedTiming = (page: import('@playwright/test').Page) =>
     page.evaluate(() => {
       const el = document.querySelector<HTMLElement>('#preview-inner-primary [data-motion-target]')!;
-      return (el.getAnimations()[0]!.effect as KeyframeEffect).getTiming().duration;
+      const timing = (el.getAnimations()[0]!.effect as KeyframeEffect).getTiming();
+      return { duration: timing.duration as number, easing: timing.easing as string };
     });
 
-  test('controls are a dropdown of transforms, with no granular duration, easing or delay fields', async ({ page }) => {
-    await expect(page.locator('#ctrl-title')).toHaveText('Transform');
-    await expect(page.locator('select#ctrl-transform')).toBeVisible();
-    await expect(page.locator('#ctrl-transform option')).toHaveText([
-      'Version default · entrance', 'entrance', 'exit', 'standard', 'emphasized',
+  const EASINGS = [
+    'productive-standard', 'productive-entrance', 'productive-exit',
+    'expressive-standard', 'expressive-entrance', 'expressive-exit', 'expressive-settle', 'expressive-bounce',
+    'linear',
+  ];
+
+  test('controls are two dropdowns, a duration and an easing from the system, and nothing finer', async ({ page }) => {
+    await expect(page.locator('#ctrl-duration option')).toHaveText([
+      'Version default · 220ms', '100ms', '140ms', '220ms', '300ms', '400ms', '560ms', '800ms', '1200ms',
     ]);
-    await expect(page.locator('#ctrl-transform-detail')).toHaveText('entrance · 250ms · productive.entrance');
-    for (const id of ['ctrl-duration', 'ctrl-easing', 'ctrl-delay', 'ctrl-duration-custom']) {
+    await expect(page.locator('#ctrl-easing option')).toHaveText(['Version default · productive-entrance', ...EASINGS]);
+    for (const id of ['ctrl-transform', 'ctrl-delay', 'ctrl-duration-custom', 'ctrl-easing-custom']) {
       await expect(page.locator(`#${id}`)).toHaveCount(0);
     }
-    await expect(page.locator('.lab-option-btn')).toHaveCount(0);
   });
 
-  test('picking a transform replays the version with it and says it is not saved', async ({ page }) => {
-    expect(await playedDuration(page)).toBe(250);
+  test('picking a duration and an easing replays the version with them and says it is not saved', async ({ page }) => {
+    expect(await playedTiming(page)).toEqual({ duration: 220, easing: 'cubic-bezier(0, 0, 0.38, 0.9)' });
 
-    await page.selectOption('#ctrl-transform', 'transforms.emphasized');
-    await expect(page.locator('#ctrl-transform')).toHaveValue('transforms.emphasized');
-    await expect(page.locator('#ctrl-transform-detail')).toHaveText('400ms · expressive.entrance');
+    await page.selectOption('#ctrl-duration', 'duration.560');
+    expect((await playedTiming(page)).duration).toBe(560);
     await expect(page.locator('#live-overrides')).toContainText('Previewing, not saved');
-    await expect(page.locator('#live-overrides')).toContainText('emphasized (400ms · expressive.entrance) instead of entrance · 250ms · productive.entrance');
-    expect(await playedDuration(page)).toBe(400);
+    await expect(page.locator('#live-overrides')).toContainText('duration: 560ms instead of 220ms');
 
-    await page.selectOption('#ctrl-transform', 'transforms.exit');
-    expect(await playedDuration(page)).toBe(150);
+    await page.selectOption('#ctrl-easing', 'easing.expressive-entrance');
+    expect(await playedTiming(page)).toEqual({ duration: 560, easing: 'cubic-bezier(0, 0, 0.3, 1)' });
+    await expect(page.locator('#live-overrides')).toContainText('easing: expressive-entrance instead of productive-entrance');
 
-    await page.selectOption('#ctrl-transform', '');
+    await page.selectOption('#ctrl-duration', '');
+    await page.selectOption('#ctrl-easing', '');
     await expect(page.locator('#live-overrides')).toBeEmpty();
-    expect(await playedDuration(page)).toBe(250);
+    expect(await playedTiming(page)).toEqual({ duration: 220, easing: 'cubic-bezier(0, 0, 0.38, 0.9)' });
   });
 
-  test('a spring version picks between spring tokens instead', async ({ page }) => {
+  test('a spring version offers only the easings that have a spring form, and plays the pick as a spring', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v2');
-    await expect(page.locator('#ctrl-title')).toHaveText('Spring');
-    await expect(page.locator('#ctrl-transform option')).toHaveText(['Version default · bouncy', 'bouncy', 'gentle', 'stiff']);
-    await expect(page.locator('#ctrl-transform-detail')).toHaveText('bouncy · bounce 0.4 · 600ms');
+    await expect(page.locator('#ctrl-duration option').first()).toHaveText('Version default · 300ms');
+    await expect(page.locator('#ctrl-easing option')).toHaveText([
+      'Version default · productive-entrance',
+      'productive-standard', 'productive-entrance',
+      'expressive-standard', 'expressive-entrance', 'expressive-settle', 'expressive-bounce',
+    ]);
+    const before = (await playedTiming(page)).duration;
 
-    await page.selectOption('#ctrl-transform', 'springs.gentle');
-    await expect(page.locator('#ctrl-transform-detail')).toHaveText('bounce 0.1 · 400ms');
-    await expect(page.locator('#live-overrides')).toContainText('gentle (bounce 0.1 · 400ms) instead of bouncy');
-    expect(await playedDuration(page)).toBe(400);
+    await page.selectOption('#ctrl-easing', 'easing.expressive-bounce');
+    await expect(page.locator('#live-overrides')).toContainText('easing: expressive-bounce instead of productive-entrance');
+    expect((await playedTiming(page)).duration).not.toBe(before);
+
+    await page.selectOption('#ctrl-easing', '');
+    await page.selectOption('#ctrl-duration', 'duration.140');
+    expect((await playedTiming(page)).duration).toBeLessThan(before);
   });
 
   test('copy values button exists', async ({ page }) => {
@@ -110,7 +121,8 @@ test.describe('Version status and lineage', () => {
     await page.goto('/?view=component&component=card&version=v1');
     const css = page.locator('#css-pre');
     await expect(css).toContainText('@keyframes motion-card-v1');
-    await expect(css).toContainText('var(--motion-duration-250, 250ms)');
+    await expect(css).toContainText('var(--motion-duration-220, 220ms)');
+    await expect(css).toContainText('translateY(var(--motion-distance-16, 16px))');
     await expect(css).toContainText('@media (prefers-reduced-motion: reduce)');
   });
 

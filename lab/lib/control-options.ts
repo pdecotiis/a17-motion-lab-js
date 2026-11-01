@@ -1,22 +1,21 @@
-// The controls panel offers the system's named options and nothing finer: the transforms for a
-// tween (a duration and an easing together), the spring tokens for a spring. Picking one previews
-// the version with it; nothing is saved. There are no free-form duration, easing or delay fields.
+// The controls panel offers the system's durations and easings and nothing finer: pick a duration
+// token, pick an easing token. A version previews with the pick; nothing is saved. There are no
+// free-form values and no delay control.
 
-import { isTransformValue } from './token-compiler.js';
+import { isSpringForm, springKey } from './token-compiler.js';
 import type { LiveControls } from './types.js';
 
-export type ControlGroup = 'transforms' | 'springs';
+/** What a version plays: a tween plays its easing curve, a spring its easing's spring form. */
+export type PlayKind = 'tween' | 'spring';
 
 export interface ControlOption {
-  /** Token path (e.g. "transforms.entrance"); '' is "version default". */
+  /** Token path (e.g. "duration.300"); '' is "version default". */
   value: string;
-  /** The token's name, e.g. "entrance". */
+  /** What to show: "300ms" for a duration, "productive-standard" for an easing. */
   label: string;
-  /** What it is, e.g. "250ms · productive.entrance" or "bounce 0.4 · 600ms". */
-  detail: string;
 }
 
-// The CSS value of a duration or cubicBezier token, e.g. "300ms" or "cubic-bezier(0, 0, 0.2, 1)".
+// The CSS value of a duration or easing token, e.g. "300ms" or "cubic-bezier(0.2, 0, 0.38, 0.9)".
 // A literal (not a token path) is returned as is.
 export function tokenCss(raw: Record<string, unknown>, path: string): string | undefined {
   const v = path in raw ? raw[path] : path;
@@ -25,68 +24,40 @@ export function tokenCss(raw: Record<string, unknown>, path: string): string | u
   return undefined;
 }
 
-// A token's name within its group: "transforms.entrance" → "entrance",
-// "easing.productive.entrance" → "productive.entrance", "duration.250" → "250".
+// A token's name within its group: "easing.productive-standard" → "productive-standard",
+// "duration.300" → "300".
 export function tokenLabel(path: string): string {
-  const parts = path.split('.');
-  return parts.length > 1 ? parts.slice(1).join('.') : path;
+  return path.slice(path.indexOf('.') + 1);
 }
 
-// A duration for display: "250ms" when the token is named for its value, "base · 300ms" otherwise.
-// A literal (not a token) is returned as is.
-export function durationLabel(raw: Record<string, unknown>, ref: string): string {
-  const css = tokenCss(raw, ref);
-  if (!(ref in raw) || css === undefined) return ref;
-  const name = tokenLabel(ref);
-  return css === `${name}ms` ? css : `${name} · ${css}`;
-}
-
-// "250ms · productive.entrance" for a transform: the duration, and the easing token's name (or the literal).
-function describeTransform(raw: Record<string, unknown>, path: string): string {
-  const t = raw[path];
-  if (!isTransformValue(t)) return '';
-  const easing = t.easing in raw ? tokenLabel(t.easing) : t.easing;
-  return `${tokenCss(raw, t.duration) ?? t.duration} · ${easing}`;
-}
-
-function describeSpring(raw: Record<string, unknown>, path: string): string {
-  const s = raw[path] as { bounce?: number; duration?: number } | undefined;
-  return s ? `bounce ${s.bounce ?? 0} · ${s.duration ?? 0}ms` : '';
-}
-
-// The options for a group, in token-file order.
-export function controlOptions(raw: Record<string, unknown>, group: ControlGroup): ControlOption[] {
-  const prefix = `${group}.`;
+// The tokens a version can be previewed with, in token-file order. A spring can only use an easing
+// that has a spring form (exits and linear have none).
+export function controlOptions(raw: Record<string, unknown>, group: 'duration' | 'easing', kind: PlayKind): ControlOption[] {
   return Object.keys(raw)
-    .filter(path => path.startsWith(prefix))
-    .map(path => ({
-      value: path,
-      label: tokenLabel(path),
-      detail: group === 'transforms' ? describeTransform(raw, path) : describeSpring(raw, path),
-    }))
-    .filter(o => o.detail !== '');
+    .filter(path => path.startsWith(`${group}.`) && !path.endsWith('.spring'))
+    .filter(path => group === 'duration' || kind === 'tween' || isSpringForm(raw[springKey(path)]))
+    .map(path => ({ value: path, label: group === 'duration' ? (tokenCss(raw, path) ?? path) : tokenLabel(path) }));
 }
 
-// What picking an option changes while previewing. '' (version default) or an unknown path → no override.
-export function controlsFor(raw: Record<string, unknown>, group: ControlGroup, path: string): LiveControls {
-  const v = raw[path];
-  if (group === 'transforms') {
-    if (!isTransformValue(v)) return {};
-    const controls: LiveControls = {};
-    const duration = tokenCss(raw, v.duration);
-    const easing = tokenCss(raw, v.easing);
-    if (duration) controls.duration = duration;
-    if (easing) controls.easing = easing;
-    if (v.delay) {
-      const delay = tokenCss(raw, v.delay);
-      if (delay) controls.delay = delay;
-    }
-    return controls;
-  }
-  if (typeof v !== 'object' || v === null) return {};
-  const s = v as { bounce?: number; duration?: number };
+// What the picks change while previewing. '' (version default) or an unknown path changes nothing.
+// A tween previews the easing curve; a spring takes the bounce of the easing's spring form (its
+// own duration is derived from the duration pick when it plays).
+export function controlsFor(
+  raw: Record<string, unknown>,
+  kind: PlayKind,
+  picks: { duration?: string; easing?: string },
+): LiveControls {
   const controls: LiveControls = {};
-  if (typeof s.duration === 'number') controls.duration = `${s.duration}ms`;
-  if (typeof s.bounce === 'number') controls.bounce = s.bounce;
+  const duration = picks.duration && picks.duration in raw ? tokenCss(raw, picks.duration) : undefined;
+  if (duration) controls.duration = duration;
+  if (picks.easing && picks.easing in raw) {
+    if (kind === 'spring') {
+      const form = raw[springKey(picks.easing)];
+      if (isSpringForm(form)) controls.bounce = form.bounce;
+    } else {
+      const easing = tokenCss(raw, picks.easing);
+      if (easing) controls.easing = easing;
+    }
+  }
   return controls;
 }

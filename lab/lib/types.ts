@@ -1,18 +1,26 @@
-// A tween is timed either by a transform token (a named duration + easing, e.g.
-// 'transforms.entrance') or by a duration and an easing given directly. Prefer the transform.
+// A tween names its primitives directly: a duration and an easing (token paths, or literal
+// values). It plays the easing curve.
 export type TweenModel = {
   model: 'tween';
-  transform?: string;
-  duration?: string;
-  easing?: string;
-  delay?: string;
-};
-
-// A resolved transform token: duration and easing are token paths (or literal values).
-export interface TransformValue {
   duration: string;
   easing: string;
   delay?: string;
+};
+
+// An easing token's spring form: the bounce token it names and that token's value (0–1).
+// Derived when the tokens compile; bounce-0 means no bounce.
+export interface SpringForm {
+  bounce: number;
+  token: string;
+}
+
+// Token status: 'system' is approved. A token with no status is 'experimental', as new tokens are.
+export type TokenStatus = 'system' | 'experimental';
+
+export interface TokenMeta {
+  description?: string;  // notes
+  status: TokenStatus;
+  oldNames?: string[];
 }
 
 // One property animated by the spring engine.
@@ -31,10 +39,13 @@ export interface SpringProperty {
   useSpring?: boolean;
 }
 
+// A spring names the same primitives as a tween: a duration and an easing. The easing must have a
+// spring form (its bounce comes from there; exits and linear have none). The spring's own duration
+// is the paired duration / 0.82.
 export type SpringModel = {
   model: 'spring';
-  bounce: number;
-  duration: string;  // token path (e.g. 'springs.bouncy') or literal ('600ms')
+  duration: string;
+  easing: string;
   delay?: string;
   properties: SpringProperty[];
 };
@@ -103,14 +114,16 @@ export interface Preset {
 export interface DtcgToken {
   $type: string;
   $value: unknown;
+  $description?: string;
+  $extensions?: Record<string, unknown>;
 }
 
 export interface DtcgGroup {
   [key: string]: DtcgToken | DtcgGroup;
 }
 
-// What the controls panel overrides while previewing: a transform (duration, easing) for a
-// tween, or a spring token (duration, bounce) for a spring. Not saved.
+// What the controls panel overrides while previewing: a duration token's ms, and for a tween an
+// easing curve or for a spring the bounce of the chosen easing. Not saved.
 export interface LiveControls {
   duration?: string;
   easing?: string;

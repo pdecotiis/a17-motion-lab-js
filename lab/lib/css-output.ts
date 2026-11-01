@@ -1,8 +1,7 @@
 import type { MotionVersion, TweenModel, SpringModel, SpringProperty } from './types.js';
-import { getSpringFallbackPath } from './token-refs.js';
-import { springKeyframes, springToCubicBezierString, springToLinear } from './spring-engine.js';
-import { tokenVarName } from './token-compiler.js';
-import { tweenParts } from './motion-models.js';
+import { springKeyframes, springToLinear } from './spring-engine.js';
+import { resolveRefs, tokenVarName } from './token-compiler.js';
+import { springParts } from './motion-models.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { describeTrigger, getReducedMotionPolicy, getVersionStatus } from './version-meta.js';
 
@@ -12,9 +11,6 @@ import { describeTrigger, getReducedMotionPolicy, getVersionStatus } from './ver
 // or Motion reads the same numbers from it.
 
 export interface CssOptions {
-  // 'css': spring approximated with a cubic-bezier. 'spring': real spring baked into linear(),
-  // with the cubic-bezier as the fallback.
-  mode?: 'css' | 'spring';
   // Used in the class and @keyframes names: .motion-<component>-<version>.
   component?: string;
 }
@@ -51,11 +47,12 @@ function pct(offset: number): string {
   return `${Math.round(offset * 1000) / 10}%`;
 }
 
-function declarations(kf: Keyframe): string[] {
+function declarations(kf: Keyframe, raw: Record<string, unknown>): string[] {
   const out: string[] = [];
   for (const [k, v] of Object.entries(kf)) {
     if (k === 'offset' || k === 'composite') continue;
-    out.push(`${k === 'easing' ? 'animation-timing-function' : kebab(k)}: ${v};`);
+    const value = typeof v === 'string' ? resolveRefs(v, raw, { cssVars: true }) : String(v);
+    out.push(`${k === 'easing' ? 'animation-timing-function' : kebab(k)}: ${value};`);
   }
   return out;
 }
@@ -79,8 +76,8 @@ export function orderedKeyframes(keyframes: Keyframe[]): { offset: number; kf: K
     .sort((a, b) => a.offset - b.offset);
 }
 
-function tweenFrames(keyframes: Keyframe[]): { at: string; decls: string[] }[] {
-  return orderedKeyframes(keyframes).map(({ offset, kf }) => ({ at: pct(offset), decls: declarations(kf) }));
+function tweenFrames(keyframes: Keyframe[], raw: Record<string, unknown>): { at: string; decls: string[] }[] {
+  return orderedKeyframes(keyframes).map(({ offset, kf }) => ({ at: pct(offset), decls: declarations(kf, raw) }));
 }
 
 function springDecls(props: SpringProperty[], end: 'from' | 'to'): string[] {
@@ -106,15 +103,6 @@ function touchesTransform(props: SpringProperty[]): boolean {
   return props.some(p => p.wrapTransform !== undefined || p.property === 'transform');
 }
 
-function springNaturalDuration(model: SpringModel, raw: Record<string, unknown>): number {
-  const tokenVal = model.duration in raw ? raw[model.duration] : null;
-  if (tokenVal && typeof tokenVal === 'object' && 'duration' in tokenVal) {
-    return (tokenVal as { duration: number }).duration;
-  }
-  if (typeof tokenVal === 'string') return parseMs(tokenVal);
-  return parseMs(model.duration);
-}
-
 // Lines for the animation-delay declaration: the version's delay plus, when it staggers,
 // an index the developer sets on each sibling (--motion-index: 0, 1, 2, …).
 function delayLines(delay: string, stagger: string | undefined): string[] {
@@ -138,9 +126,11 @@ export function buildVersionCss(
   raw: Record<string, unknown>,
   options: CssOptions = {},
 ): string {
-  const { mode = 'css', component = 'component' } = options;
+  const { component = 'component' } = options;
   const name = `motion-${component}-${version.id}`;
   const out: string[] = [];
+  // A stagger may be a delay token (delay.70) or a literal (80ms).
+  const stagger = version.stagger ? cssValue(version.stagger, raw, version.stagger) : undefined;
 
   out.push(`/* ${component} ${version.id}: ${version.label} (${getVersionStatus(version)}) */`);
   const trigger = describeTrigger(version.trigger);
@@ -157,98 +147,72 @@ export function buildVersionCss(
 
   if (version.model.model === 'tween') {
     const model = version.model as TweenModel;
-    const parts = tweenParts(model, raw);
-    const duration = cssValue(parts.duration, raw, '300ms');
-    const easing = cssValue(parts.easing, raw, 'ease');
-    const delay = literalValue(parts.delay, raw, '0ms');
+    const duration = cssValue(model.duration, raw, '300ms');
+    const easing = cssValue(model.easing, raw, 'ease');
+    const delay = literalValue(model.delay, raw, '0ms');
     const kfs = version.keyframes ?? [];
 
-    if (model.transform) out.push(`/* transform ${model.transform}: ${parts.duration}, ${parts.easing} */`);
     out.push('');
-    if (kfs.length >= 2) out.push(...keyframesBlock(name, tweenFrames(kfs)), '');
+    if (kfs.length >= 2) out.push(...keyframesBlock(name, tweenFrames(kfs, raw)), '');
     out.push(
       ...block(`.${name}`, [
         `animation-name: ${name};`,
         `animation-duration: ${duration};`,
         `animation-timing-function: ${easing};`,
-        ...delayLines(delay, version.stagger),
+        ...delayLines(delay, stagger),
         'animation-fill-mode: both;',
       ]),
     );
 
     reducedEasing = easing;
-    reducedMs = Math.min(parseMs(literalValue(parts.duration, raw, '300ms')), REDUCED_MOTION_FADE_MS);
+    reducedMs = Math.min(parseMs(literalValue(model.duration, raw, '300ms')), REDUCED_MOTION_FADE_MS);
     if (kfs.some(kf => 'opacity' in kf)) {
       // Opacity only, as the lab does: a keyframe without opacity ends fully visible.
       reducedFrames = orderedKeyframes(kfs).map(({ offset, kf }) => ({
         at: pct(offset),
-        decls: [`opacity: ${'opacity' in kf ? String(kf.opacity) : '1'};`],
+        decls: [`opacity: ${'opacity' in kf ? resolveRefs(String(kf.opacity), raw, { cssVars: true }) : '1'};`],
       }));
     }
   } else {
     const model = version.model as SpringModel;
-    const naturalDuration = springNaturalDuration(model, raw);
+    const { bounce, durationMs, pairedMs } = springParts(model, raw);
     const delay = literalValue(model.delay, raw, '0ms');
 
-    if (model.duration in raw) {
-      out.push(`/* ${model.duration}: bounce=${model.bounce}, duration=${naturalDuration}ms */`);
-    }
+    out.push(`/* spring of ${model.easing}: bounce ${bounce}, ${Math.round(durationMs)}ms (${pairedMs}ms / 0.82) */`);
 
-    const fallbackPath = getSpringFallbackPath(model, raw);
-    const cubicBezier = fallbackPath
-      ? `cubic-bezier(${(raw[fallbackPath] as number[]).join(', ')})`
-      : springToCubicBezierString(model.bounce);
-
-    // CSS can ease each animation separately, not each property. Properties that follow the
-    // spring and properties that fade linearly (useSpring: false) therefore become two
-    // animations, unless both want `transform` (they would overwrite each other).
+    // The spring is a linear() curve, which eases a whole animation, not each property. Properties
+    // that follow the spring and properties that fade linearly (useSpring: false) therefore become
+    // two animations, unless both want `transform` (they would overwrite each other).
     const springProps = model.properties.filter(p => p.useSpring !== false);
     const linearProps = model.properties.filter(p => p.useSpring === false);
-    const split = mode === 'spring' && springProps.length > 0 && linearProps.length > 0
+    const split = springProps.length > 0 && linearProps.length > 0
       && !(touchesTransform(springProps) && touchesTransform(linearProps));
 
     out.push('');
-    if (mode === 'spring' && springProps.length > 0 && linearProps.length > 0 && !split) {
+    if (springProps.length > 0 && linearProps.length > 0 && !split) {
       out.push('/* Note: both spring and linear parts animate transform, so they share the spring curve here. */');
     }
-    out.push(`/* cubic-bezier fallback${fallbackPath ? ` (${fallbackPath})` : ''}: ${cubicBezier} */`);
 
     const groups = split
       ? [{ name, props: springProps, easing: 'spring' as const }, { name: `${name}-linear`, props: linearProps, easing: 'linear' as const }]
       : [{ name, props: model.properties, easing: springProps.length === 0 ? 'linear' as const : 'spring' as const }];
     for (const g of groups) out.push(...keyframesBlock(g.name, springFrames(g.props)), '');
 
-    const names = groups.map(g => g.name).join(', ');
-    const baseEasings = groups.map(g => (g.easing === 'linear' ? 'linear' : cubicBezier)).join(', ');
-    const durations = (ms: number): string => groups.map(() => `${Math.round(ms)}ms`).join(', ');
+    // The spring runs until it settles, which can be longer than its nominal duration.
+    const hasSpring = groups.some(g => g.easing === 'spring');
+    const { duration: settleDuration } = springKeyframes({ from: 0, to: 1, duration: durationMs, bounce, span: 1 });
+    const ms = Math.round(hasSpring ? settleDuration : durationMs);
+    const linear = springToLinear(durationMs, bounce, 30);
 
     out.push(
       ...block(`.${name}`, [
-        `animation-name: ${names};`,
-        `animation-duration: ${durations(naturalDuration)};`,
-        `animation-timing-function: ${baseEasings};`,
-        ...delayLines(delay, version.stagger),
+        `animation-name: ${groups.map(g => g.name).join(', ')};`,
+        `animation-duration: ${groups.map(() => `${ms}ms`).join(', ')};`,
+        `animation-timing-function: ${groups.map(g => (g.easing === 'linear' ? 'linear' : linear)).join(', ')};`,
+        ...delayLines(delay, stagger),
         'animation-fill-mode: both;',
       ]),
     );
-
-    if (mode === 'spring' && groups.some(g => g.easing === 'spring')) {
-      const { duration: settleDuration } = springKeyframes({
-        from: 0, to: 1, duration: naturalDuration, bounce: model.bounce, span: 1,
-      });
-      const linear = springToLinear(naturalDuration, model.bounce, 30);
-      const enhanced = groups.map(g => (g.easing === 'linear' ? 'linear' : linear)).join(', ');
-      out.push(
-        '',
-        '/* Browsers with linear() get the real spring. */',
-        '@supports (animation-timing-function: linear(0, 1)) {',
-        ...block(`.${name}`, [
-          `animation-duration: ${durations(settleDuration)};`,
-          `animation-timing-function: ${enhanced};`,
-        ], '  '),
-        '}',
-      );
-    }
 
     const opacity = model.properties.find(p => p.property === 'opacity');
     if (opacity) {

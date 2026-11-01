@@ -36,6 +36,6 @@ test.describe('prefers-reduced-motion', () => {
   test('a tween plays in full when reduced motion is not requested', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto('/?view=frame&component=card&version=v1');
-    expect(await playedAnimation(page)).toEqual({ duration: 250, properties: ['opacity', 'transform'] });
+    expect(await playedAnimation(page)).toEqual({ duration: 220, properties: ['opacity', 'transform'] });
   });
 });

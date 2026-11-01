@@ -2,7 +2,7 @@ import type { MotionVersion, TweenModel, SpringModel } from './types.js';
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getTokenRefs } from './token-refs.js';
-import { tweenParts } from './motion-models.js';
+import { resolveKeyframes, springParts } from './motion-models.js';
 import { springKeyframes } from './spring-engine.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import {
@@ -36,44 +36,33 @@ function describeValue(value: string | undefined, raw: Record<string, unknown>, 
   return value in raw ? `${value} (${literal(raw[value])})` : `${value} (hard-coded, not a token)`;
 }
 
-function springTokenLine(model: SpringModel, raw: Record<string, unknown>): { token: string; duration: number } {
-  const v = raw[model.duration];
-  if (v && typeof v === 'object' && 'duration' in v) {
-    return { token: `${model.duration} (bounce ${model.bounce}, ${(v as { duration: number }).duration}ms)`, duration: (v as { duration: number }).duration };
-  }
-  const ms = parseMs(model.duration);
-  return { token: `${model.duration} (hard-coded, bounce ${model.bounce})`, duration: ms };
+// "delay.70 (70ms)" for a token, the literal as it is otherwise.
+function stagger(value: string, raw: Record<string, unknown>): string {
+  return value in raw ? `${value} (${literal(raw[value])})` : value;
 }
 
 function motionLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
-  if (version.model.model === 'tween') {
-    const m = version.model as TweenModel;
-    const parts = tweenParts(m, raw);
-    const lines = [
-      ...(m.transform ? [`- Transform: ${m.transform}`] : []),
-      `- Duration: ${describeValue(parts.duration, raw, '300ms')}`,
-      `- Easing: ${describeValue(parts.easing, raw, 'ease')}`,
-      `- Delay: ${parts.delay ? describeValue(parts.delay, raw, '0ms') : '0ms'}`,
-    ];
-    if (version.stagger) lines.push(`- Stagger: ${version.stagger} between siblings`);
-    return lines;
-  }
-  const m = version.model as SpringModel;
-  const { token, duration } = springTokenLine(m, raw);
-  const { duration: settle } = springKeyframes({ from: 0, to: 1, duration, bounce: m.bounce, span: 1 });
+  const m = version.model;
   const lines = [
-    `- Spring: ${token}`,
-    `- Settles in about ${Math.round(settle)}ms (real spring, shipped as a CSS linear() curve)`,
-    `- Fallback for browsers without linear(): a cubic-bezier over ${duration}ms (an approximation of the spring)`,
-    `- Delay: ${m.delay ? describeValue(m.delay, raw, '0ms') : '0ms'}`,
+    `- Duration: ${describeValue(m.duration, raw, '300ms')}`,
+    `- Easing: ${describeValue(m.easing, raw, 'ease')}`,
   ];
-  if (version.stagger) lines.push(`- Stagger: ${version.stagger} between siblings`);
+  if (m.model === 'spring') {
+    const { bounce, durationMs, bounceToken } = springParts(m, raw);
+    const { duration: settle } = springKeyframes({ from: 0, to: 1, duration: durationMs, bounce, span: 1 });
+    lines.push(
+      `- Plays as a spring: bounce ${bounce}${bounce === 0 ? '' : ` (${bounceToken})`}, a spring duration of ${Math.round(durationMs)}ms (the duration / 0.82)`,
+      `- Settles in about ${Math.round(settle)}ms (a real spring, shipped as a CSS linear() curve)`,
+    );
+  }
+  lines.push(`- Delay: ${m.delay ? describeValue(m.delay, raw, '0ms') : '0ms'}`);
+  if (version.stagger) lines.push(`- Stagger: ${stagger(version.stagger, raw)} between siblings`);
   return lines;
 }
 
-function animatedLines(version: MotionVersion): string[] {
+function animatedLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
   if (version.model.model === 'tween') {
-    return orderedKeyframes(version.keyframes ?? []).map(({ offset, kf }) => {
+    return orderedKeyframes(resolveKeyframes(version.keyframes, raw)).map(({ offset, kf }) => {
       const props = Object.entries(kf)
         .filter(([k]) => k !== 'offset' && k !== 'easing' && k !== 'composite')
         .map(([k, v]) => `${k} ${String(v)}`);
@@ -108,7 +97,7 @@ export function buildVersionExport(
 ): VersionExport {
   const { raw, cssVars } = tokens;
   const name = `motion-${component}-${version.id}`;
-  const css = buildVersionCss(version, raw, { mode: 'spring', component });
+  const css = buildVersionCss(version, raw, { component });
 
   const used = getTokenRefs(version, raw).tokens;
   const varLines = used.filter(t => cssVarFor(t, cssVars)).map(t => `  ${cssVarFor(t, cssVars)};`);
@@ -129,7 +118,7 @@ export function buildVersionExport(
     '',
     '## What animates',
     '',
-    ...animatedLines(version),
+    ...animatedLines(version, raw),
     '',
     '## Timing',
     '',

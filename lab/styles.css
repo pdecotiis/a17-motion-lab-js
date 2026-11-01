@@ -62,14 +62,14 @@ html, body {
 .lab-header__logo { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
 .lab-header__controls { display: flex; align-items: center; gap: 12px; }
 
-/* Engine toggle */
-.lab-engine-toggle {
+/* Segmented toggle (Tokens view: Easing / Springs) */
+.lab-segmented {
   display: flex;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   overflow: hidden;
 }
-.lab-engine-btn {
+.lab-segmented__btn {
   padding: 5px 12px;
   border: none;
   background: transparent;
@@ -80,9 +80,9 @@ html, body {
   cursor: pointer;
   transition: background 120ms, color 120ms;
 }
-.lab-engine-btn + .lab-engine-btn { border-left: 1px solid var(--color-border); }
-.lab-engine-btn:hover { background: var(--color-bg); color: var(--color-text); }
-.lab-engine-btn--active {
+.lab-segmented__btn + .lab-segmented__btn { border-left: 1px solid var(--color-border); }
+.lab-segmented__btn:hover { background: var(--color-bg); color: var(--color-text); }
+.lab-segmented__btn--active {
   background: var(--color-accent);
   color: var(--color-accent-text);
 }
@@ -198,8 +198,6 @@ html, body {
 .lab-input--hidden { display: none; }
 
 /* Controls panel: a dropdown of the system's named options (transforms, or springs) */
-.lab-ctrl-select { width: 100%; margin-bottom: 8px; }
-.lab-ctrl-detail { font-size: 12px; color: var(--color-text-muted); margin: 0 0 10px; }
 
 /* Tokens view: curve preview and transform badges */
 .lab-curve { display: block; cursor: pointer; overflow: visible; }
@@ -207,18 +205,6 @@ html, body {
 .lab-curve__guide { stroke: var(--color-border); stroke-width: 1; stroke-dasharray: 3 3; }
 .lab-curve__line { fill: none; stroke: var(--color-accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; transition: opacity 120ms; }
 .lab-curve__dot { fill: var(--color-accent); }
-.lab-token-badge {
-  display: inline-block;
-  margin: 0 6px 4px 0;
-  padding: 2px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
 
 /* Buttons */
 .lab-btn {
@@ -380,7 +366,6 @@ html, body {
   vertical-align: middle;
 }
 .lab-token-row:last-child td { border-bottom: none; }
-.lab-token-row--unused { opacity: 0.55; }
 
 .lab-token-preview {
   width: 40px;
@@ -394,19 +379,6 @@ html, body {
 .lab-token-preview:hover { opacity: 0.7; }
 
 .lab-token-name { font-family: monospace; font-size: 12px; word-break: break-all; }
-.lab-token-value { color: var(--color-text-muted); font-family: monospace; font-size: 11px; max-width: 260px; word-break: break-all; }
-.lab-token-used-by { font-size: 12px; }
-.lab-token-usage-link { color: var(--color-accent); text-decoration: none; }
-.lab-token-usage-link:hover { text-decoration: underline; }
-.lab-token-unused-badge {
-  display: inline-block;
-  padding: 2px 7px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
 
 /* Imported components: rendered at their Figma frame size (see getFramedMarkup) */
 .lab-preview-area--framed { min-width: 0; }
@@ -475,3 +447,10 @@ html, body {
 .lab-library-card__footer { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--color-border); font-size: 13px; }
 .lab-library-card__name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lab-library-card__versions { margin-left: auto; font-size: 12px; color: var(--color-text-muted); white-space: nowrap; }
+
+/* Tokens view: transform mode bar, token descriptions */
+.lab-tokens-modebar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.lab-tokens-modebar:empty { display: none; }
+.lab-segmented { display: inline-flex; }
+.lab-tokens-modehint { font-size: 12px; color: var(--color-text-muted); }
+.lab-tokens-heading { margin: 20px 0 8px; font-size: 13px; font-weight: 700; }
