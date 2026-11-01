@@ -1,4 +1,4 @@
-import type { MotionVersion, PageConfig } from './types.js';
+import type { MotionVersion, PageConfig, PlayMode } from './types.js';
 import { findRefs, isSpringForm, springKey } from './token-compiler.js';
 import { stepsOf } from './motion-models.js';
 
@@ -25,7 +25,7 @@ export interface StepRefs {
   hardcoded: { label: string; value: string }[];
 }
 
-function stepRefs(layer: string | null, version: MotionVersion, raw: Record<string, unknown>, withStagger: boolean): StepRefs {
+function stepRefs(layer: string | null, version: MotionVersion, raw: Record<string, unknown>, withStagger: boolean, mode?: PlayMode): StepRefs {
   const uses = new Map<string, string[]>();
   const hardcoded: { label: string; value: string }[] = [];
   const use = (token: string, where: string): void => {
@@ -46,10 +46,14 @@ function stepRefs(layer: string | null, version: MotionVersion, raw: Record<stri
   if (m.delay) check(m.delay, 'delay');
   if (withStagger && version.stagger) check(version.stagger, 'stagger');
 
-  if (m.model === 'spring') {
+  // The bounce token counts when the motion plays as a spring: a spring version as authored (or under
+  // the spring lens), a tween only under the spring lens and only if its easing has a spring form.
+  const playsAsSpring = m.model === 'spring' ? mode !== 'easing' : mode === 'spring';
+  if (playsAsSpring) {
     const form = raw[springKey(m.easing)];
     if (isSpringForm(form) && form.bounce !== 0) use(form.token, 'spring bounce');
-  } else {
+  }
+  if (m.model === 'tween') {
     const kfs = version.keyframes ?? [];
     kfs.forEach((kf, i) => {
       const at = `${Math.round((typeof kf.offset === 'number' ? kf.offset : kfs.length === 1 ? 1 : i / (kfs.length - 1)) * 100)}%`;
@@ -63,9 +67,10 @@ function stepRefs(layer: string | null, version: MotionVersion, raw: Record<stri
 }
 
 // The tokens each motion of a version uses: the root first, then each layer. The stagger belongs
-// to the version, so it is listed with the root.
-export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>): StepRefs[] {
-  return stepsOf(version).map(({ name, version: step }) => stepRefs(name, step, raw, name === null));
+// to the version, so it is listed with the root. With a play mode, it is what that lens plays (a
+// spring adds its bounce token); without one, the version as authored.
+export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>, mode?: PlayMode): StepRefs[] {
+  return stepsOf(version).map(({ name, version: step }) => stepRefs(name, step, raw, name === null, mode));
 }
 
 // Every token a version uses, across its root and layers, and its hard-coded values (a layer's are

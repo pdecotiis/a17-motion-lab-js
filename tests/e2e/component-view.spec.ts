@@ -189,3 +189,119 @@ test.describe('Sidebar accordions', () => {
     await expect(page).toHaveURL(/version=v2/);
   });
 });
+
+// The playback lens: a global Easing / Spring switch in the header. It decides how every version
+// plays (its easing curve, or the easing's spring), whatever it was authored as. It never changes
+// what a version exports.
+test.describe('Playback lens', () => {
+  const ROOT = '#preview-inner-primary [data-motion-target]';
+  const timing = (page: import('@playwright/test').Page, selector: string) =>
+    page.evaluate((sel) => {
+      const t = (document.querySelector<HTMLElement>(sel)!.getAnimations()[0]!.effect as KeyframeEffect).getTiming();
+      return { duration: t.duration as number, easing: t.easing as string };
+    }, selector);
+  const playbackRow = (page: import('@playwright/test').Page) =>
+    page.locator('#version-spec-meta dt:has-text("Playback") + dd');
+
+  test('the header has an Easing / Spring switch, Easing by default', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    await expect(page.locator('#play-easing')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#play-spring')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('a tween plays its easing curve, then as the easing\'s spring when switched', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    expect(await timing(page, ROOT)).toEqual({ duration: 220, easing: 'cubic-bezier(0, 0, 0.38, 0.9)' });
+    await expect(playbackRow(page)).toHaveText('Easing · productive-entrance, 220ms');
+
+    await page.click('#play-spring');
+    await expect(page.locator('#play-spring')).toHaveAttribute('aria-pressed', 'true');
+    const spring = await timing(page, ROOT);
+    expect(spring.easing).toMatch(/^linear\(/);
+    expect(spring.duration).not.toBe(220);
+    await expect(playbackRow(page)).toHaveText('Spring · productive-entrance, bounce 0, 268ms');
+
+    await page.click('#play-easing');
+    expect(await timing(page, ROOT)).toEqual({ duration: 220, easing: 'cubic-bezier(0, 0, 0.38, 0.9)' });
+  });
+
+  test('a version authored as a spring plays its easing under Easing, and its spring under Spring', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v2');
+    expect(await timing(page, ROOT)).toEqual({ duration: 300, easing: 'cubic-bezier(0, 0, 0.38, 0.9)' });
+    await expect(playbackRow(page)).toHaveText('Easing · productive-entrance, 300ms');
+
+    await page.click('#play-spring');
+    expect((await timing(page, ROOT)).easing).toBe('linear');
+    await expect(playbackRow(page)).toHaveText('Spring · productive-entrance, bounce 0, 366ms');
+  });
+
+  test('layers follow the lens too, and the Playback row names each motion', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v4');
+    await page.click('#play-spring');
+    for (const sel of [ROOT, '#preview-inner-primary [data-motion="title"]', '#preview-inner-primary [data-motion="text"]']) {
+      expect((await timing(page, sel)).easing, sel).toMatch(/^linear\(/);
+    }
+    await expect(playbackRow(page)).toHaveText([
+      'Spring · productive-entrance, bounce 0, 268ms',
+      'title: Spring · productive-entrance, bounce 0, 366ms',
+      'text: Spring · productive-entrance, bounce 0, 366ms',
+    ].join('\n'));
+  });
+
+  test('the choice is in the URL, so it can be shared, and leaves it again under Easing', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    await page.click('#play-spring');
+    await expect(page).toHaveURL(/play=spring/);
+    await page.click('#play-easing');
+    await expect(page).not.toHaveURL(/play=/);
+    await page.goto('/?view=component&component=card&version=v1&play=spring');
+    await expect(page.locator('#play-spring')).toHaveAttribute('aria-pressed', 'true');
+    expect((await timing(page, ROOT)).easing).toMatch(/^linear\(/);
+  });
+
+  test('it holds across the nav and across links between views', async ({ page }) => {
+    await page.goto('/?view=library');
+    await page.click('#play-spring');
+    await page.locator('.lab-library-card').first().click();
+    await expect(page).toHaveURL(/view=component/);
+    await expect(page.locator('#play-spring')).toHaveAttribute('aria-pressed', 'true');
+    expect((await timing(page, ROOT)).easing).toMatch(/^linear\(/);
+
+    await page.click('.lab-nav__btn[data-view="page"]');
+    await expect(page).toHaveURL(/view=page/);
+    await expect(page.locator('#play-spring')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('the page view plays every component as a spring under Spring', async ({ page }) => {
+    await page.goto('/?view=page&page=home');
+    const easingOf = () => page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('[data-component-id] [data-motion-target]')]
+        .map(el => (el.getAnimations()[0]!.effect as KeyframeEffect).getTiming().easing as string));
+    expect((await easingOf()).every(e => e.startsWith('cubic-bezier'))).toBe(true);
+    await page.click('#play-spring');
+    const springs = await easingOf();
+    expect(springs.length).toBeGreaterThan(0);
+    expect(springs.every(e => e.startsWith('linear('))).toBe(true);
+  });
+
+  test('a library card plays as a spring on hover under Spring', async ({ page }) => {
+    await page.goto('/?view=library&play=spring');
+    const card = page.locator('.lab-library-card').first();
+    await card.hover();
+    const easing = await card.evaluate(el =>
+      (el.querySelector('[data-motion-target]')!.getAnimations()[0]!.effect as KeyframeEffect).getTiming().easing as string);
+    expect(easing).toMatch(/^linear\(/);
+  });
+
+  test('exports are as authored whatever the lens: the CSS is the same', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated CSS' }).click();
+    const before = await page.locator('#css-pre').textContent();
+    await page.click('#play-spring');
+    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated CSS' }).click();
+    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated CSS' }).click();
+    expect(await page.locator('#css-pre').textContent()).toBe(before);
+    expect(before).toContain('animation-timing-function: var(--motion-easing-productive-entrance');
+    expect(before).not.toContain('linear(0');
+  });
+});

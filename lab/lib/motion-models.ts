@@ -1,5 +1,6 @@
-import type { MotionVersion, TweenModel, SpringModel, SpringProperty } from './types.js';
-import { springKeyframes, SPRING_DURATION_RATIO } from './spring-engine.js';
+import type { MotionVersion, TweenModel, SpringModel, SpringProperty, PlayMode } from './types.js';
+import { springKeyframes, springToLinear, SPRING_DURATION_RATIO } from './spring-engine.js';
+import { getEffectiveKeyframes, REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { isSpringForm, resolveRefs, springKey } from './token-compiler.js';
 import { isVersionStatus, isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
 
@@ -209,6 +210,118 @@ export function buildSpringWaapiKeyframes(
   }
 
   return { keyframes, duration: settleDuration / playbackRate, delay };
+}
+
+// ── The playback lens ─────────────────────────────────────────────────────
+
+export interface Playback {
+  keyframes: Keyframe[];
+  /** WAAPI duration in ms (already divided by the playback rate). */
+  duration: number;
+  delay: number;
+  /** WAAPI easing: a cubic-bezier, a baked linear(…) spring curve, or 'linear' for baked keyframes. */
+  easing: string;
+  as: PlayMode;
+  easingToken: string;
+  /** The paired duration token's ms. */
+  pairedMs: number;
+  /** Spring only: the easing's bounce, its bounce token, and the spring's own duration (paired / 0.82). */
+  bounce?: number;
+  bounceToken?: string;
+  springMs?: number;
+  /** Set when the lens asked for a spring but the easing has none (an exit, linear): it plays as easing. */
+  note?: string;
+}
+
+// A spring version's from/to values as two keyframes, to play it as an easing curve.
+function springAsKeyframes(properties: SpringProperty[]): Keyframe[] {
+  const start: Keyframe = { offset: 0 };
+  const end: Keyframe = { offset: 1 };
+  const startTransform: string[] = [];
+  const endTransform: string[] = [];
+  for (const p of properties) {
+    const unit = p.unit ?? '';
+    if (p.wrapTransform) {
+      startTransform.push(`${p.wrapTransform}(${p.from}${unit})`);
+      endTransform.push(`${p.wrapTransform}(${p.to}${unit})`);
+    } else {
+      (start as Record<string, unknown>)[p.property] = unit ? `${p.from}${unit}` : p.from;
+      (end as Record<string, unknown>)[p.property] = unit ? `${p.to}${unit}` : p.to;
+    }
+  }
+  if (startTransform.length) start.transform = startTransform.join(' ');
+  if (endTransform.length) end.transform = endTransform.join(' ');
+  return [start, end];
+}
+
+// How one motion plays under the lens, whatever it was authored as.
+//  - easing: its easing curve over the duration token.
+//  - spring: the easing's spring form. A tween plays its own keyframes with the spring's curve as
+//    the timing function (as the CSS export does), so any keyframes work; a spring version plays
+//    its physics. The spring's duration is the paired duration / 0.82.
+// An easing with no spring form (an exit, linear) plays as easing, with a note. Reduced motion
+// gives the short opacity-only fade.
+export function playbackOf(
+  version: MotionVersion,
+  raw: Record<string, unknown>,
+  mode: PlayMode,
+  options: { playbackRate?: number; reducedMotion?: boolean } = {},
+): Playback {
+  const { playbackRate = 1, reducedMotion = false } = options;
+  const model = version.model;
+  const easingToken = model.easing;
+  const pairedMs = parseMs(resolveStr(model.duration, raw, '300ms'));
+  const delay = parseMs(resolveStr(model.delay, raw, '0ms')) / playbackRate;
+  const form = raw[springKey(easingToken)];
+
+  // A spring version as a spring: its physics, baked into keyframes.
+  if (model.model === 'spring' && mode === 'spring') {
+    const baked = buildSpringWaapiKeyframes(version, raw, { playbackRate, reducedMotion });
+    const parts = springParts(model, raw);
+    return {
+      // Reduced motion is opacity only here too, as for every other motion and as exported.
+      keyframes: reducedMotion ? getEffectiveKeyframes(baked.keyframes, true) : baked.keyframes,
+      duration: baked.duration, delay: baked.delay, easing: 'linear', as: 'spring',
+      easingToken, pairedMs, bounce: parts.bounce, bounceToken: parts.bounceToken, springMs: parts.durationMs,
+    };
+  }
+
+  const keyframes = model.model === 'spring' ? springAsKeyframes(model.properties) : resolveKeyframes(version.keyframes, raw);
+  const easing = resolveStr(easingToken, raw, 'ease');
+  let playback: Playback;
+  if (mode === 'spring' && isSpringForm(form)) {
+    const springMs = pairedMs / SPRING_DURATION_RATIO;
+    const settle = springKeyframes({ from: 0, to: 1, duration: springMs, bounce: form.bounce, span: 1 }).duration;
+    playback = {
+      keyframes, duration: settle / playbackRate, delay, easing: springToLinear(springMs, form.bounce, 30), as: 'spring',
+      easingToken, pairedMs, bounce: form.bounce, bounceToken: form.token, springMs,
+    };
+  } else {
+    playback = { keyframes, duration: pairedMs / playbackRate, delay, easing, as: 'easing', easingToken, pairedMs };
+    if (mode === 'spring') {
+      playback.note = `${easingToken.slice(easingToken.indexOf('.') + 1)} has no spring form, so it plays as easing`;
+    }
+  }
+
+  if (reducedMotion) {
+    return {
+      ...playback,
+      keyframes: getEffectiveKeyframes(playback.keyframes, true),
+      duration: Math.min(playback.duration, REDUCED_MOTION_FADE_MS),
+      easing: playback.as === 'spring' ? 'linear' : playback.easing,
+    };
+  }
+  return playback;
+}
+
+// What a motion plays as, in a line: "Easing · productive-entrance, 220ms" or
+// "Spring · expressive-settle, bounce 0.1 (bounce.10), 366ms".
+export function describePlayback(p: Playback): string {
+  const name = p.easingToken.slice(p.easingToken.indexOf('.') + 1);
+  const text = p.as === 'spring'
+    ? `Spring · ${name}, bounce ${p.bounce}${p.bounce ? ` (${p.bounceToken})` : ''}, ${Math.round(p.springMs!)}ms`
+    : `Easing · ${name}, ${Math.round(p.pairedMs)}ms`;
+  return p.note ? `${text} (${p.note})` : text;
 }
 
 export function validateMotionVersion(version: MotionVersion): void {

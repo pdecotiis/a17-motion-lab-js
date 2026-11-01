@@ -52,6 +52,10 @@ export type SpringModel = {
 
 export type MotionModel = TweenModel | SpringModel;
 
+// How a version plays in the lab: as its easing curve (the default) or as the easing's spring.
+// A view of the same tokens: it never changes what a version exports.
+export type PlayMode = 'easing' | 'spring';
+
 export type VersionStatus = 'in-progress' | 'review' | 'approved' | 'archived';
 
 // What makes the motion play in production. The lab plays on demand, so this is a spec for the

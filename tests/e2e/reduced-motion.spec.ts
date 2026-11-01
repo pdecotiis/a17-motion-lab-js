@@ -53,4 +53,10 @@ test.describe('prefers-reduced-motion', () => {
     });
     expect(title).toEqual({ duration: 150, properties: ['opacity'] });
   });
+
+  test('under the spring lens, reduced motion is still the short opacity-only fade', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?view=frame&component=card&version=v1&play=spring');
+    expect(await playedAnimation(page)).toEqual({ duration: 150, properties: ['opacity'] });
+  });
 });
