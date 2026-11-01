@@ -240,7 +240,7 @@ Before saving and before sending for review, bring in the latest `main`. If some
 | `npm run build`      | Build to `dist/` with relative paths            |
 | `npm run typecheck`  | TypeScript type check (no emit)                 |
 | `npm run test`       | Run Vitest unit tests                           |
-| `npm run test:e2e`   | Run Playwright E2E tests (starts dev server)    |
+| `npm run test:e2e`   | Run Playwright E2E tests (starts dev server; `PORT=5200 npm run test:e2e` when another server holds 5173) |
 | `npm run check`      | typecheck + test + build + test:e2e (all four)  |
 
 **`npm run check` must pass before reporting a session as done.**
