@@ -1,4 +1,4 @@
-import type { MotionVersion, TweenModel, SpringModel } from './types.js';
+import type { MotionVersion, EntranceVersion, TweenModel, SpringModel } from './types.js';
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getStepRefs, getTokenRefs } from './token-refs.js';
@@ -41,7 +41,7 @@ function stagger(value: string, raw: Record<string, unknown>): string {
   return value in raw ? `${value} (${literal(raw[value])})` : value;
 }
 
-function motionLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
+function motionLines(version: EntranceVersion, raw: Record<string, unknown>): string[] {
   const m = version.model;
   const lines = [
     `- Duration: ${describeValue(m.duration, raw, '300ms')}`,
@@ -56,7 +56,7 @@ function motionLines(version: MotionVersion, raw: Record<string, unknown>): stri
   return lines;
 }
 
-function animatedLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
+function animatedLines(version: EntranceVersion, raw: Record<string, unknown>): string[] {
   if (version.model.model === 'tween') {
     return orderedKeyframes(resolveKeyframes(version.keyframes, raw)).map(({ offset, kf }) => {
       const props = Object.entries(kf)
@@ -138,11 +138,11 @@ export function buildVersionExport(
     version.interaction ? '## States' : '## What animates',
     '',
     ...(layers.length ? ['The component\'s root element (the one marked `data-motion-target`):', ''] : []),
-    ...(version.interaction ? stateLines(version, raw) : animatedLines(version, raw)),
+    ...(version.interaction ? stateLines(version, raw) : animatedLines(stepsOf(version)[0]!.version, raw)),
     '',
     version.interaction ? '## Transitions' : '## Timing',
     '',
-    ...(version.interaction ? transitionLines(version, raw) : motionLines(version, raw)),
+    ...(version.interaction ? transitionLines(version, raw) : motionLines(stepsOf(version)[0]!.version, raw)),
     '',
     // Each layer is a motion of its own: it names its own duration, easing and delay.
     ...layers.flatMap(({ name: layer, version: step }) => [

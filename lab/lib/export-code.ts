@@ -1,4 +1,4 @@
-import type { MotionVersion } from './types.js';
+import type { MotionVersion, EntranceVersion } from './types.js';
 import { stepsOf, playbackOf } from './motion-models.js';
 import { motionArgsOf, DEFAULT_BOUNCE } from './motion-args.js';
 import { orderedKeyframes } from './css-output.js';
@@ -115,7 +115,7 @@ class EaseRegistry {
 }
 
 function gsapStep(
-  version: MotionVersion, raw: Record<string, unknown>, ease: EaseRegistry, target: string, position: string, notes: string[],
+  version: EntranceVersion, raw: Record<string, unknown>, ease: EaseRegistry, target: string, position: string, notes: string[],
 ): string[] {
   const model = version.model;
   const p = playbackOf(version, raw);
@@ -319,7 +319,7 @@ export function buildMotionCode(version: MotionVersion, raw: Record<string, unkn
   const staggerMs = version.stagger ? parseMs(version.stagger, raw) : 0;
   const reducedPolicy = getReducedMotionPolicy(version);
 
-  const call = (target: string, step: MotionVersion, reducedMotion: boolean, indent: string): string[] => {
+  const call = (target: string, step: EntranceVersion, reducedMotion: boolean, indent: string): string[] => {
     const a = motionArgsOf(step, raw, { reducedMotion, globalBounce });
     const o = a.options;
     const delay = o.delay ? `${num(o.delay)} + ` : '';

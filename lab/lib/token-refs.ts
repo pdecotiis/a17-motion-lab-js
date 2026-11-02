@@ -1,4 +1,4 @@
-import type { MotionVersion, PageConfig } from './types.js';
+import type { MotionVersion, EntranceVersion, PageConfig } from './types.js';
 import type { Runtime } from './runtime.js';
 import { findRefs } from './token-compiler.js';
 import { stepsOf } from './motion-models.js';
@@ -26,7 +26,7 @@ export interface StepRefs {
   hardcoded: { label: string; value: string }[];
 }
 
-function stepRefs(layer: string | null, version: MotionVersion, raw: Record<string, unknown>, withStagger: boolean, runtime?: Runtime, globalBounce?: string): StepRefs {
+function stepRefs(layer: string | null, version: EntranceVersion, raw: Record<string, unknown>, withStagger: boolean, runtime?: Runtime, globalBounce?: string): StepRefs {
   const uses = new Map<string, string[]>();
   const hardcoded: { label: string; value: string }[] = [];
   const use = (token: string, where: string): void => {
@@ -124,7 +124,7 @@ function ms(value: string | undefined, raw: Record<string, unknown>): number | u
 export function pairingWarnings(version: MotionVersion, raw: Record<string, unknown>, runtime?: Runtime): string[] {
   // An interaction version pairs each transition's duration with its easing; a motion otherwise.
   const motions = version.interaction
-    ? Object.entries(version.interaction.transitions).map(([state, t]) => ({ name: `into ${state}` as string | null, model: t }))
+    ? Object.entries(version.interaction.transitions).map(([state, t]) => ({ name: `into ${state}` as string | null, model: t as { duration: string; easing: string } }))
     : stepsOf(version).map(({ name, version: step }) => ({ name, model: step.model }));
   return motions.flatMap(({ name, model }) => {
     const { duration, easing } = model;

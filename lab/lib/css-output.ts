@@ -1,4 +1,4 @@
-import type { MotionVersion, SpringProperty } from './types.js';
+import type { MotionVersion, EntranceVersion, SpringProperty } from './types.js';
 import { resolveRefs, tokenVarName } from './token-compiler.js';
 import { stepsOf } from './motion-models.js';
 import { stateNames, stateProps } from './interaction.js';
@@ -118,7 +118,7 @@ function block(selector: string, lines: string[], indent = ''): string[] {
 }
 
 // One motion (the root's or a layer's) as @keyframes, a class and its reduced-motion block.
-function stepCss(version: MotionVersion, raw: Record<string, unknown>, name: string, stagger: string | undefined): string[] {
+function stepCss(version: EntranceVersion, raw: Record<string, unknown>, name: string, stagger: string | undefined): string[] {
   const out: string[] = [];
 
   // A spring version has no real spring in CSS: it plays its from/to values with the easing curve.

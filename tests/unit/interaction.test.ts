@@ -4,9 +4,10 @@ import { CustomEase } from 'gsap/CustomEase';
 import {
   validateInteraction, resolveState, stateProps, stateNames, stateRefs, transitionInto,
   cssTransitionPlan, motionStates, motionTransitionPlan, describeTransition,
+  layerNames, partProps, partValues, timingFor, interactionParts, TRIGGER_EVENTS, NATURAL_VALUES,
 } from '../../lab/lib/interaction.js';
 import { transformParts, TRANSFORM_IDENTITY } from '../../lab/lib/transform.js';
-import { validateMotionVersion } from '../../lab/lib/motion-models.js';
+import { validateMotionVersion, modelOf, stepsOf } from '../../lab/lib/motion-models.js';
 import { pairingWarnings, getStepRefs, getTokenRefs } from '../../lab/lib/token-refs.js';
 import { buildVersionCss } from '../../lab/lib/css-output.js';
 import { buildVersionExport } from '../../lab/lib/spec.js';
@@ -69,6 +70,121 @@ describe('validateInteraction', () => {
   it('checks a spring bounce: a token or a number from 0 to 1', () => {
     const bad = version({ transitions: { ...interaction.transitions, open: { model: 'spring', duration: 'duration.300', easing: 'easing.productive-entrance', bounce: 2 } } });
     expect(() => validateInteraction(bad)).toThrow('bounce must be a bounce token or a number from 0 to 1');
+  });
+});
+
+describe('a version with an interaction needs no model', () => {
+  it('v4 names none, and validates', () => {
+    expect(v4.model).toBeUndefined();
+    expect(() => validateMotionVersion(v4)).not.toThrow();
+  });
+
+  it('modelOf derives the timing of its first transition, as a tween', () => {
+    expect(modelOf(v4)).toEqual({ model: 'tween', duration: 'duration.560', easing: 'easing.expressive-entrance' });
+  });
+
+  it('the root of stepsOf carries that model, so every panel that expects one has it', () => {
+    expect(stepsOf(v4)[0]!.version.model).toEqual(modelOf(v4));
+    expect(stepsOf(v4)).toHaveLength(1);
+  });
+
+  it('keeps its own model when it names one; a version with neither is refused', () => {
+    const own = { ...v4, model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' } } as MotionVersion;
+    expect(modelOf(own)).toMatchObject({ duration: 'duration.300' });
+    const none = { id: 'x', label: 'x' } as MotionVersion;
+    expect(() => validateMotionVersion(none)).toThrow('needs a model, or an interaction');
+    expect(() => modelOf(none)).toThrow('has no model and no interaction');
+  });
+});
+
+describe('triggers', () => {
+  const withTriggers = (triggers: Interaction['triggers']): MotionVersion => version({ triggers });
+
+  it('the side panel\'s v4 declares a click on the close layer that sets closed', () => {
+    expect(v4.interaction!.triggers).toEqual([{ on: 'click', target: 'close', set: 'closed' }]);
+  });
+
+  it('the events are hover, press, focus and click', () => {
+    expect(TRIGGER_EVENTS).toEqual(['hover', 'press', 'focus', 'click']);
+  });
+
+  it('accepts hover, press and focus (to a state other than rest), and a click that sets or toggles', () => {
+    expect(() => validateInteraction(withTriggers([
+      { on: 'hover', state: 'open' }, { on: 'press', state: 'open', target: 'title' }, { on: 'focus', state: 'open', target: 'close' },
+      { on: 'click', set: 'open', target: 'list' }, { on: 'click', toggle: ['closed', 'open'] },
+    ]))).not.toThrow();
+    expect(() => validateInteraction(withTriggers(undefined))).not.toThrow();
+    expect(() => validateInteraction(withTriggers([]))).not.toThrow();
+  });
+
+  it('refuses an unknown event, a state that does not exist, and a bad target name', () => {
+    expect(() => validateInteraction(withTriggers([{ on: 'swipe', state: 'open' } as never]))).toThrow('unknown trigger "swipe" (use hover, press, focus, click)');
+    expect(() => validateInteraction(withTriggers([{ on: 'hover', state: 'lost' }]))).toThrow('hover trigger goes to "lost", which is not one of its states (closed, open)');
+    expect(() => validateInteraction(withTriggers([{ on: 'click', set: 'lost' }]))).toThrow('click trigger sets "lost"');
+    expect(() => validateInteraction(withTriggers([{ on: 'hover', state: 'open', target: 'Page Title' }]))).toThrow('must be lowercase letters, numbers and hyphens, as in data-motion="Page Title"');
+  });
+
+  it('hover, press and focus cannot go to the resting state: they return to it when they end', () => {
+    expect(() => validateInteraction(withTriggers([{ on: 'hover', state: 'closed' }]))).toThrow('goes to "closed", the resting state');
+  });
+
+  it('a click needs either a state to set or two different states to toggle', () => {
+    expect(() => validateInteraction(withTriggers([{ on: 'click' } as never]))).toThrow('either "set" (a state) or "toggle"');
+    expect(() => validateInteraction(withTriggers([{ on: 'click', set: 'open', toggle: ['closed', 'open'] } as never]))).toThrow('either "set" (a state) or "toggle"');
+    expect(() => validateInteraction(withTriggers([{ on: 'click', toggle: ['open', 'open'] }]))).toThrow('two different states');
+    expect(() => validateInteraction(withTriggers([{ on: 'click', toggle: ['open', 'lost'] }]))).toThrow('toggles "lost"');
+  });
+
+  it('refuses two triggers for the same event on the same element', () => {
+    expect(() => validateInteraction(withTriggers([{ on: 'hover', state: 'open' }, { on: 'hover', state: 'open' }]))).toThrow('two hover triggers on the component');
+    expect(() => validateInteraction(withTriggers([{ on: 'click', set: 'open', target: 'close' }, { on: 'click', set: 'closed', target: 'close' }]))).toThrow('two click triggers on "close"');
+    expect(() => validateInteraction(withTriggers([{ on: 'click', set: 'open', target: 'close' }, { on: 'click', set: 'open' }]))).not.toThrow();
+  });
+});
+
+describe('layers of an interaction', () => {
+  const layered = (layers: Interaction['layers']): MotionVersion => version({ layers });
+  const imageHover: Interaction['layers'] = { image: { states: { open: { transform: 'scale({scale.103})' } }, transitions: { open: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' } } } };
+
+  it('accepts values and their own timing for the states', () => {
+    expect(() => validateInteraction(layered(imageHover))).not.toThrow();
+    expect(layerNames(layered(imageHover).interaction!)).toEqual(['image']);
+    expect(interactionParts(layered(imageHover).interaction!)).toEqual([null, 'image']);
+  });
+
+  it('refuses a bad name, values for a state that does not exist, structural properties and a bad timing', () => {
+    expect(() => validateInteraction(layered({ 'Hero Image': { states: {} } }))).toThrow('interaction layer name "Hero Image"');
+    expect(() => validateInteraction(layered({ image: { states: { lost: { opacity: 1 } } } }))).toThrow('layer "image" has values for "lost"');
+    expect(() => validateInteraction(layered({ image: { states: { open: { width: '10px' } } } }))).toThrow('layer "image" state "open" contains structural property: "width"');
+    expect(() => validateInteraction(layered({ image: { states: {}, transitions: { lost: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' } } } }))).toThrow('layer "image" has a transition into "lost"');
+    expect(() => validateInteraction(layered({ image: { states: {}, transitions: { open: { model: 'tween', duration: 'duration.300' } as never } } }))).toThrow('needs a duration and an easing');
+  });
+
+  it('partProps lists what a part changes: the root\'s, and a layer\'s', () => {
+    const i = layered(imageHover).interaction!;
+    expect(partProps(i, null)).toEqual(['opacity', 'transform']);
+    expect(partProps(i, 'image')).toEqual(['transform']);
+    expect(partProps(i, 'nope')).toEqual([]);
+  });
+
+  it('partValues fills a property a state leaves out with its natural value', () => {
+    const i = layered(imageHover).interaction!;
+    expect(partValues(i, 'image', 'open')).toEqual({ transform: 'scale({scale.103})' });
+    expect(partValues(i, 'image', 'closed')).toEqual({ transform: 'none' });
+    expect(partValues(i, null, 'open')).toEqual({ opacity: 1, transform: 'translateX(0px)' });
+    expect(NATURAL_VALUES).toMatchObject({ opacity: 1, transform: 'none' });
+  });
+
+  it('a property with no natural value must be given in every state', () => {
+    const i = { ...interaction, layers: { image: { states: { open: { color: 'red' } } } } };
+    expect(() => partValues(i, 'image', 'closed')).toThrow('leaves out "color", which has no natural value');
+  });
+
+  it('timingFor: a layer\'s own timing where it has one, else the component\'s', () => {
+    const i = layered(imageHover).interaction!;
+    expect(timingFor(i, 'image', 'open')).toMatchObject({ model: 'tween', duration: 'duration.300' });
+    expect(timingFor(i, 'image', 'closed')).toBe(interaction.transitions['closed']);
+    expect(timingFor(i, null, 'open')).toBe(interaction.transitions['open']);
   });
 });
 

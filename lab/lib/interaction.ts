@@ -1,4 +1,4 @@
-import type { Interaction, MotionVersion, StateValues, TransitionTiming } from './types.js';
+import type { Interaction, InteractionTrigger, MotionVersion, StateValues, TransitionTiming, TriggerEvent } from './types.js';
 import { resolveBounce, DEFAULT_BOUNCE } from './bounce.js';
 import { resolveRefs, findRefs } from './token-compiler.js';
 import { transformParts, TRANSFORM_IDENTITY } from './transform.js';
@@ -9,6 +9,14 @@ import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 // interaction-player.ts.
 
 const STRUCTURAL = ['display', 'position', 'width', 'height', 'content', 'innerHTML'];
+
+/** The events a trigger can listen for. */
+export const TRIGGER_EVENTS: readonly TriggerEvent[] = ['hover', 'press', 'focus', 'click'];
+
+const NAME = /^[a-z0-9][a-z0-9-]*$/;
+
+// What a property is when nothing is applied. A state that leaves a property out has it at this value.
+export const NATURAL_VALUES: Record<string, string | number> = { opacity: 1, transform: 'none', filter: 'none', clipPath: 'none' };
 
 function parseMs(value: string | undefined, raw: Record<string, unknown>): number {
   if (value === undefined) return 0;
@@ -33,6 +41,34 @@ export function stateNames(interaction: Interaction): string[] {
   return [interaction.initial, ...Object.keys(interaction.states).filter(s => s !== interaction.initial)];
 }
 
+function validateTiming(version: MotionVersion, where: string, t: TransitionTiming | undefined): void {
+  if (!t) throw new Error(`MotionVersion "${version.id}" has no transition ${where}`);
+  if (typeof t.duration !== 'string' || typeof t.easing !== 'string') throw new Error(`MotionVersion "${version.id}" transition ${where} needs a duration and an easing`);
+  if (t.model === 'spring' && t.bounce !== undefined && !(typeof t.bounce === 'string' || (typeof t.bounce === 'number' && t.bounce >= 0 && t.bounce <= 1))) {
+    throw new Error(`MotionVersion "${version.id}" transition ${where}: bounce must be a bounce token or a number from 0 to 1`);
+  }
+}
+
+function validateTrigger(version: MotionVersion, t: InteractionTrigger, names: string[], initial: string): void {
+  const id = `MotionVersion "${version.id}"`;
+  if (!TRIGGER_EVENTS.includes(t.on)) throw new Error(`${id} has an unknown trigger "${String(t.on)}" (use ${TRIGGER_EVENTS.join(', ')})`);
+  if (t.target !== undefined && !NAME.test(t.target)) throw new Error(`${id} trigger target "${t.target}" must be lowercase letters, numbers and hyphens, as in data-motion="${t.target}"`);
+  const known = (s: unknown, what: string): void => { if (typeof s !== 'string' || !names.includes(s)) throw new Error(`${id} ${t.on} trigger ${what} "${String(s)}", which is not one of its states (${names.join(', ')})`); };
+  if (t.on === 'click') {
+    const hasSet = 'set' in t && t.set !== undefined, hasToggle = 'toggle' in t && t.toggle !== undefined;
+    if (hasSet === hasToggle) throw new Error(`${id} click trigger needs either "set" (a state) or "toggle" (two states), not both or neither`);
+    if (hasSet) known((t as { set: string }).set, 'sets');
+    else {
+      const pair = (t as { toggle: [string, string] }).toggle;
+      if (!Array.isArray(pair) || pair.length !== 2 || pair[0] === pair[1]) throw new Error(`${id} click toggle needs two different states`);
+      pair.forEach(s => known(s, 'toggles'));
+    }
+    return;
+  }
+  known((t as { state: string }).state, 'goes to');
+  if ((t as { state: string }).state === initial) throw new Error(`${id} ${t.on} trigger goes to "${initial}", the resting state: it should go to another state, and come back to rest when it ends`);
+}
+
 export function validateInteraction(version: MotionVersion): void {
   const i = version.interaction;
   if (!i) return;
@@ -44,17 +80,69 @@ export function validateInteraction(version: MotionVersion): void {
       if (STRUCTURAL.includes(prop)) throw new Error(`MotionVersion "${version.id}" state "${name}" contains structural property: "${prop}"`);
     }
   }
-  for (const name of names) {
-    const t = i.transitions?.[name];
-    if (!t) throw new Error(`MotionVersion "${version.id}" has no transition into state "${name}"`);
-    if (typeof t.duration !== 'string' || typeof t.easing !== 'string') throw new Error(`MotionVersion "${version.id}" transition into "${name}" needs a duration and an easing`);
-    if (t.model === 'spring' && t.bounce !== undefined && !(typeof t.bounce === 'string' || (typeof t.bounce === 'number' && t.bounce >= 0 && t.bounce <= 1))) {
-      throw new Error(`MotionVersion "${version.id}" transition into "${name}": bounce must be a bounce token or a number from 0 to 1`);
-    }
-  }
+  for (const name of names) validateTiming(version, `into state "${name}"`, i.transitions?.[name]);
   for (const name of Object.keys(i.transitions)) {
     if (!names.includes(name)) throw new Error(`MotionVersion "${version.id}" has a transition into "${name}", which is not one of its states`);
   }
+
+  // Layers: values for the states, and optionally their own timing into them.
+  for (const [layer, part] of Object.entries(i.layers ?? {})) {
+    if (!NAME.test(layer)) throw new Error(`MotionVersion "${version.id}" interaction layer name "${layer}" must be lowercase letters, numbers and hyphens, as in data-motion="${layer}"`);
+    for (const [state, values] of Object.entries(part.states ?? {})) {
+      if (!names.includes(state)) throw new Error(`MotionVersion "${version.id}" layer "${layer}" has values for "${state}", which is not one of its states (${names.join(', ')})`);
+      for (const prop of Object.keys(values)) {
+        if (STRUCTURAL.includes(prop)) throw new Error(`MotionVersion "${version.id}" layer "${layer}" state "${state}" contains structural property: "${prop}"`);
+      }
+    }
+    for (const [state, t] of Object.entries(part.transitions ?? {})) {
+      if (!names.includes(state)) throw new Error(`MotionVersion "${version.id}" layer "${layer}" has a transition into "${state}", which is not one of its states`);
+      validateTiming(version, `into "${state}" for layer "${layer}"`, t);
+    }
+  }
+
+  // Triggers: what moves it between states.
+  const seen = new Set<string>();
+  for (const t of i.triggers ?? []) {
+    validateTrigger(version, t, names, i.initial);
+    const key = `${t.on}@${t.target ?? ''}`;
+    if (seen.has(key)) throw new Error(`MotionVersion "${version.id}" has two ${t.on} triggers on ${t.target ? `"${t.target}"` : 'the component'}`);
+    seen.add(key);
+  }
+}
+
+/** The layers that have values for the states. */
+export function layerNames(interaction: Interaction): string[] {
+  return Object.keys(interaction.layers ?? {});
+}
+
+/** The motion properties a part (the root when `target` is null, else a layer) changes across its states. */
+export function partProps(interaction: Interaction, target: string | null): string[] {
+  const states = target === null ? interaction.states : (interaction.layers?.[target]?.states ?? {});
+  return [...new Set(Object.values(states).flatMap(s => Object.keys(s)))];
+}
+
+/**
+ * A part's values in a state: every property it changes in any state, a property the state leaves out at
+ * its natural value (opacity 1, no transform), so each state describes the whole part.
+ */
+export function partValues(interaction: Interaction, target: string | null, state: string): StateValues {
+  const states = target === null ? interaction.states : (interaction.layers?.[target]?.states ?? {});
+  const own = states[state] ?? {};
+  return Object.fromEntries(partProps(interaction, target).map(prop => {
+    if (prop in own) return [prop, own[prop]!];
+    if (!(prop in NATURAL_VALUES)) throw new Error(`State "${state}" leaves out "${prop}", which has no natural value: give every state a value for it`);
+    return [prop, NATURAL_VALUES[prop]!];
+  }));
+}
+
+/** The timing of a part going to a state: the layer's own where it has one, else the component's. */
+export function timingFor(interaction: Interaction, target: string | null, state: string): TransitionTiming {
+  return (target !== null ? interaction.layers?.[target]?.transitions?.[state] : undefined) ?? transitionInto(interaction, state);
+}
+
+/** The parts that move: the root first, then each layer that has values. */
+export function interactionParts(interaction: Interaction): (string | null)[] {
+  return [null, ...layerNames(interaction)];
 }
 
 /** A state's values with token references resolved ("translateX({distance.48})" → "translateX(48px)"). */

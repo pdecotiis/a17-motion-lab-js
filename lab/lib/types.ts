@@ -56,12 +56,36 @@ export type TransitionTiming =
   | { model: 'tween'; duration: string; easing: string; delay?: string }
   | { model: 'spring'; duration: string; easing: string; bounce?: string | number; delay?: string };
 
+// A layer of the component (the element marked data-motion="<name>") can have its own values for the
+// states, and its own timing into them, so a hover can lift the card while the image scales. A property a
+// state leaves out is at its natural value there (opacity 1, no transform).
+export interface InteractionLayer {
+  states: Record<string, StateValues>;
+  /** Timing of going TO a state for this layer; the component's own is used where it has none. */
+  transitions?: Record<string, TransitionTiming>;
+}
+
+// What moves the component between states. It is declared here, in the version, never in the markup: the
+// markup comes from the Figma import and a re-import replaces it. `target` is the element the event is
+// listened on: a layer's data-motion name, or the component's root when it is left out.
+//   hover, press, focus   go to `state` while it lasts, and back to the state it was in when it ends
+//   click                 `set` goes to a state; `toggle` swaps between two
+export type TriggerEvent = 'hover' | 'press' | 'focus' | 'click';
+export type InteractionTrigger =
+  | { on: 'hover' | 'press' | 'focus'; state: string; target?: string }
+  | { on: 'click'; set: string; target?: string }
+  | { on: 'click'; toggle: [string, string]; target?: string };
+
 export interface Interaction {
   /** The state the component rests in, and starts in. */
   initial: string;
   states: Record<string, StateValues>;
   /** Timing of going TO each state; every state needs one. */
   transitions: Record<string, TransitionTiming>;
+  /** Values (and optionally timing) for layers inside the component, by data-motion name. */
+  layers?: Record<string, InteractionLayer>;
+  /** What moves it between states. A trigger on an element outside the component (a button that opens a panel) is the developer's to wire. */
+  triggers?: InteractionTrigger[];
 }
 
 export type VersionStatus = 'in-progress' | 'review' | 'approved' | 'archived';
@@ -87,17 +111,22 @@ export interface MotionStep {
   keyframes?: Keyframe[];  // Required for tween; unused for spring (spring uses model.properties)
 }
 
+// A version that certainly has a model: the root, and each layer, of any version (an interaction version
+// gets one derived from its first transition). What the playback, CSS and export code works on.
+export type EntranceVersion = MotionVersion & { model: MotionModel };
+
 export interface MotionVersion {
   id: string;
   label: string;
-  model: MotionModel;
+  // The motion of an entrance. Optional on an interaction version, which then has its states and
+  // transitions instead (see modelOf in motion-models.ts for the timing the panels show).
+  model?: MotionModel;
   keyframes?: Keyframe[];  // Required for tween; unused for spring (spring uses model.properties)
   // Motion for layers inside the component, beside the root's own (model, keyframes). The key is the
   // name of a layer, the value of its data-motion attribute (e.g. 'title'). Each layer names its own
   // duration, easing and delay, so text can move differently from the card.
   layers?: Record<string, MotionStep>;
-  // States and transitions (spike). An interaction version still names a `model`: by convention the
-  // timing of its first transition, so the panels that expect one have it.
+  // States and the transitions between them, and what triggers them (hover, press, focus, click).
   interaction?: Interaction;
   stagger?: string;
   trigger?: MotionTrigger;               // absent = not specified; the spec says so rather than guessing

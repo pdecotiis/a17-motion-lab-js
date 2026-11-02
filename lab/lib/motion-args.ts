@@ -1,5 +1,5 @@
-import type { MotionVersion } from './types.js';
-import { playbackOf } from './motion-models.js';
+import type { MotionVersion, EntranceVersion } from './types.js';
+import { playbackOf, modelOf } from './motion-models.js';
 import { resolveBounce, DEFAULT_BOUNCE } from './bounce.js';
 
 export { DEFAULT_BOUNCE };
@@ -56,7 +56,7 @@ export function motionArgsOf(
   const { reducedMotion = false, extraDelayMs = 0, globalBounce = DEFAULT_BOUNCE } = options;
   const p = playbackOf(version, raw, { reducedMotion });
   const all = toMotionKeyframes(p.keyframes);
-  const model = version.model;
+  const model = modelOf(version);
 
   const skipped = p.keyframes.length > 2;
   const keyframes = Object.fromEntries(

@@ -1,4 +1,4 @@
-import type { MotionVersion, TweenModel, SpringModel, SpringProperty } from './types.js';
+import type { MotionVersion, EntranceVersion, MotionModel, TweenModel, SpringModel, SpringProperty } from './types.js';
 import { getEffectiveKeyframes, REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { resolveRefs } from './token-compiler.js';
 import { resolveBounce } from './bounce.js';
@@ -37,10 +37,10 @@ export function resolveTiming(
   raw: Record<string, unknown>,
   playbackRate = 1,
 ): ResolvedTiming {
-  if (version.model.model !== 'tween') {
+  if (modelOf(version).model !== 'tween') {
     throw new Error(`resolveTiming: version "${version.id}" is a spring model, which CSS plays through playbackOf`);
   }
-  const model = version.model as TweenModel;
+  const model = modelOf(version) as TweenModel;
   const durationStr = resolveStr(model.duration, raw, '300ms');
   const easing = resolveStr(model.easing, raw, 'ease');
   const delayStr = resolveStr(model.delay, raw, '0ms');
@@ -65,10 +65,23 @@ export function buildAnimationOptions(timing: ResolvedTiming): KeyframeAnimation
 // The motions of a version, each as a version of its own so everything that works on one motion
 // (timing, usage, CSS) works on a layer too: the component's root first (name null), then each layer
 // by its data-motion name. A layer shares the version's trigger, reduced-motion policy and stagger.
-export function stepsOf(version: MotionVersion): { name: string | null; version: MotionVersion }[] {
+// The model a version plays: its own, or for an interaction version with none, the timing of its first
+// transition (into the first state after the resting one), as a tween: what the panels show for it.
+export function modelOf(version: MotionVersion): MotionModel {
+  if (version.model) return version.model;
+  const i = version.interaction;
+  if (i) {
+    const first = Object.keys(i.states).find(s => s !== i.initial) ?? i.initial;
+    const t = i.transitions[first];
+    if (t) return { model: 'tween', duration: t.duration, easing: t.easing, ...(t.delay ? { delay: t.delay } : {}) };
+  }
+  throw new Error(`MotionVersion "${version.id}" has no model and no interaction`);
+}
+
+export function stepsOf(version: MotionVersion): { name: string | null; version: EntranceVersion }[] {
   const { layers, ...root } = version;
   return [
-    { name: null, version: root },
+    { name: null, version: { ...root, model: modelOf(version) } },
     ...Object.entries(layers ?? {}).map(([name, step]) => ({
       name,
       version: { ...root, model: step.model, keyframes: step.keyframes },
@@ -131,7 +144,7 @@ export function playbackOf(
   options: { playbackRate?: number; reducedMotion?: boolean } = {},
 ): Playback {
   const { playbackRate = 1, reducedMotion = false } = options;
-  const model = version.model;
+  const model = modelOf(version);
   const easingToken = model.easing;
   const pairedMs = parseMs(resolveStr(model.duration, raw, '300ms'));
   const delay = parseMs(resolveStr(model.delay, raw, '0ms')) / playbackRate;
@@ -193,8 +206,11 @@ export function validateMotionVersion(version: MotionVersion): void {
 
   validateInteraction(version);
 
-  if (version.model.model === 'tween') {
-    const { duration, easing } = version.model;
+  const model0 = version.model;
+  if (model0 === undefined) {
+    if (!version.interaction) throw new Error(`MotionVersion "${version.id}" needs a model, or an interaction`);
+  } else if (model0.model === 'tween') {
+    const { duration, easing } = model0;
     if (typeof duration !== 'string' || typeof easing !== 'string') {
       throw new Error(`MotionVersion "${version.id}" tween needs a duration and an easing`);
     }
@@ -209,7 +225,7 @@ export function validateMotionVersion(version: MotionVersion): void {
       }
     }
   } else {
-    const model = version.model as SpringModel;
+    const model = model0 as SpringModel;
     if (!Array.isArray(model.properties) || model.properties.length === 0) {
       throw new Error(`MotionVersion "${version.id}" spring model must have a non-empty properties array`);
     }
