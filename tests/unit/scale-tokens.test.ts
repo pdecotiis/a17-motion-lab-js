@@ -1,7 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { scaleValues, scaleKind, remapReferences, formatTokenFile } from '../../scripts/scale-tokens.js';
+import { spawnSync } from 'node:child_process';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+import { scaleValues, scaleKind, remapReferences, formatTokenFile, applyScale, readScaleConfig, withScaleConfig, parseArgs } from '../../scripts/scale-tokens.js';
+import { previewScale, describeScaleConfig } from '../../lab/lib/scale-apply.js';
+import { deriveKind } from '../../lab/lib/scales.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import type { DtcgGroup } from '../../lab/lib/types.js';
 
@@ -132,5 +138,254 @@ describe('formatTokenFile', () => {
   it('puts one token on each line', () => {
     expect(formatTokenFile({ duration: { '100': { $type: 'duration', $value: '100ms', $extensions: { status: 'system' } } } }))
       .toBe('{\n  "duration": {\n    "100": { "$type": "duration", "$value": "100ms", "$extensions": { "status": "system" } }\n  }\n}\n');
+  });
+});
+
+describe('scaleKind with derived tokens (opacity and scale)', () => {
+  it('opacity: tokens named by percent, as numbers, taking over the old steps', () => {
+    const { tokens: out, renames } = scaleKind(tokens, 'opacity', deriveKind('opacity', 'major-third'));
+    const group = out['opacity'] as Record<string, { $type: string; $value: number; $extensions: { status: string; oldNames?: string[] } }>;
+    // (JS lists whole-number-like keys first; the file writer sorts them)
+    expect(Object.keys(group).sort((a, b) => Number(a) - Number(b))).toEqual(['04', '05', '06', '08', '10', '12', '15', '19']);
+    expect(group['05']).toMatchObject({ $type: 'number', $value: 0.05 });
+    // opacity.56 was the old fourth step: it becomes the new fourth, and remembers its name
+    expect(renames['opacity.56']).toBe('opacity.08');
+    expect(group['08']!.$extensions.oldNames).toContain('56');
+    expect(group['08']!.$extensions.status).toBe('system');
+    expect(group['19']!.$extensions.status).toBe('experimental');
+  });
+
+  it('scale: tokens named by percent around 100%, smallest first', () => {
+    const { tokens: out } = scaleKind(tokens, 'scale', deriveKind('scale', 'perfect-fourth'));
+    const names = Object.keys(out['scale'] as object).map(Number);
+    expect(names).toEqual([...names].sort((a, b) => a - b));
+    expect(names).toHaveLength(10);
+    expect(names.filter(n => n > 100)).toHaveLength(2);
+    const { raw } = compileTokens(out as unknown as DtcgGroup);
+    for (const n of names) expect(raw[`scale.${n}`], String(n)).toBeCloseTo(n / 100, 5);
+  });
+});
+
+describe('applyScale: one scale for every kind', () => {
+  const kinds = ['distance', 'duration', 'delay', 'opacity', 'scale'] as const;
+
+  it('regenerates all five kinds, and the result still compiles', () => {
+    const run = applyScale(tokens, [...kinds], 'major-third');
+    expect(Object.keys(run.derived)).toEqual([...kinds]);
+    const { raw } = compileTokens(run.tokens as unknown as DtcgGroup);
+    expect(raw['distance.4']).toBe('4px');
+    expect(raw['distance.19']).toBe('19px');
+    expect(raw['duration.477']).toBe('477ms');
+    expect(raw['delay.63']).toBe('63ms');
+    expect(raw['opacity.19']).toBe(0.19);
+  });
+
+  it('leaves easing and bounce alone', () => {
+    const run = applyScale(tokens, [...kinds], 'golden-ratio');
+    expect(run.tokens['easing']).toEqual(tokens['easing']);
+    expect(run.tokens['bounce']).toEqual(tokens['bounce']);
+  });
+
+  it('records the scale of each kind in motion.json, and the tokens read back as it', () => {
+    expect(readScaleConfig(tokens)).toEqual({});
+    const run = applyScale(tokens, [...kinds], 'golden-ratio', { distance: { base: 8, steps: 4, snap: 4 } });
+    const config = readScaleConfig(run.tokens);
+    expect(Object.keys(config)).toEqual([...kinds]);
+    expect(config.distance).toEqual({ scale: 'golden-ratio', base: 8, steps: 4, snap: 4 });
+    expect(Object.keys(run.tokens['distance'] as object).sort((a, b) => Number(a) - Number(b))).toEqual(['8', '12', '20', '36']);
+    expect(config.opacity).toEqual({ scale: 'golden-ratio' });
+  });
+
+  it('a later run for one kind keeps the others recorded', () => {
+    const all = applyScale(tokens, [...kinds], 'major-third').tokens;
+    const one = applyScale(all, ['delay'], 'fibonacci').tokens;
+    const config = readScaleConfig(one);
+    expect(config.delay).toEqual({ scale: 'fibonacci' });
+    expect(config.distance).toEqual({ scale: 'major-third' });
+  });
+
+  it('applying the same scale again changes no names', () => {
+    const once = applyScale(tokens, [...kinds], 'minor-third');
+    const twice = applyScale(once.tokens, [...kinds], 'minor-third');
+    for (const [from, to] of Object.entries(twice.renames)) expect(from).toBe(to);
+    expect(twice.tokens).toEqual(once.tokens);
+  });
+
+  it('a scale that does not fit one kind changes nothing: the error comes before any write', () => {
+    expect(() => applyScale(tokens, ['delay', 'distance'], 'minor-third', { distance: { base: 1 } })).toThrow('use a larger base or ratio');
+    expect(() => applyScale(tokens, ['delay'], 'lydian')).toThrow('Unknown scale');
+  });
+
+  it('a custom ratio works for any kind', () => {
+    const run = applyScale(tokens, ['distance'], '1.5');
+    expect(Object.keys(run.tokens['distance'] as object).sort((a, b) => Number(a) - Number(b))).toEqual(['4', '6', '9', '14', '20', '30', '46', '68']);
+    expect(readScaleConfig(run.tokens).distance).toEqual({ scale: '1.5' });
+  });
+
+  it('renames are collected for every kind, so references follow them', () => {
+    const run = applyScale(tokens, [...kinds], 'perfect-fourth');
+    expect(run.renames['distance.16']).toBeDefined();
+    expect(run.renames['duration.300']).toBeDefined();
+    expect(Object.keys(run.renames).every(k => /^(distance|duration|delay|opacity|scale)\./.test(k))).toBe(true);
+  });
+
+  it('the recorded scale survives formatting: the file is written and read back the same', () => {
+    const run = applyScale(tokens, [...kinds], 'major-third');
+    const written = formatTokenFile(run.tokens);
+    expect(JSON.parse(written)).toEqual(JSON.parse(JSON.stringify(run.tokens)));
+    expect(written).toContain('"$extensions"');
+    expect(readScaleConfig(JSON.parse(written) as Record<string, unknown>).distance?.scale).toBe('major-third');
+    expect(formatTokenFile(withScaleConfig(tokens, {}))).toContain('"scale": {');
+  });
+});
+
+describe('parseArgs', () => {
+  it('reads positional arguments, value flags and the boolean flags', () => {
+    const { positional, flags } = parseArgs(['--', '--all', 'major-third', '--snap', '4', '--dry-run']);
+    expect(positional).toEqual(['major-third']);
+    expect(flags.get('all')).toBe(true);
+    expect(flags.get('dry-run')).toBe(true);
+    expect(flags.get('snap')).toBe('4');
+  });
+
+  it('a value flag with no value says so', () => {
+    expect(() => parseArgs(['distance', 'major-third', '--base'])).toThrow('--base needs a value');
+  });
+});
+
+// The command as run for real, on a throwaway copy of the tokens and a version file that uses them.
+describe('npm run tokens:scale', () => {
+  const root = resolve(__dirname, '../..');
+  const dir = mkdtempSync(join(tmpdir(), 'motion-lab-scale-'));
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  const version = [
+    "export const v1 = {",
+    "  model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' },",
+    "  keyframes: [{ transform: 'translateY({distance.16}) scale({scale.95})', opacity: '{opacity.56}' }],",
+    "};",
+    "",
+  ].join('\n');
+
+  const setup = (): string => {
+    const d = mkdtempSync(join(dir, 'run-'));
+    mkdirSync(join(d, 'tokens'));
+    cpSync(join(root, 'tokens/motion.json'), join(d, 'tokens/motion.json'));
+    mkdirSync(join(d, 'components/card/versions'), { recursive: true });
+    writeFileSync(join(d, 'components/card/versions/v1.ts'), version);
+    return d;
+  };
+  const run = (...args: string[]) =>
+    spawnSync('npx', ['vite-node', 'scripts/scale-tokens.ts', '--', ...args], { cwd: root, encoding: 'utf8', env: { ...process.env, VITEST: '' } });
+
+  it('--all applies one scale to every kind, follows the references and records the scale', () => {
+    const d = setup();
+    const r = run('--all', 'major-third', '--root', d);
+    expect(r.status, r.stderr).toBe(0);
+    const out = JSON.parse(readFileSync(join(d, 'tokens/motion.json'), 'utf8')) as Record<string, unknown>;
+    expect(readScaleConfig(out).distance).toEqual({ scale: 'major-third' });
+    expect(Object.keys(out['distance'] as object).sort((a, b) => Number(a) - Number(b))).toEqual(['4', '5', '6', '8', '10', '12', '15', '19']);
+    const { raw } = compileTokens(out as unknown as DtcgGroup);
+    // every reference in the version file still names a token that exists
+    const refs = [...readFileSync(join(d, 'components/card/versions/v1.ts'), 'utf8').matchAll(/(?:'|\{)((?:distance|duration|delay|opacity|scale)\.\w+)/g)].map(m => m[1]!);
+    expect(refs.length).toBeGreaterThan(3);
+    for (const ref of refs) expect(raw[ref], ref).toBeDefined();
+    expect(r.stdout).toContain('distance.16 → distance.');
+  });
+
+  it('--dry-run says what would change and writes nothing', () => {
+    const d = setup();
+    const before = readFileSync(join(d, 'tokens/motion.json'), 'utf8');
+    const r = run('--all', 'perfect-fourth', '--dry-run', '--root', d);
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toContain('Dry run');
+    expect(r.stdout).toContain('Nothing was written');
+    expect(readFileSync(join(d, 'tokens/motion.json'), 'utf8')).toBe(before);
+    expect(readFileSync(join(d, 'components/card/versions/v1.ts'), 'utf8')).toBe(version);
+  });
+
+  it('one kind with its own base and steps', () => {
+    const d = setup();
+    const r = run('distance', 'minor-third', '--base', '8', '--steps', '4', '--root', d);
+    expect(r.status, r.stderr).toBe(0);
+    const out = JSON.parse(readFileSync(join(d, 'tokens/motion.json'), 'utf8')) as Record<string, unknown>;
+    expect(Object.keys(out['distance'] as object).sort((a, b) => Number(a) - Number(b))).toEqual(['8', '10', '12', '14']);
+    expect(readScaleConfig(out).distance).toEqual({ scale: 'minor-third', base: 8, steps: 4 });
+    expect(readScaleConfig(out).delay).toBeUndefined();
+  });
+
+  it('says what is wrong and changes nothing for an unknown scale, a bad kind or a collision', () => {
+    const d = setup();
+    const before = readFileSync(join(d, 'tokens/motion.json'), 'utf8');
+    expect(run('distance', 'lydian', '--root', d).stderr).toContain('Unknown scale');
+    expect(run('wobble', 'major-third', '--root', d).stderr).toContain('Usage');
+    const collide = run('distance', 'minor-third', '--base', '1', '--root', d);
+    expect(collide.status).toBe(1);
+    expect(collide.stderr).toContain('use a larger base or ratio');
+    expect(readFileSync(join(d, 'tokens/motion.json'), 'utf8')).toBe(before);
+    expect(existsSync(join(d, 'components/card/versions/v1.ts'))).toBe(true);
+  });
+});
+
+describe('previewScale: what a scale would do, without doing it', () => {
+  const usedBy = (path: string): string[] => ({ 'distance.16': ['card/v1', 'card/v4'], 'duration.300': ['card/v2'], 'opacity.56': ['card/v1'] } as Record<string, string[]>)[path] ?? [];
+
+  it('lists every kind, each current token next to the one that takes its place', () => {
+    const p = previewScale(tokens, 'major-third', usedBy);
+    expect(p.error).toBeUndefined();
+    expect([...new Set(p.rows.map(r => r.kind))]).toEqual(['distance', 'duration', 'delay', 'opacity', 'scale']);
+    expect(p.rows.filter(r => r.kind === 'distance')).toHaveLength(8);
+    const sixteen = p.rows.find(r => r.from?.path === 'distance.16')!;
+    expect(sixteen.from).toEqual({ path: 'distance.16', value: '16px' });
+    expect(sixteen.to).toEqual({ path: 'distance.8', value: '8px' });
+    expect(sixteen.renamed).toBe(true);
+    expect(sixteen.usedBy).toEqual(['card/v1', 'card/v4']);
+  });
+
+  it('shows opacity and scale as percents, and a token that keeps its name as not renamed', () => {
+    const p = previewScale(tokens, 'major-third');
+    const fiftySix = p.rows.find(r => r.from?.path === 'opacity.56')!;
+    expect(fiftySix.from!.value).toBe('56%');
+    expect(fiftySix.to).toEqual({ path: 'opacity.08', value: '8%' });
+    const first = p.rows.find(r => r.from?.path === 'distance.4')!;
+    expect(first.renamed).toBe(false);
+    expect(first.to!.path).toBe('distance.4');
+  });
+
+  it('counts the renames and the versions that use a renamed token', () => {
+    const p = previewScale(tokens, 'major-third', usedBy);
+    const renames = applyScale(tokens, ['distance', 'duration', 'delay', 'opacity', 'scale'], 'major-third').renames;
+    expect(p.renamed).toBe(Object.entries(renames).filter(([from, to]) => from !== to).length);
+    expect(p.versions).toEqual(['card/v1', 'card/v2', 'card/v4']);
+  });
+
+  it('agrees with the generator: the same renames', () => {
+    const run = applyScale(tokens, ['distance', 'duration', 'delay', 'opacity', 'scale'], 'perfect-fourth');
+    const p = previewScale(tokens, 'perfect-fourth');
+    const fromPreview = Object.fromEntries(p.rows.filter(r => r.from && r.to && r.renamed).map(r => [r.from!.path, r.to!.path]));
+    for (const [from, to] of Object.entries(run.renames)) if (from !== to) expect(fromPreview[from], from).toBe(to);
+  });
+
+  it('a step the scale drops folds into the last: its references follow it', () => {
+    const p = previewScale(tokens, 'minor-third', usedBy, ['opacity'], { opacity: { steps: 2 } });
+    const rows = p.rows.filter(r => r.kind === 'opacity');
+    expect(rows).toHaveLength(4);
+    expect(rows[3]!.to).toBeNull();
+    expect(rows[3]!.renamed).toBe(true);
+    expect(rows[3]!.usedBy).toEqual(['card/v1']);
+  });
+
+  it('a scale that does not fit says so instead of throwing, and shows no rows', () => {
+    const p = previewScale(tokens, 'lydian');
+    expect(p.error).toContain('Unknown scale');
+    expect(p.rows).toEqual([]);
+    const collide = previewScale(tokens, 'minor-third', usedBy, ['distance'], { distance: { base: 1 } });
+    expect(collide.error).toContain('use a larger base or ratio');
+  });
+
+  it('describeScaleConfig says Custom until a scale is recorded, then the scale of each kind', () => {
+    expect(describeScaleConfig(tokens)).toEqual({ custom: true, kinds: {} });
+    const applied = applyScale(tokens, ['distance'], 'fibonacci').tokens;
+    expect(describeScaleConfig(applied)).toEqual({ custom: false, kinds: { distance: { scale: 'fibonacci' } } });
   });
 });

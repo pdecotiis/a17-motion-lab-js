@@ -32,6 +32,7 @@
             <option value="2">2×</option>
           </select>
         </label>
+        <button class="lab-btn lab-btn--icon" id="settings-btn" aria-label="Settings" aria-haspopup="dialog" title="Settings">⚙</button>
         <button class="lab-btn lab-btn--icon" id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">☀</button>
       </div>
     </header>
@@ -44,6 +45,18 @@
       <!-- Rendered by main.ts -->
     </main>
   </div>
+
+  <dialog id="settings-dialog" class="lab-settings" aria-labelledby="settings-title">
+    <header class="lab-settings__header">
+      <h2 id="settings-title" class="lab-settings__title">Settings</h2>
+      <button type="button" class="lab-btn lab-btn--icon" id="settings-close" aria-label="Close settings">×</button>
+    </header>
+    <section class="lab-settings__section" aria-labelledby="settings-scale-title">
+      <h3 id="settings-scale-title" class="lab-settings__heading">Global scale</h3>
+      <p class="lab-settings__intro">How the distance, duration, delay, opacity and scale tokens get their values. You won't change this often: pick a scale, see what it would do to the tokens, then apply it.</p>
+      <div id="settings-body"></div>
+    </section>
+  </dialog>
   <script type="module" src="./main.ts"></script>
 </body>
 </html>

@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { scaleApplyPlugin } from './scripts/scale-plugin';
 
 export default defineConfig({
   root: 'lab',
   base: './',
+  plugins: [scaleApplyPlugin(__dirname)],
   build: {
     outDir: '../dist',
     emptyOutDir: true,
