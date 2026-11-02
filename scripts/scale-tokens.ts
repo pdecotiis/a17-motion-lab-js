@@ -15,6 +15,7 @@
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { scaleValues } from '../lab/lib/scales.js';
 
 export type ScaleKind = 'duration' | 'distance' | 'delay';
 export const SCALE_KINDS: readonly ScaleKind[] = ['duration', 'distance', 'delay'];
@@ -24,18 +25,8 @@ const TYPE: Record<ScaleKind, string> = { duration: 'duration', distance: 'dimen
 type Json = Record<string, unknown>;
 type TokenJson = { $type: string; $value: string; $description?: string; $extensions?: { status?: string; oldNames?: string[] } };
 
-// base × the scale's multipliers, rounded; each step must be larger than the one before.
-export function scaleValues(scale: 'fibonacci' | number, base: number, steps: number): number[] {
-  if (!(base > 0) || !Number.isInteger(steps) || steps < 1) throw new Error('base must be above 0 and steps a whole number');
-  if (scale !== 'fibonacci' && !(scale > 1)) throw new Error('A ratio must be above 1');
-  const fib = [1, 2];
-  while (fib.length < steps) fib.push(fib[fib.length - 1]! + fib[fib.length - 2]!);
-  const values = Array.from({ length: steps }, (_, i) => Math.round(base * (scale === 'fibonacci' ? fib[i]! : scale ** i)));
-  values.forEach((v, i) => {
-    if (i > 0 && v <= values[i - 1]!) throw new Error(`Steps ${i} and ${i + 1} both round to ${v}: use a larger base or ratio`);
-  });
-  return values;
-}
+// The maths lives in lab/lib/scales.ts (shared with the global scale); re-exported for the generator's tests.
+export { scaleValues };
 
 const valueOf = (t: TokenJson): number => parseFloat(t.$value);
 
