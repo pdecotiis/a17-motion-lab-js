@@ -1,7 +1,7 @@
-import type { ComponentModule, MotionVersion } from './types.js';
-import { filterFromParams, filterVersions, type VersionFilter } from './version-meta.js';
+import type { ComponentModule, ComponentStatus, MotionVersion } from './types.js';
+import { componentPasses, filterFromParams, getComponentStatus, type ComponentFilter } from './version-meta.js';
 
-export interface LibraryFilter extends VersionFilter {
+export interface LibraryFilter extends ComponentFilter {
   /** Case-insensitive match against the component name (hyphens count as spaces). */
   query?: string;
 }
@@ -10,9 +10,8 @@ export interface LibraryEntry {
   name: string;
   /** Version the card previews: the component's default if it is visible, else the first visible one. */
   previewVersion: MotionVersion;
-  /** Versions that pass the status filter. */
-  visibleVersions: MotionVersion[];
-  /** All versions, regardless of the filter. */
+  /** The component's status (approval is the component's, not a version's). */
+  status: ComponentStatus;
   totalVersions: number;
 }
 
@@ -20,8 +19,8 @@ function normalize(s: string): string {
   return s.toLowerCase().replace(/-/g, ' ').trim();
 }
 
-// A component is listed when its name matches the query and at least one of its
-// versions passes the status filter (archived versions are hidden by default).
+// A component is listed when its name matches the query and its status passes the
+// filter (archived components are hidden by default).
 export function buildLibraryEntries(
   modules: Record<string, ComponentModule>,
   filter: LibraryFilter = {},
@@ -31,11 +30,9 @@ export function buildLibraryEntries(
   for (const name of Object.keys(modules).sort()) {
     const module = modules[name]!;
     if (query && !normalize(name).includes(query)) continue;
-    const visibleVersions = filterVersions(module.versions, filter);
-    if (visibleVersions.length === 0) continue;
-    const previewVersion =
-      visibleVersions.find(v => v.id === module.defaultVersion) ?? visibleVersions[0]!;
-    entries.push({ name, previewVersion, visibleVersions, totalVersions: module.versions.length });
+    if (!componentPasses(module, filter) || module.versions.length === 0) continue;
+    const previewVersion = module.versions.find(v => v.id === module.defaultVersion) ?? module.versions[0]!;
+    entries.push({ name, previewVersion, status: getComponentStatus(module), totalVersions: module.versions.length });
   }
   return entries;
 }

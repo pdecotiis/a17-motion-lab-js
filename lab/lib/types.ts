@@ -88,7 +88,8 @@ export interface Interaction {
   triggers?: InteractionTrigger[];
 }
 
-export type VersionStatus = 'in-progress' | 'review' | 'approved' | 'archived';
+// Where a component is in review. Approval is the component's, not a version's.
+export type ComponentStatus = 'in-progress' | 'review' | 'approved' | 'archived';
 
 // What makes the motion play in production. The lab plays on demand, so this is a spec for the
 // developer, not something the lab simulates.
@@ -131,7 +132,6 @@ export interface MotionVersion {
   stagger?: string;
   trigger?: MotionTrigger;               // absent = not specified; the spec says so rather than guessing
   reducedMotion?: ReducedMotionPolicy;   // absent = 'fade'
-  status?: VersionStatus;  // absent = 'in-progress'
   forkedFrom?: string;     // parent version id in the same component
   lineage?: string;        // origin when not forked, e.g. 'imported from <figma link>'
   // Future-ready
@@ -141,6 +141,8 @@ export interface MotionVersion {
 export interface ComponentModule {
   versions: MotionVersion[];
   defaultVersion: string;
+  /** absent = 'in-progress'. Set in the component's motion.ts. */
+  status?: ComponentStatus;
 }
 
 export interface PageComponent {

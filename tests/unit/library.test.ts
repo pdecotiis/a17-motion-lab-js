@@ -13,43 +13,51 @@ const version = (over: Partial<MotionVersion> & { id: string }): MotionVersion =
 const modules: Record<string, ComponentModule> = {
   'hero-banner': {
     defaultVersion: 'v1',
-    versions: [version({ id: 'v1' }), version({ id: 'v2', status: 'review', forkedFrom: 'v1' })],
+    status: 'review',
+    versions: [version({ id: 'v1' }), version({ id: 'v2', forkedFrom: 'v1' })],
   },
   card: {
-    defaultVersion: 'v1',
-    versions: [version({ id: 'v1', status: 'archived' }), version({ id: 'v2', status: 'approved', forkedFrom: 'v1' })],
+    defaultVersion: 'v2',
+    status: 'approved',
+    versions: [version({ id: 'v1' }), version({ id: 'v2', forkedFrom: 'v1' })],
   },
   'old-thing': {
     defaultVersion: 'v1',
-    versions: [version({ id: 'v1', status: 'archived' })],
+    status: 'archived',
+    versions: [version({ id: 'v1' })],
+  },
+  fresh: {
+    defaultVersion: 'v1',
+    versions: [version({ id: 'v1' })],
   },
 };
 
 describe('buildLibraryEntries', () => {
-  it('lists components alphabetically and hides ones with only archived versions', () => {
-    expect(buildLibraryEntries(modules).map(e => e.name)).toEqual(['card', 'hero-banner']);
+  it('lists components alphabetically and hides archived ones', () => {
+    expect(buildLibraryEntries(modules).map(e => e.name)).toEqual(['card', 'fresh', 'hero-banner']);
   });
 
-  it('shows archived-only components with showArchived', () => {
+  it('shows archived components with showArchived', () => {
     const names = buildLibraryEntries(modules, { showArchived: true }).map(e => e.name);
-    expect(names).toEqual(['card', 'hero-banner', 'old-thing']);
+    expect(names).toEqual(['card', 'fresh', 'hero-banner', 'old-thing']);
   });
 
-  it('previews the default version when it is visible', () => {
-    const entry = buildLibraryEntries(modules).find(e => e.name === 'hero-banner')!;
-    expect(entry.previewVersion.id).toBe('v1');
+  it('carries the component status (absent counts as in-progress)', () => {
+    const byName = Object.fromEntries(buildLibraryEntries(modules, { showArchived: true }).map(e => [e.name, e.status]));
+    expect(byName).toEqual({ card: 'approved', fresh: 'in-progress', 'hero-banner': 'review', 'old-thing': 'archived' });
   });
 
-  it('previews the first visible version when the default is hidden', () => {
-    const entry = buildLibraryEntries(modules).find(e => e.name === 'card')!;
-    expect(entry.previewVersion.id).toBe('v2');
-    expect(entry.visibleVersions.map(v => v.id)).toEqual(['v2']);
-    expect(entry.totalVersions).toBe(2);
+  it('previews the component\'s default version and counts all versions', () => {
+    const card = buildLibraryEntries(modules).find(e => e.name === 'card')!;
+    expect(card.previewVersion.id).toBe('v2');
+    expect(card.totalVersions).toBe(2);
+    expect(buildLibraryEntries(modules).find(e => e.name === 'hero-banner')!.previewVersion.id).toBe('v1');
   });
 
-  it('filters by status', () => {
+  it('filters by the component\'s status', () => {
     expect(buildLibraryEntries(modules, { status: 'review' }).map(e => e.name)).toEqual(['hero-banner']);
-    expect(buildLibraryEntries(modules, { status: 'archived' }).map(e => e.name)).toEqual(['card', 'old-thing']);
+    expect(buildLibraryEntries(modules, { status: 'archived' }).map(e => e.name)).toEqual(['old-thing']);
+    expect(buildLibraryEntries(modules, { status: 'in-progress' }).map(e => e.name)).toEqual(['fresh']);
   });
 
   it('filters by name, treating hyphens as spaces and ignoring case', () => {

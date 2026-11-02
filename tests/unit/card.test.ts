@@ -2,52 +2,72 @@ import { describe, it, expect } from 'vitest';
 import { resolveTiming, resolveKeyframes, playbackOf, stepsOf, validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
-import type { DtcgGroup } from '../../lab/lib/types.js';
-import { v1, v2, v3, v4, v5, versions } from '../../components/card/motion.js';
+import type { DtcgGroup, MotionVersion } from '../../lab/lib/types.js';
+import cardModule, { v1, v2, versions } from '../../components/card/motion.js';
 import { stateNames, hasHoldTriggers, layerNames, timingFor, cssTransitionPlan, motionStates, motionTransitionPlan } from '../../lab/lib/interaction.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { validateVersionMeta, filterVersions } from '../../lab/lib/version-meta.js';
+import { validateVersionMeta } from '../../lab/lib/version-meta.js';
 import { getTokenRefs, pairingWarnings } from '../../lab/lib/token-refs.js';
 
 const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
 
-describe('Card motion versions', () => {
-  describe('v1 (Fade Up — tween)', () => {
+// The generic tween and spring behaviour the card's earlier versions showed, on fixtures of their own.
+const fadeUp: MotionVersion = {
+  id: 'v1', label: 'Fade Up', lineage: 'fixture',
+  model: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-entrance', delay: '0ms' },
+  keyframes: [
+    { opacity: 0, transform: 'translateY({distance.16})', offset: 0 },
+    { opacity: 1, transform: 'translateY(0px)', offset: 1 },
+  ],
+};
+const scaleIn: MotionVersion = {
+  id: 'v1', label: 'Scale In', lineage: 'fixture',
+  model: {
+    model: 'spring', duration: 'duration.300', easing: 'easing.productive-entrance', bounce: 'bounce.0',
+    properties: [
+      { property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 },
+      { property: 'opacity', from: 0, to: 1 },
+    ],
+  },
+};
+
+describe('Card motion models', () => {
+  describe('a fade-up tween', () => {
     it('validates with no structural keyframe properties', () => {
-      expect(() => validateMotionVersion(v1)).not.toThrow();
+      expect(() => validateMotionVersion(fadeUp)).not.toThrow();
     });
 
     it('produces a numeric duration', () => {
-      const t = resolveTiming(v1, raw);
+      const t = resolveTiming(fadeUp, raw);
       expect(typeof t.duration).toBe('number');
       expect(t.duration).toBeGreaterThan(0);
     });
 
     it('plays duration.220 with productive-entrance (220ms)', () => {
-      const t = resolveTiming(v1, raw);
+      const t = resolveTiming(fadeUp, raw);
       expect(t.duration).toBe(220);
       expect(t.easing).toBe('cubic-bezier(0, 0, 0.38, 0.9)');
     });
 
     it('names its travel distance as a token, so the keyframes resolve to 16px', () => {
-      expect(v1.keyframes![0]!.transform).toBe('translateY({distance.16})');
-      expect(resolveKeyframes(v1.keyframes, raw)[0]!.transform).toBe('translateY(16px)');
+      expect(fadeUp.keyframes![0]!.transform).toBe('translateY({distance.16})');
+      expect(resolveKeyframes(fadeUp.keyframes, raw)[0]!.transform).toBe('translateY(16px)');
     });
 
     it('produces a cubic-bezier easing string', () => {
-      const t = resolveTiming(v1, raw);
+      const t = resolveTiming(fadeUp, raw);
       expect(t.easing).toContain('cubic-bezier');
     });
   });
 
-  describe('v2 (Scale In — spring)', () => {
+  describe('a scale-in spring', () => {
     it('validates (non-empty properties array, no disallowed keys)', () => {
-      expect(() => validateMotionVersion(v2)).not.toThrow();
+      expect(() => validateMotionVersion(scaleIn)).not.toThrow();
     });
 
     it('plays its from and to values with productive-entrance over duration.300', () => {
-      const p = playbackOf(v2, raw);
+      const p = playbackOf(scaleIn, raw);
       expect(p.keyframes).toHaveLength(2);
       expect(p.keyframes[0]).toMatchObject({ transform: 'scale(0.92)', opacity: 0 });
       expect(p.keyframes[1]).toMatchObject({ transform: 'scale(1)', opacity: 1 });
@@ -56,7 +76,7 @@ describe('Card motion versions', () => {
     });
 
     it('never overshoots 1: CSS plays no spring', () => {
-      const scales = playbackOf(v2, raw).keyframes
+      const scales = playbackOf(scaleIn, raw).keyframes
         .map(kf => kf.transform)
         .filter((t): t is string => typeof t === 'string')
         .map(t => parseFloat(t.replace('scale(', '')));
@@ -65,21 +85,22 @@ describe('Card motion versions', () => {
   });
 });
 
-describe('v4 (Fade Up, Text Follows: layers)', () => {
-  it('validates, forked from v1', () => {
-    expect(() => validateMotionVersion(v4)).not.toThrow();
-    expect(v4.forkedFrom).toBe('v1');
+describe('v1 (Fade Up, Text Follows: layers)', () => {
+  it('validates, and is the first version', () => {
+    expect(() => validateMotionVersion(v1)).not.toThrow();
+    expect(v1.forkedFrom).toBeUndefined();
+    expect(v1.lineage).toBeTruthy();
   });
 
-  it('moves the card like v1 and gives the title and the text their own motion', () => {
-    expect(v4.model).toEqual({ ...v1.model });
-    expect(Object.keys(v4.layers!)).toEqual(['title', 'text']);
-    expect(stepsOf(v4).map(s => resolveTiming(s.version, raw).delay)).toEqual([0, 70, 120]);
+  it('moves the card like a fade-up and gives the title and the text their own motion', () => {
+    expect(v1.model).toEqual(fadeUp.model);
+    expect(Object.keys(v1.layers!)).toEqual(['title', 'text']);
+    expect(stepsOf(v1).map(s => resolveTiming(s.version, raw).delay)).toEqual([0, 70, 120]);
   });
 
   it('every layer is a layer in the card markup', () => {
     const markup = readFileSync(join(process.cwd(), 'components/card/markup.html'), 'utf8');
-    for (const name of Object.keys(v4.layers!)) expect(markup).toContain(`data-motion="${name}"`);
+    for (const name of Object.keys(v1.layers!)) expect(markup).toContain(`data-motion="${name}"`);
   });
 });
 
@@ -94,34 +115,28 @@ describe('Card tokens', () => {
   });
 
   it('staggers with delay tokens', () => {
-    expect(versions.map(v => v.stagger)).toEqual(['delay.70', 'delay.120', 'delay.70', 'delay.70', undefined]);
+    expect(versions.map(v => v.stagger)).toEqual(['delay.70', undefined]);
   });
 });
 
 describe('Card status and lineage', () => {
-  it('every version has valid status and lineage', () => {
-    expect(() => validateVersionMeta(versions)).not.toThrow();
+  it('every version has lineage, and the component has a valid status', () => {
+    expect(() => validateVersionMeta(versions, cardModule.status)).not.toThrow();
   });
 
-  it('v3 validates and is archived, forked from v1', () => {
-    expect(() => validateMotionVersion(v3)).not.toThrow();
-    expect(v3.status).toBe('archived');
-    expect(v3.forkedFrom).toBe('v1');
-  });
-
-  it('archived v3 is hidden from the default version list', () => {
-    expect(filterVersions(versions).map(v => v.id)).toEqual(['v1', 'v2', 'v4', 'v5']);
+  it('keeps the last two versions, numbered without gaps', () => {
+    expect(versions.map(v => v.id)).toEqual(['v1', 'v2']);
   });
 });
 
-describe('v5 (Hover Lift: states, triggers and a layer)', () => {
-  const i = v5.interaction!;
+describe('v2 (Hover Lift: states, triggers and a layer)', () => {
+  const i = v2.interaction!;
 
   it('validates, has no model of its own, and follows the pairing rules', () => {
-    expect(() => validateMotionVersion(v5)).not.toThrow();
-    expect(v5.model).toBeUndefined();
-    expect(pairingWarnings(v5, raw)).toEqual([]);
-    expect(v5.forkedFrom).toBe('v1');
+    expect(() => validateMotionVersion(v2)).not.toThrow();
+    expect(v2.model).toBeUndefined();
+    expect(pairingWarnings(v2, raw)).toEqual([]);
+    expect(v2.forkedFrom).toBe('v1');
   });
 
   it('has three states, rest first, and hover and press as triggers on the card', () => {
@@ -162,7 +177,7 @@ describe('v5 (Hover Lift: states, triggers and a layer)', () => {
   });
 
   it('names its tokens: the transitions, and the distance and scales its states use', () => {
-    const t = getTokenRefs(v5, raw).tokens;
+    const t = getTokenRefs(v2, raw).tokens;
     expect(t).toEqual(expect.arrayContaining(['duration.220', 'duration.100', 'duration.140', 'duration.300', 'easing.productive-standard', 'easing.productive-exit', 'distance.4', 'scale.98', 'bounce.0']));
   });
 });

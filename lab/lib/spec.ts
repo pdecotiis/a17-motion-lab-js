@@ -1,4 +1,4 @@
-import type { MotionVersion, EntranceVersion, TweenModel, SpringModel } from './types.js';
+import type { ComponentStatus, MotionVersion, EntranceVersion, TweenModel, SpringModel } from './types.js';
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getStepRefs, getTokenRefs } from './token-refs.js';
@@ -6,7 +6,7 @@ import { interactionParts, partValues, resolveState, stateNames, timingFor } fro
 import { resolveKeyframes, stepsOf } from './motion-models.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import {
-  STATUS_LABELS, describeLineage, describeTrigger, getReducedMotionPolicy, getVersionStatus,
+  STATUS_LABELS, describeLineage, describeTrigger, getReducedMotionPolicy,
   REDUCED_MOTION_LABELS,
 } from './version-meta.js';
 
@@ -148,6 +148,7 @@ export function buildVersionExport(
   version: MotionVersion,
   siblings: MotionVersion[],
   tokens: CompiledTokens,
+  componentStatus: ComponentStatus = 'in-progress',
 ): VersionExport {
   const { raw, cssVars } = tokens;
   const name = `motion-${component}-${version.id}`;
@@ -159,11 +160,11 @@ export function buildVersionExport(
   const tokensCss = varLines.length ? `:root {\n${varLines.join('\n')}\n}\n` : '/* This version uses no CSS-variable tokens. */\n';
 
   const trigger = describeTrigger(version.trigger);
-  const status = getVersionStatus(version);
+  const status = componentStatus;
   const md: string[] = [
     `# ${component} ${version.id}: ${version.label}`,
     '',
-    `Status: ${STATUS_LABELS[status]}${status === 'approved' ? '' : ' (not approved yet, expect changes)'}`,
+    `Component status: ${STATUS_LABELS[status]}${status === 'approved' ? '' : ' (not approved yet, expect changes)'}`,
     `Lineage: ${describeLineage(version, siblings)}`,
     'Source: Motion Lab. The values below come from the version file; motion.css is generated from the same data.',
     '',

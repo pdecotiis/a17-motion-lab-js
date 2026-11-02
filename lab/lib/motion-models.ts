@@ -3,7 +3,7 @@ import { getEffectiveKeyframes, REDUCED_MOTION_FADE_MS } from './reduced-motion.
 import { resolveRefs } from './token-compiler.js';
 import { resolveBounce } from './bounce.js';
 import { validateInteraction } from './interaction.js';
-import { isVersionStatus, isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
+import { isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
 
 export interface ResolvedTiming {
   duration: number;
@@ -173,15 +173,11 @@ export function describePlayback(p: Playback): string {
 export { resolveBounce };
 
 export function validateMotionVersion(version: MotionVersion): void {
-  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'interaction', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
+  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'interaction', 'reviewNotes', 'forkedFrom', 'lineage']);
   for (const key of Object.keys(version)) {
     if (!allowed.has(key)) {
       throw new Error(`MotionVersion "${version.id}" has disallowed property: "${key}"`);
     }
-  }
-
-  if (version.status !== undefined && !isVersionStatus(version.status)) {
-    throw new Error(`MotionVersion "${version.id}" has unknown status: "${String(version.status)}"`);
   }
 
   if (version.trigger !== undefined) {

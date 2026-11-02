@@ -9,8 +9,8 @@
  *   tokens.css   the CSS custom properties that version uses
  *   spec.md      when it plays, what animates, timing, reduced motion, what the lab doesn't cover
  *
- * With no version, exports every approved version. With a version id, exports that one
- * whatever its status (spec.md says when it isn't approved).
+ * With no version, exports the component's latest version when the component is approved.
+ * With a version id, exports that one whatever the component's status (spec.md says when it isn't approved).
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -18,7 +18,7 @@ import { compileTokens } from '../lab/lib/token-compiler.js';
 import { buildVersionExport } from '../lab/lib/spec.js';
 import { buildExportCode, EXPORT_FILES, EXPORT_FORMATS, type ExportFormat } from '../lab/lib/export-code.js';
 import { DEFAULT_BOUNCE } from '../lab/lib/motion-args.js';
-import { getVersionStatus } from '../lab/lib/version-meta.js';
+import { getComponentStatus } from '../lab/lib/version-meta.js';
 import type { ComponentModule, DtcgGroup } from '../lab/lib/types.js';
 
 const positional: string[] = [];
@@ -56,6 +56,7 @@ const outRoot = resolve(root, outArg ?? 'export');
 
 const mod = (await import(resolve(root, 'components', component, 'motion.ts'))) as { default: ComponentModule };
 const versions = mod.default.versions;
+const componentStatus = getComponentStatus(mod.default);
 const tokens = compileTokens(JSON.parse(readFileSync(resolve(root, 'tokens/motion.json'), 'utf8')) as DtcgGroup);
 
 const globalBounce = bounceArg === undefined ? DEFAULT_BOUNCE : `bounce.${bounceArg}`;
@@ -66,13 +67,13 @@ if (!(globalBounce in tokens.raw)) {
 
 const chosen = versionId
   ? versions.filter(v => v.id === versionId)
-  : versions.filter(v => getVersionStatus(v) === 'approved');
+  : componentStatus === 'approved' ? versions.slice(-1) : [];
 
 if (chosen.length === 0) {
   console.error(
     versionId
       ? `"${component}" has no version "${versionId}" (it has ${versions.map(v => v.id).join(', ')})`
-      : `"${component}" has no approved versions. Pass a version id to export one anyway.`,
+      : `"${component}" is not approved (it is ${componentStatus}). Pass a version id to export one anyway.`,
   );
   process.exit(1);
 }
@@ -80,12 +81,12 @@ if (chosen.length === 0) {
 for (const v of chosen) {
   const dir = join(outRoot, component, v.id);
   mkdirSync(dir, { recursive: true });
-  const { css, tokensCss, markdown } = buildVersionExport(component, v, versions, tokens);
+  const { css, tokensCss, markdown } = buildVersionExport(component, v, versions, tokens, componentStatus);
   // motion.css is always written; GSAP and Motion code on request.
   writeFileSync(join(dir, EXPORT_FILES.css), css);
   const extra = (formatArg === 'all' ? EXPORT_FORMATS : [formatArg as ExportFormat]).filter(f => f !== 'css');
   for (const f of extra) writeFileSync(join(dir, EXPORT_FILES[f]), buildExportCode(f, v, tokens.raw, { component, globalBounce, css }));
   writeFileSync(join(dir, 'tokens.css'), tokensCss);
   writeFileSync(join(dir, 'spec.md'), markdown);
-  console.log(`${component} ${v.id} (${getVersionStatus(v)}) → ${dir}`);
+  console.log(`${component} ${v.id} (${componentStatus}) → ${dir}`);
 }

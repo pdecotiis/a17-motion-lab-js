@@ -171,7 +171,6 @@ export const v1: MotionVersion = {
     { opacity: 0, transform: 'translateY({distance.16})', offset: 0 },
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
-  status: 'in-progress',
   lineage: ${JSON.stringify(`imported from ${figmaUrl}`)},
 };
 

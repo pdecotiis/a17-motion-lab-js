@@ -1,6 +1,6 @@
 import tokensJson from '../tokens/motion.json';
 import type {
-  MotionVersion, PageConfig, MotionMap, ComponentModule, Preset, DtcgGroup,
+  MotionVersion, PageConfig, MotionMap, ComponentModule, ComponentStatus, Preset, DtcgGroup,
 } from './lib/types.js';
 import { compileTokens, applyTokensToDom, tokenLabel } from './lib/token-compiler.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
@@ -15,9 +15,9 @@ import { createInteractionPlayer, type InteractionPlayer } from './lib/interacti
 import { describeTransition, hasHoldTriggers, interactionParts, stateNames } from './lib/interaction.js';
 import { summarizeInteraction } from './lib/interaction-summary.js';
 import {
-  VERSION_STATUSES, STATUS_LABELS, getVersionStatus, filterVersions, describeLineage, filterFromParams,
+  COMPONENT_STATUSES, STATUS_LABELS, getComponentStatus, describeLineage, filterFromParams,
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
-  type VersionFilter,
+  type ComponentFilter,
 } from './lib/version-meta.js';
 import { getStepRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
@@ -418,10 +418,10 @@ function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number)
   return cssHandle(el, anim);
 }
 
-// ── Version status helpers ─────────────────────────────────────────────────
+// ── Component status helpers ───────────────────────────────────────────────
+// Approval is the component's, not a version's: the badge shows in the library, the status in the component's Details.
 
-function statusBadge(version: MotionVersion): HTMLSpanElement {
-  const status = getVersionStatus(version);
+function statusBadge(status: ComponentStatus): HTMLSpanElement {
   const badge = document.createElement('span');
   badge.className = `lab-status-badge lab-status-badge--${status}`;
   badge.dataset['status'] = status;
@@ -430,7 +430,7 @@ function statusBadge(version: MotionVersion): HTMLSpanElement {
 }
 
 // Status filter + "Show archived" toggle; state lives in the URL (?status=…&archived=1).
-function buildVersionFilterControls(filter: VersionFilter, onChange: (next: VersionFilter) => void): HTMLElement {
+function buildStatusFilterControls(filter: ComponentFilter, onChange: (next: ComponentFilter) => void): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'lab-version-filter';
 
@@ -442,7 +442,7 @@ function buildVersionFilterControls(filter: VersionFilter, onChange: (next: Vers
   all.value = 'all';
   all.textContent = 'All statuses';
   select.appendChild(all);
-  for (const s of VERSION_STATUSES) {
+  for (const s of COMPONENT_STATUSES) {
     const opt = document.createElement('option');
     opt.value = s;
     opt.textContent = STATUS_LABELS[s];
@@ -459,7 +459,7 @@ function buildVersionFilterControls(filter: VersionFilter, onChange: (next: Vers
   toggleLabel.append(toggle, document.createTextNode(' Show archived'));
 
   const emit = (): void => {
-    const status = select.value as VersionFilter['status'];
+    const status = select.value as ComponentFilter['status'];
     const sp = new URLSearchParams(window.location.search);
     if (status === 'all') sp.delete('status'); else sp.set('status', status as string);
     if (toggle.checked) sp.set('archived', '1'); else sp.delete('archived');
@@ -503,17 +503,21 @@ function renderComponentView(params: URLSearchParams): void {
         </div>
       </div>
       <aside class="lab-sidebar">
-        <!-- Accordions: Version and Tokens Used open, the rest closed. Compare stays a plain panel. -->
+        <!-- Accordions: Version, Details and Tokens Used open, the rest closed. Compare stays a plain panel. -->
         <details class="lab-controls lab-accordion" open>
           <summary class="lab-controls__title">Version</summary>
           <div class="lab-accordion__body">
-            <div id="version-filter"></div>
             <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
             <p class="lab-lineage" id="version-lineage"></p>
-            <dl class="lab-spec-meta" id="version-spec-meta"></dl>
-            <div class="lab-behaviour" id="version-behaviour" hidden></div>
             <button class="lab-btn" id="replay-btn">Replay</button>
             <div class="lab-states" id="interaction-controls" hidden></div>
+          </div>
+        </details>
+        <details class="lab-controls lab-accordion" open id="details-panel">
+          <summary class="lab-controls__title">Details</summary>
+          <div class="lab-accordion__body">
+            <div class="lab-behaviour" id="version-behaviour" hidden></div>
+            <dl class="lab-spec-meta" id="version-spec-meta"></dl>
           </div>
         </details>
         <details class="lab-controls lab-accordion" open>
@@ -556,19 +560,13 @@ function renderComponentView(params: URLSearchParams): void {
   const mod = motionModules[`../components/${componentName}/motion.ts`];
   const allVersions: MotionVersion[] = mod?.versions ?? [];
 
-  const versionFilter = filterFromParams(params);
-  const visibleVersions = filterVersions(allVersions, { ...versionFilter, keepId: versionId });
-  document.getElementById('version-filter')!.appendChild(
-    buildVersionFilterControls(versionFilter, () => renderComponentView(new URLSearchParams(window.location.search))),
-  );
-
-  visibleVersions.forEach(v => {
+  allVersions.forEach(v => {
     const btn = document.createElement('button');
     btn.className = 'lab-version-tab' + (v.id === versionId ? ' lab-version-tab--active' : '');
     btn.dataset['versionId'] = v.id;
     btn.setAttribute('role', 'tab');
     btn.setAttribute('aria-selected', v.id === versionId ? 'true' : 'false');
-    btn.append(document.createTextNode(`${v.id}: ${v.label} `), statusBadge(v));
+    btn.textContent = `${v.id}: ${v.label}`;
     btn.addEventListener('click', () => {
       const sp = new URLSearchParams(window.location.search);
       sp.set('version', v.id);
@@ -585,6 +583,7 @@ function renderComponentView(params: URLSearchParams): void {
   const specMeta = document.getElementById('version-spec-meta')!;
   const triggerText = describeTrigger(version.trigger);
   const specRows: [string, string, boolean][] = [
+    ['Component status', STATUS_LABELS[getComponentStatus(mod ?? {})], false],
     ['Plays', triggerText ?? 'Trigger not specified', triggerText === null],
     ['Reduced motion', REDUCED_MOTION_LABELS[getReducedMotionPolicy(version)], false],
     // What is playing, one line per motion (the root, then each layer).
@@ -631,7 +630,7 @@ function renderComponentView(params: URLSearchParams): void {
   const historyList = document.getElementById('version-history')!;
   for (const v of allVersions) {
     const li = document.createElement('li');
-    li.className = 'lab-history__item' + (getVersionStatus(v) === 'archived' ? ' lab-history__item--archived' : '');
+    li.className = 'lab-history__item';
     li.dataset['versionId'] = v.id;
     const link = document.createElement('a');
     link.href = `?view=component&component=${componentName}&version=${v.id}`;
@@ -639,13 +638,13 @@ function renderComponentView(params: URLSearchParams): void {
     const origin = document.createElement('span');
     origin.className = 'lab-history__origin';
     origin.textContent = describeLineage(v, allVersions);
-    li.append(link, document.createTextNode(' '), statusBadge(v), origin);
+    li.append(link, origin);
     historyList.appendChild(li);
   }
 
   // Compare select options
   const compareSelect = document.getElementById('compare-select') as HTMLSelectElement;
-  visibleVersions.filter(v => v.id !== versionId).forEach(v => {
+  allVersions.filter(v => v.id !== versionId).forEach(v => {
     const opt = document.createElement('option');
     opt.value = v.id;
     opt.textContent = `${v.id}: ${v.label}`;
@@ -886,7 +885,6 @@ function renderPageView(params: URLSearchParams): void {
       <aside class="lab-sidebar">
         <section class="lab-controls" aria-label="Motion map">
           <h3 class="lab-controls__title">Motion Map</h3>
-          <div id="motion-map-filter"></div>
           <div id="motion-map-panel" class="lab-motion-map-panel"></div>
           <button class="lab-btn" id="replay-all-btn">Replay All</button>
         </section>
@@ -938,14 +936,6 @@ function renderPageView(params: URLSearchParams): void {
     });
   }
 
-  let mapFilter: VersionFilter = filterFromParams(params);
-  document.getElementById('motion-map-filter')!.appendChild(
-    buildVersionFilterControls(mapFilter, next => {
-      mapFilter = next;
-      buildMotionMapPanel();
-    }),
-  );
-
   function buildMotionMapPanel(): void {
     motionMapPanel.innerHTML = '';
     pageConfig.components.forEach(pc => {
@@ -960,22 +950,13 @@ function renderPageView(params: URLSearchParams): void {
 
       const pcMod = motionModules[`../components/${pc.component}/motion.ts`];
       const versions: MotionVersion[] = pcMod?.versions ?? [];
-      const badgeSlot = document.createElement('span');
-      badgeSlot.className = 'lab-status-slot';
-      const showBadge = (vid: string): void => {
-        const current = versions.find(v => v.id === vid);
-        badgeSlot.replaceChildren(...(current ? [statusBadge(current)] : []));
-      };
-      filterVersions(versions, { ...mapFilter, keepId: motionMap[pc.id] }).forEach(v => {
+      versions.forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.id;
-        opt.textContent = `${v.id}: ${v.label} [${STATUS_LABELS[getVersionStatus(v)]}]`;
+        opt.textContent = `${v.id}: ${v.label}`;
         if (motionMap[pc.id] === v.id) opt.selected = true;
         sel.appendChild(opt);
       });
-      showBadge(sel.value);
-      sel.addEventListener('change', () => showBadge(sel.value));
-
       sel.addEventListener('change', () => {
         motionMap[pc.id] = sel.value;
         setMotionMapInUrl(motionMap);
@@ -991,7 +972,6 @@ function renderPageView(params: URLSearchParams): void {
 
       group.appendChild(label);
       group.appendChild(sel);
-      group.appendChild(badgeSlot);
       motionMapPanel.appendChild(group);
     });
   }
@@ -1337,7 +1317,7 @@ function renderLibraryView(params: URLSearchParams): void {
   grid.className = 'lab-library__grid';
   grid.id = 'library-grid';
 
-  toolbar.append(search, buildVersionFilterControls(filter, renderGrid), count);
+  toolbar.append(search, buildStatusFilterControls(filter, renderGrid), count);
   main.append(toolbar, grid);
 
   search.addEventListener('input', () => {
@@ -1392,7 +1372,7 @@ function renderLibraryView(params: URLSearchParams): void {
       const versions = document.createElement('span');
       versions.className = 'lab-library-card__versions';
       versions.textContent = `${entry.totalVersions} version${entry.totalVersions === 1 ? '' : 's'}`;
-      footer.append(name, statusBadge(entry.previewVersion), versions);
+      footer.append(name, ...(entry.status === 'in-progress' ? [] : [statusBadge(entry.status)]), versions);
 
       card.append(preview, footer);
       grid.appendChild(card);

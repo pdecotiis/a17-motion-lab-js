@@ -102,11 +102,10 @@ describe('import', () => {
     expect(meta.variables).toEqual(['text/default']);
   });
 
-  it('scaffolds v1 with status and lineage on first import', () => {
+  it('scaffolds v1 with lineage and no status on first import', () => {
     const r = importComponent(root, input);
     expect(r.scaffoldedVersion).toBe(true);
     const v1 = readFileSync(join(dir(), 'versions/v1.ts'), 'utf8');
-    expect(v1).toContain("status: 'in-progress'");
     expect(v1).toContain(`lineage: "imported from ${FIGMA_URL}"`);
     expect(readFileSync(join(dir(), 'motion.ts'), 'utf8')).toContain("defaultVersion = 'v1'");
   });

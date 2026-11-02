@@ -25,7 +25,7 @@ Motion Lab is a reusable template for iterating on motion for components importe
 - Tokens view with usage ("used by", tokens per version, unused flagged).
 - Figma import via the Figma MCP: close match (not pixel-perfect), up to 2 fix-up passes to under 5% pixel diff, fonts from `/fonts` (gitignored) or the closest fallback, re-import never touches version files.
 - Designer workflow rules in CLAUDE.md (designers don't know git; Claude handles branches, saves and reviews in plain language).
-- Status (in-progress, review, approved, archived) and lineage per version.
+- Status (in-progress, review, approved, archived) per component, and lineage per version.
 - One file per version for all components (`versions/` folder); presets one file each; `tokens/motion.json` kept as a single file; generated Figma token files are regenerated on conflict, never hand-merged.
 - Developer hand-off baseline: stack-neutral CSS (named `@keyframes`, token custom properties with literal fallbacks, `prefers-reduced-motion` block) shared by the Generated CSS panel and `npm run spec`, which writes `motion.css`, `tokens.css` and `spec.md` per version.
 - `trigger` and `reducedMotion` on versions: validated, shown in the component view, carried through forks, written into the spec. The lab's reduced-motion playback now matches the exported CSS (a tween used to jump instantly; it fades for up to 150ms like springs).

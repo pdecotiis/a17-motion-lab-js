@@ -103,7 +103,7 @@ test.describe('Tokens view', () => {
     await expect(page.locator('.lab-tokens-table .lab-curve')).toHaveCount(3);
     const tip = (key: string) => page.locator('.lab-token-row', { hasText: key }).getAttribute('title');
     expect(await tip('bounce.25')).toContain('Used by: the global bounce setting');
-    expect(await tip('bounce.50')).toContain('Used by: side-panel/v2');
+    expect(await tip('bounce.50')).toContain('Used by: side-panel/v1');
     await page.click('#runtime-css');
     await expect(page.locator('.lab-tokens-subtab', { hasText: 'Bounce' })).toHaveCount(0);
   });

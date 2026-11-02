@@ -3,7 +3,7 @@ import { resolveRefs, tokenVarName } from './token-compiler.js';
 import { stepsOf } from './motion-models.js';
 import { interactionParts, partProps, partValues, stateNames, timingFor } from './interaction.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
-import { describeTrigger, getReducedMotionPolicy, getVersionStatus } from './version-meta.js';
+import { describeTrigger, getReducedMotionPolicy } from './version-meta.js';
 
 // Stack-neutral CSS for a version: named @keyframes, a class that applies them, token custom
 // properties (with the literal value as fallback, so the file works without tokens.css),
@@ -276,7 +276,7 @@ export function buildVersionCss(
   // layers included (a layer sits inside the element that carries --motion-index).
   const stagger = version.stagger ? cssValue(version.stagger, raw, version.stagger) : undefined;
 
-  const out: string[] = [`/* ${component} ${version.id}: ${version.label} (${getVersionStatus(version)}) */`];
+  const out: string[] = [`/* ${component} ${version.id}: ${version.label} */`];
   const trigger = describeTrigger(version.trigger);
   if (version.interaction) out.push(`/* Add .${base} to the element once, for good: it is the resting state. */`);
   else out.push(

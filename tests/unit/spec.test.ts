@@ -182,8 +182,8 @@ describe('buildVersionCss: spring', () => {
 });
 
 describe('buildVersionExport', () => {
-  const approved = tween({ status: 'approved', stagger: '80ms', trigger: { on: 'in-view', threshold: 0.2, once: true } });
-  const out = buildVersionExport('card', approved, [approved], tokens);
+  const approved = tween({ stagger: '80ms', trigger: { on: 'in-view', threshold: 0.2, once: true } });
+  const out = buildVersionExport('card', approved, [approved], tokens, 'approved');
 
   it('writes the spec sections a developer needs', () => {
     for (const heading of ['# card v1: Fade Up', '## When it plays', '## What animates', '## Timing', '## Reduced motion', '## Using it', '## Tokens', '## Not covered by this spec']) {
@@ -204,10 +204,12 @@ describe('buildVersionExport', () => {
     expect(noTrigger.markdown).toContain('**Not specified.**');
   });
 
-  it('flags versions that are not approved', () => {
+  it('flags a component that is not approved, and says nothing against one that is', () => {
+    expect(out.markdown).toContain('Component status: Approved');
     expect(out.markdown).not.toContain('not approved yet');
-    const review = buildVersionExport('card', tween({ status: 'review' }), [tween()], tokens);
-    expect(review.markdown).toContain('not approved yet');
+    const review = buildVersionExport('card', tween(), [tween()], tokens, 'review');
+    expect(review.markdown).toContain('Component status: Review (not approved yet');
+    expect(buildVersionExport('card', tween(), [tween()], tokens).markdown).toContain('not approved yet');
   });
 
   it('tokens.css holds only the custom properties the version uses', () => {
@@ -272,7 +274,6 @@ describe('layers', () => {
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ];
   const layered = tween({
-    status: 'approved',
     stagger: 'delay.70',
     layers: {
       title: { model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' }, keyframes: rise('8') },

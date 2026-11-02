@@ -1,9 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Interactions (spike): the side panel's v4 is two states, closed and open, and a transition into each.
+// Interactions (spike): the side panel's v2 is two states, closed and open, and a transition into each.
 // The stage gets state buttons; a click on anything marked data-motion-set moves the component too.
 const ROOT = '#preview-inner-primary [data-motion-target]';
-const url = (runtime: 'css' | 'motion', version = 'v4') => `/?view=component&component=side-panel&version=${version}&runtime=${runtime}`;
+const url = (runtime: 'css' | 'motion', version = 'v2') => `/?view=component&component=side-panel&version=${version}&runtime=${runtime}`;
 const playbackRow = (page: Page) => page.locator('#version-spec-meta dt:has-text("Playback") + dd');
 const stateNow = (page: Page) => page.locator('#state-now');
 
@@ -115,7 +115,7 @@ test.describe('Interactions: states', () => {
   });
 
   test('a version with no states has no state controls, and still plays as before', async ({ page }) => {
-    await page.goto(url('css', 'v2'));
+    await page.goto(url('css', 'v1'));
     await expect(page.locator('#interaction-controls')).toBeHidden();
     await expect(page.locator('#replay-btn')).toBeVisible();
   });
@@ -176,21 +176,21 @@ test.describe('Interactions: tokens and exports', () => {
     await page.goto(url('css'));
     await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
     const pre = page.locator('#css-pre');
-    await expect(pre).toContainText('.motion-side-panel-v4[data-state="open"]');
+    await expect(pre).toContainText('.motion-side-panel-v2[data-state="open"]');
     await expect(pre).toContainText('transition-duration: var(--motion-duration-560, 560ms);');
     await page.selectOption('#export-format', 'gsap');
-    await expect(pre).toContainText('export function goToSidePanelV4(el, state)');
+    await expect(pre).toContainText('export function goToSidePanelV2(el, state)');
     await expect(pre).toContainText('overwrite: "auto"');
     await page.selectOption('#export-format', 'motion');
     await expect(pre).toContainText('type: "spring", visualDuration: 0.56, bounce: 0.5');
   });
 });
 
-// Hover and press on the card (v5): real pointer events, declared in the version, with the image as a layer.
+// Hover and press on the card (v2): real pointer events, declared in the version, with the image as a layer.
 test.describe('Interactions: hover and press on the card', () => {
   const CARD = '#preview-inner-primary [data-motion-target]';
   const IMAGE = `${CARD} [data-motion="image"]`;
-  const cardUrl = (runtime: 'css' | 'motion') => `/?view=component&component=card&version=v5&runtime=${runtime}`;
+  const cardUrl = (runtime: 'css' | 'motion') => `/?view=component&component=card&version=v2&runtime=${runtime}`;
   // The card's lift (px, up is negative) and scale, and the image's scale, right now.
   const pose = (page: Page) => page.evaluate(([card, image]) => {
     const m = (sel: string) => new DOMMatrixReadOnly(getComputedStyle(document.querySelector(sel)!).transform);
@@ -269,8 +269,8 @@ test.describe('Interactions: hover and press on the card', () => {
 });
 
 test.describe('Interactions: what it does', () => {
-  test('card v5 says what hover and press do, and Playback lists the image layer', async ({ page }) => {
-    await page.goto('/?view=component&component=card&version=v5');
+  test('card v2 says what hover and press do, and Playback lists the image layer', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v2');
     const box = page.locator('#version-behaviour');
     await expect(box).toBeVisible();
     await expect(box.locator('dt')).toHaveText(['Hover', 'Press']);
@@ -278,7 +278,7 @@ test.describe('Interactions: what it does', () => {
     await expect(box).toContainText('the image scales to 103%');
     await expect(playbackRow(page)).toContainText('image into hover: Easing · productive-standard, 300ms');
     // It follows the runtime
-    await page.goto('/?view=component&component=card&version=v5&runtime=motion');
+    await page.goto('/?view=component&component=card&version=v2&runtime=motion');
     await expect(box).toContainText('bounce');
     await expect(box).not.toContainText('productive standard');
   });
@@ -292,7 +292,7 @@ test.describe('Interactions: what it does', () => {
 // The exported CSS, used the way a developer would: on a plain element, no lab code, only the stylesheet.
 test.describe('Interactions: the exported CSS works on its own', () => {
   test('hover and press on a plain element lift it and scale the layer', async ({ page }) => {
-    await page.goto('/?view=component&component=card&version=v5');
+    await page.goto('/?view=component&component=card&version=v2');
     await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
     const cssText = await page.locator('#css-pre').innerText();
     await page.evaluate(css => {
@@ -301,7 +301,7 @@ test.describe('Interactions: the exported CSS works on its own', () => {
       document.head.appendChild(style);
       const box = document.createElement('div');
       box.id = 'plain';
-      box.className = 'motion-card-v5';
+      box.className = 'motion-card-v2';
       box.style.cssText = 'position:fixed;left:40px;bottom:40px;width:200px;height:100px;background:#ccc;z-index:99999';
       box.innerHTML = '<div data-motion="image" style="width:50px;height:50px;background:#888"></div>';
       document.body.appendChild(box);

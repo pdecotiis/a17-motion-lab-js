@@ -28,11 +28,11 @@ describe('npm run spec --format', () => {
     expect(readFileSync(join(out, 'card', 'v2', 'motion.gsap.js'), 'utf8')).toContain('import { gsap } from "gsap"');
     expect(existsSync(join(out, 'card', 'v2', 'motion.motion.js'))).toBe(false);
 
-    expect(run('card', 'v4', '--format', 'motion').status).toBe(0);
-    expect(readFileSync(join(out, 'card', 'v4', 'motion.motion.js'), 'utf8')).toContain('import { animate } from "motion"');
+    expect(run('card', 'v1', '--format', 'motion').status).toBe(0);
+    expect(readFileSync(join(out, 'card', 'v1', 'motion.motion.js'), 'utf8')).toContain('import { animate } from "motion"');
 
-    expect(run('side-panel', 'v3', '--format', 'all').status).toBe(0);
-    for (const f of ['motion.css', 'motion.gsap.js', 'motion.motion.js']) expect(existsSync(join(out, 'side-panel', 'v3', f)), f).toBe(true);
+    expect(run('side-panel', 'v1', '--format', 'all').status).toBe(0);
+    for (const f of ['motion.css', 'motion.gsap.js', 'motion.motion.js']) expect(existsSync(join(out, 'side-panel', 'v1', f)), f).toBe(true);
   });
 
   it('--bounce picks the global bounce token for the Motion code', () => {
@@ -49,5 +49,14 @@ describe('npm run spec --format', () => {
     const bounce = run('card', 'v1', '--format', 'motion', '--bounce', '99');
     expect(bounce.status).toBe(1);
     expect(bounce.stderr).toContain('is not a bounce token (try 0, 25, 50)');
+  });
+});
+
+describe('npm run spec with no version', () => {
+  it('refuses a component that is not approved, and says how to export one anyway', () => {
+    const r = run('card');
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('is not approved');
+    expect(r.stderr).toContain('Pass a version id');
   });
 });

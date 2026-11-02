@@ -8,8 +8,8 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 **Motion runtime**: the lab plays with a runtime chosen in the header, **CSS / Motion** (CSS by default), and **never mixes them: CSS plays easing curves for every motion, Motion plays springs for every motion**, the root and every layer. **CSS** is the Web Animations API (`element.animate(keyframes, options)`). **Motion** is motion.dev's `animate`, a real library with springs. The lab simulates nothing a runtime lacks.
 **Tokens**: W3C DTCG JSON (`tokens/motion.json`) → CSS custom properties + raw values.
 **Components**: HTML/CSS prototypes with a `motion.ts` file that re-exports named motion versions, one file per version in `versions/`.
-**Library**: `/?view=library` lists every registered component as a scaled live preview (plays on hover). It builds from the component registry, so new components appear automatically; filters use `?status=…&archived=1&q=…`. Logic is in `lab/lib/library.ts`.
-**No controls in the component view.** A designer doesn't tweak duration or easing there: a motion change is a **new version** (fork, edit the version file, compare). The component view plays, replays and compares versions, and shows what each uses. The sidebar panels are accordions (native `<details>`): **Version** and **Tokens Used** open by default, in that order, then **Version history** and **Generated code** closed; **Compare with** stays a plain panel.
+**Library**: `/?view=library` lists every registered component as a scaled live preview (plays on hover). It builds from the component registry, so new components appear automatically; filters use `?status=…&archived=1&q=…` (a component's status). Logic is in `lab/lib/library.ts`.
+**No controls in the component view.** A designer doesn't tweak duration or easing there: a motion change is a **new version** (fork, edit the version file, compare). The component view plays, replays and compares versions, and shows what each uses. The sidebar panels are accordions (native `<details>`): **Version** (the version tabs, lineage, Replay and the state controls), **Details** and **Tokens Used** open by default, in that order, then **Version history** and **Generated code** closed; **Compare with** stays a plain panel. **Details** is everything about the open version in one place: **What it does** (interaction versions: the plain-language summary), then a list with **Component status**, **Plays**, **Reduced motion** and **Playback**.
 **Playback and runtimes.** `playbackOf(version, raw, { playbackRate, reducedMotion })` in `lab/lib/motion-models.ts` is the CSS runtime: a tween plays its keyframes with the easing curve over its duration; a **spring version** (authored with `properties[]` and a `bounce`) plays its from/to values as two keyframes with the easing curve, and the Playback row says so. `motionArgsOf(version, raw, …)` in `lab/lib/motion-args.ts` translates a version into Motion's terms and **always returns a spring** (`type: 'spring'`, the duration token as Motion's `visualDuration`, seconds): a spring version uses its own `bounce` (a bounce token or a number) and **every other motion (tweens, layers) uses the global bounce setting**; no easing curve is used anywhere under Motion. **Global bounce**: a select on the **Tokens view's Bounce tab** (a tab that shows only under Motion), listing the bounce tokens and nothing else (default `bounce.25`, Motion's own default); it persists in the URL (`?bounce=50`) and the tab, and every view reads it when it plays. A spring has no in-between frames, so it plays each property from its first value to its last (a tween with frames between says it skips them). `lab/lib/runtime.ts` holds the `Runtime` type and `PlayHandle` (speed, time, cancel, whatever runs the motion), so the speed control, replay and compare work the same on both. The header switch persists in the URL (`?runtime=motion`, absent = CSS) and in the tab (sessionStorage) so it survives links between views; it applies to the component, page and library views and Compare. Reduced motion is the short opacity-only fade under both (a spring with no bounce under Motion). The Version panel's **Playback** row says what is playing (CSS: `Easing · productive-entrance, 220ms`; Motion: `Spring · bounce 0.25 (bounce.25), 220ms (authored as easing; bounce is the global setting)`). **The runtime never changes exports**: Generated CSS, `spec.md` and `tokens.css` are the version as authored. A stale `?play=spring` in a URL is ignored.
 **Tokens used**: what each motion of the open version uses, and **where in the motion** each token sits: its duration, easing and delay, a stagger that is a token, and the tokens its keyframes name (`0% transform`). A version with layers gets a group for the root and one per layer, so you can see the card's tokens apart from its text's. **It follows the runtime**: under Motion nothing plays an easing (every motion is a spring), so no easing token is listed and there are no pairing warnings; duration, delay, stagger and keyframe tokens still are, plus the **bounce token** each motion plays with (its own, else the global setting; a plain-number bounce is flagged as hard-coded). Under CSS it lists everything. Pairing warnings show under it. `getStepRefs(version, raw, runtime?)` (per motion), `getTokenRefs` (the whole version, as authored: what exports) and `pairingWarnings(version, raw, runtime?)` (per motion), `getTokenRefs` (the whole version) and `pairingWarnings` are in `lab/lib/token-refs.ts`; the Tokens view uses the same index for each token's "used by".
 **Tokens view**: `/?view=tokens`. Tabs for duration, easing, distance, scale, opacity and delay (with the **default stagger** setting above its table), plus **bounce under Motion only** (the **global bounce setting** above the table, and three rows with a spring curve drawn from Motion's own spring generator, `springCurve` in `lab/lib/curve.ts`); tokens run smallest to largest (easings in system order: productive standard, entrance, exit, then expressive, then linear). **A row is just the token name and a preview** (a curve for easings, a bar for durations and distances); notes, status, value, usage and old names are in the row's tooltip.  The curve maths is in `lab/lib/curve.ts`.
@@ -47,7 +47,7 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
    export { v1 };
    export const versions: MotionVersion[] = [v1];
    export const defaultVersion = 'v1';
-   const module: ComponentModule = { versions, defaultVersion };
+   const module: ComponentModule = { versions, defaultVersion };   // add status: "review" etc. when the component moves on (absent = in-progress)
    export default module;
    ```
 6. Register it in `lab/main.ts`: import the module and call `registerComponent('<name>', module)`
@@ -64,7 +64,6 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
      label: 'Descriptive Name',
      model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-standard' },
      keyframes: [ /* only motion properties */ ],
-     status: 'in-progress',   // new versions always start in-progress
      forkedFrom: 'v1',        // the version this was copied from (required)
    };
    ```
@@ -73,10 +72,11 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 3. **Versions may only change motion properties**: `opacity`, `transform`, `filter`, `clip-path`. Never use `display`, `position`, `width`, `height`, or any structural property in keyframes.
 4. Add unit tests for the new version in `tests/unit/<name>.test.ts`, including `validateVersionMeta(versions)`
 
-### Version status
+### Component status and lineage
 
-- `status`: `'in-progress' | 'review' | 'approved' | 'archived'` (absent = `in-progress`). Unknown values fail validation.
-- Shown as a badge on version tabs, in the version history list, and in the Motion Map. The component view and Motion Map have a status filter; **archived versions are hidden by default** and appear with "Show archived" (URL: `?status=…&archived=1`). The open version is always shown.
+- **Approval is the component's, not a version's.** A component's `motion.ts` may set `status` on the module: `'in-progress' | 'review' | 'approved' | 'archived'` (absent = `in-progress`; unknown values fail `validateVersionMeta(versions, status)`). A version file has **no** `status` (it fails validation as a disallowed property). Versions are just the explorations; which one ships is decided by approving the component, and the approved version is its **latest**.
+- Shown as a badge on the library cards (not for in-progress) and as the **Component status** row in the component's Details. The library has the status filter; **archived components are hidden by default** and appear with "Show archived" (URL: `?status=…&archived=1`). The component view and the Motion Map have no status filter and no version badges.
+- `npm run spec` with no version exports the component's **latest version** when the component is approved; with a version id it exports that one whatever the status, and `spec.md` says "Component status: …".
 - `forkedFrom` must name an existing version of the same component; a version with neither `forkedFrom` nor `lineage` fails `validateVersionMeta`.
 
 ### Trigger and reduced motion (developer hand-off)
@@ -208,7 +208,7 @@ Components can be imported from a Figma frame instead of hand-built. The Figma M
 - **Variables**: merged across imports into `tokens/figma-variables.json`; `tokens/visual.css` and `tokens/fonts.css` are generated from it. Never edit those three files by hand.
 - **Fonts**: licensed font files go in `/fonts` (gitignored). Files are matched to Figma typefaces by name; unmatched faces use a system fallback and are listed in `meta.json` `fontFallbacks`.
 - **Re-import**: refreshes markup, styles, assets, meta and variables only. It never modifies `motion.ts` or anything in `versions/`, so motion work survives a re-import. Version files stay `v1.ts`, `v2.ts`, … without gaps.
-- **Motion**: v1 is a scaffolded default entrance (`status: 'in-progress'`, `lineage: 'imported from <figma link>'`). Imports never invent motion beyond that.
+- **Motion**: v1 is a scaffolded default entrance (`lineage: 'imported from <figma link>'`). Imports never invent motion beyond that.
 - **Scaled frames**: if the linked frame is a scaled instance, `designWidth` records the native width. The lab lays the component out at `designWidth` and zooms to `frame.width`.
 - **Issues**: record Figma file problems for designers (no auto layout, unnamed layers, variant strings as layer names, values not bound to variables) in `meta.json` `issues`.
 
@@ -240,7 +240,7 @@ Commit everything they've changed with a clear, descriptive message (what change
 
 ### "Ready for review"
 
-1. Set `status: 'review'` on the version(s) they're submitting (they must already have `forkedFrom` or `lineage` set). Leave other versions' status alone. Only mark a version `approved` or `archived` when the designer asks.
+1. Set `status: 'review'` on the **component** (`components/<name>/motion.ts`, on the `ComponentModule`) they're submitting; the versions they're sending must already have `forkedFrom` or `lineage` set. Only mark the component `approved` or `archived` when the designer asks.
 2. Run `npm run check`; fix anything that fails before continuing. If you can't fix it, explain simply what's wrong.
 3. Save, push the branch, and open a pull request titled after the exploration, with a short plain-language summary of what changed.
 4. Give them the link: "Sent for review: <link>".
@@ -264,7 +264,7 @@ A designer says "the hover state should lift it, a click opens that" and Claude 
 3. **Write it in the version file, never in the markup.** Triggers are `interaction.triggers`; the only markup a version needs is `data-motion="<layer>"` on an inner element, and a re-import of the Figma frame **replaces the markup**, so a layer's `data-motion` name must be checked after a re-import (the lab skips a layer with no element, and "What it does" still lists it).
 4. **Use tokens.** States name tokens (`translateY(-{distance.4})`, `scale({scale.98})`); a value no token has is a proposal for a new token (new tokens start experimental), not a literal.
 5. **Anything outside the component is the developer's:** a button elsewhere that opens a panel has no trigger here; say so ("the open state is set from outside") and leave a state with no trigger. The spec says the same.
-6. **Check it in the lab and read it back.** Open the version, hover, press and tab to it for real, try Interrupt, and read the Version panel's "What it does" aloud to the designer: if it doesn't say what they meant, the version is wrong. Try both runtimes (CSS and Motion); under Motion the timing is duration and bounce.
+6. **Check it in the lab and read it back.** Open the version, hover, press and tab to it for real, try Interrupt, and read the Details panel's "What it does" aloud to the designer: if it doesn't say what they meant, the version is wrong. Try both runtimes (CSS and Motion); under Motion the timing is duration and bounce.
 7. **Tell them what a developer gets:** CSS hover, press and focus work with the stylesheet alone, and the GSAP and Motion files have an `attach…` function. Set `trigger`/`reducedMotion` only when the designer has said (an interaction version's own triggers are not the entrance `trigger`).
 8. **Not supported yet:** drag, physics springs and carrying speed through an interruption, Compare for interactions, and reading Figma variants as states. Say so plainly rather than approximating them.
 
