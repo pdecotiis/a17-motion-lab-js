@@ -18,6 +18,8 @@ import {
 } from './lib/version-meta.js';
 import { getStepRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
+import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
+import type { Json } from './lib/scale-apply.js';
 import { DEFAULT_STAGGER, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken } from './lib/stagger.js';
 import { buildExportCode, EXPORT_FORMATS, EXPORT_LABELS, type ExportFormat } from './lib/export-code.js';
 import { buildLibraryEntries, libraryFilterFromParams } from './lib/library.js';
@@ -161,6 +163,31 @@ themeToggle.addEventListener('click', () => {
   document.documentElement.setAttribute('data-theme', currentTheme);
   themeToggle.textContent = currentTheme === 'dark' ? '☾' : '☀';
 });
+
+// ── Settings ───────────────────────────────────────────────────────────────
+// The gear beside the theme toggle opens the settings: things you change rarely. Today, the Global
+// scale (how the distance, duration, delay, opacity and scale tokens get their values).
+
+const settingsDialog = document.getElementById('settings-dialog') as HTMLDialogElement;
+const settingsBody = document.getElementById('settings-body')!;
+const settingsButton = document.getElementById('settings-btn')!;
+
+function openSettings(): void {
+  // Rendered fresh each time, so it shows the tokens as they are now.
+  renderScaleSettings(settingsBody, {
+    tokens: tokensJson as unknown as Json,
+    usedBy: path => (usageIndex.get(path) ?? []).map(u => `${u.componentName}/${u.versionId}`),
+  });
+  if (!settingsDialog.open) settingsDialog.showModal();
+}
+settingsButton.addEventListener('click', openSettings);
+document.getElementById('settings-close')!.addEventListener('click', () => settingsDialog.close());
+// A click on the backdrop (the dialog itself, outside its content) closes it, as Escape does.
+settingsDialog.addEventListener('click', e => { if (e.target === settingsDialog) settingsDialog.close(); });
+// Applying a scale reloads the page; it comes back with the settings open and what happened on them.
+try {
+  if (sessionStorage.getItem(SCALE_FLASH_KEY)) window.addEventListener('DOMContentLoaded', openSettings, { once: true });
+} catch { /* storage can be blocked */ }
 
 // ── Runtime switch ─────────────────────────────────────────────────────────
 
@@ -1114,8 +1141,8 @@ function renderTokensView(): void {
   }
 
   function renderKind(kind: string): void {
-    renderSetting(kind);
     tableContainer.replaceChildren();
+    renderSetting(kind);
     tableContainer.appendChild(buildTable(kind));
   }
 

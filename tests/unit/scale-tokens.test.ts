@@ -6,6 +6,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } fro
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { scaleValues, scaleKind, remapReferences, formatTokenFile, applyScale, readScaleConfig, withScaleConfig, parseArgs } from '../../scripts/scale-tokens.js';
+import { previewScale, describeScaleConfig } from '../../lab/lib/scale-apply.js';
 import { deriveKind } from '../../lab/lib/scales.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import type { DtcgGroup } from '../../lab/lib/types.js';
@@ -323,5 +324,68 @@ describe('npm run tokens:scale', () => {
     expect(collide.stderr).toContain('use a larger base or ratio');
     expect(readFileSync(join(d, 'tokens/motion.json'), 'utf8')).toBe(before);
     expect(existsSync(join(d, 'components/card/versions/v1.ts'))).toBe(true);
+  });
+});
+
+describe('previewScale: what a scale would do, without doing it', () => {
+  const usedBy = (path: string): string[] => ({ 'distance.16': ['card/v1', 'card/v4'], 'duration.300': ['card/v2'], 'opacity.56': ['card/v1'] } as Record<string, string[]>)[path] ?? [];
+
+  it('lists every kind, each current token next to the one that takes its place', () => {
+    const p = previewScale(tokens, 'major-third', usedBy);
+    expect(p.error).toBeUndefined();
+    expect([...new Set(p.rows.map(r => r.kind))]).toEqual(['distance', 'duration', 'delay', 'opacity', 'scale']);
+    expect(p.rows.filter(r => r.kind === 'distance')).toHaveLength(8);
+    const sixteen = p.rows.find(r => r.from?.path === 'distance.16')!;
+    expect(sixteen.from).toEqual({ path: 'distance.16', value: '16px' });
+    expect(sixteen.to).toEqual({ path: 'distance.8', value: '8px' });
+    expect(sixteen.renamed).toBe(true);
+    expect(sixteen.usedBy).toEqual(['card/v1', 'card/v4']);
+  });
+
+  it('shows opacity and scale as percents, and a token that keeps its name as not renamed', () => {
+    const p = previewScale(tokens, 'major-third');
+    const fiftySix = p.rows.find(r => r.from?.path === 'opacity.56')!;
+    expect(fiftySix.from!.value).toBe('56%');
+    expect(fiftySix.to).toEqual({ path: 'opacity.08', value: '8%' });
+    const first = p.rows.find(r => r.from?.path === 'distance.4')!;
+    expect(first.renamed).toBe(false);
+    expect(first.to!.path).toBe('distance.4');
+  });
+
+  it('counts the renames and the versions that use a renamed token', () => {
+    const p = previewScale(tokens, 'major-third', usedBy);
+    const renames = applyScale(tokens, ['distance', 'duration', 'delay', 'opacity', 'scale'], 'major-third').renames;
+    expect(p.renamed).toBe(Object.entries(renames).filter(([from, to]) => from !== to).length);
+    expect(p.versions).toEqual(['card/v1', 'card/v2', 'card/v4']);
+  });
+
+  it('agrees with the generator: the same renames', () => {
+    const run = applyScale(tokens, ['distance', 'duration', 'delay', 'opacity', 'scale'], 'perfect-fourth');
+    const p = previewScale(tokens, 'perfect-fourth');
+    const fromPreview = Object.fromEntries(p.rows.filter(r => r.from && r.to && r.renamed).map(r => [r.from!.path, r.to!.path]));
+    for (const [from, to] of Object.entries(run.renames)) if (from !== to) expect(fromPreview[from], from).toBe(to);
+  });
+
+  it('a step the scale drops folds into the last: its references follow it', () => {
+    const p = previewScale(tokens, 'minor-third', usedBy, ['opacity'], { opacity: { steps: 2 } });
+    const rows = p.rows.filter(r => r.kind === 'opacity');
+    expect(rows).toHaveLength(4);
+    expect(rows[3]!.to).toBeNull();
+    expect(rows[3]!.renamed).toBe(true);
+    expect(rows[3]!.usedBy).toEqual(['card/v1']);
+  });
+
+  it('a scale that does not fit says so instead of throwing, and shows no rows', () => {
+    const p = previewScale(tokens, 'lydian');
+    expect(p.error).toContain('Unknown scale');
+    expect(p.rows).toEqual([]);
+    const collide = previewScale(tokens, 'minor-third', usedBy, ['distance'], { distance: { base: 1 } });
+    expect(collide.error).toContain('use a larger base or ratio');
+  });
+
+  it('describeScaleConfig says Custom until a scale is recorded, then the scale of each kind', () => {
+    expect(describeScaleConfig(tokens)).toEqual({ custom: true, kinds: {} });
+    const applied = applyScale(tokens, ['distance'], 'fibonacci').tokens;
+    expect(describeScaleConfig(applied)).toEqual({ custom: false, kinds: { distance: { scale: 'fibonacci' } } });
   });
 });
