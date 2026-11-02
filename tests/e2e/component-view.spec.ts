@@ -81,7 +81,7 @@ test.describe('Version status and lineage', () => {
     await page.goto('/?view=component&component=card&version=v2');
     await expect(page.locator('.lab-version-tab[data-version-id="v2"] .lab-status-badge')).toHaveText('In progress');
     await expect(page.locator('#version-lineage')).toHaveText('Forked from v1: Fade Up');
-    await expect(page.locator('#version-history li')).toHaveCount(4);
+    await expect(page.locator('#version-history li')).toHaveCount(5);
     await expect(page.locator('#version-history li[data-version-id="v3"] .lab-status-badge')).toHaveText('Archived');
   });
 
@@ -156,7 +156,7 @@ test.describe('Sidebar accordions', () => {
   test('clicking a title opens and closes its panel', async ({ page }) => {
     await summary(page, 'Version history').click();
     await expect(page.locator('#version-history')).toBeVisible();
-    await expect(page.locator('#version-history li')).toHaveCount(4);
+    await expect(page.locator('#version-history li')).toHaveCount(5);
     await summary(page, 'Version history').click();
     await expect(page.locator('#version-history')).toBeHidden();
 

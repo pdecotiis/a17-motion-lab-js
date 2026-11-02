@@ -12,7 +12,7 @@ import { animate as motionAnimate } from 'motion';
 import { motionArgsOf, describeMotionArgs, DEFAULT_BOUNCE } from './lib/motion-args.js';
 import { cssHandle, runtimeFromParam, RUNTIMES, type PlayHandle, type Runtime } from './lib/runtime.js';
 import { createInteractionPlayer, type InteractionPlayer } from './lib/interaction-player.js';
-import { describeTransition, stateNames } from './lib/interaction.js';
+import { describeTransition, hasHoldTriggers, stateNames } from './lib/interaction.js';
 import {
   VERSION_STATUSES, STATUS_LABELS, getVersionStatus, filterVersions, describeLineage, filterFromParams,
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
@@ -315,33 +315,50 @@ function parseMsLocal(value: string): number {
 // data-motion="<layer>". Every motion is tracked in activeAnimations, so the speed control reaches
 // them. Returns the root's handle.
 // One player per element and version, so the component view and the entrance share it.
-const players = new WeakMap<HTMLElement, { versionId: string; runtime: Runtime; player: InteractionPlayer }>();
+const players = new WeakMap<HTMLElement, { versionId: string; runtime: Runtime; player: InteractionPlayer; detach: () => void }>();
 
 function playerFor(el: HTMLElement, version: MotionVersion, onChange?: (state: string, transitioning: boolean) => void): InteractionPlayer {
   const known = players.get(el);
   if (known && known.versionId === version.id && known.runtime === runtime && !onChange) return known.player;
+  known?.detach();
   const player = createInteractionPlayer(el, version, {
     raw, runtime, globalBounce,
     reducedMotion: () => prefersReducedMotion(),
     reducedPolicy: getReducedMotionPolicy(version),
     playbackRate: () => playbackRate,
+    onHandle: handle => activeAnimations.push(handle),
     ...(onChange ? { onChange } : {}),
   });
-  players.set(el, { versionId: version.id, runtime, player });
+  // The version's triggers (hover, press, focus, click) are live on the element wherever it is shown.
+  players.set(el, { versionId: version.id, runtime, player, detach: player.attachTriggers() });
   return player;
 }
 
 // What an interaction version plays when something just asks it to play (a replay, a page, a library
-// card): back to its resting state, then to the first other state.
+// card): back to its resting state, then to the first other state. A version that is hovered, pressed or
+// focused (its states last only while that does) goes back to rest after a moment, as if the pointer had
+// left; one that is clicked (open, closed) stays where it went.
+const DEMO_HOLD_MS = 700;
+
 function playInteractionEntrance(el: HTMLElement, version: MotionVersion): PlayHandle {
   const player = playerFor(el, version);
   // Reset first, and move on once it has taken effect (Motion applies it on its next frame).
   void player.reset().then(() => {
     const next = player.states().find(s => s !== player.state());
-    const handle = next ? player.goTo(next) : null;
-    if (handle) activeAnimations.push(handle);
+    if (!next) return;
+    player.goTo(next);
+    if (version.interaction && hasHoldTriggers(version.interaction)) {
+      window.setTimeout(() => { if (player.state() === next) player.goTo(version.interaction!.initial); }, DEMO_HOLD_MS / playbackRate);
+    }
   });
   return cssHandle(el, el.animate([{}], { duration: 0, fill: 'both' }));
+}
+
+// Where an interaction version starts when the view opens: at rest, so it can be hovered or clicked, unless
+// it has nothing a person would hover (an open/close), when it plays its first move so there is something to see.
+function startInteraction(el: HTMLElement, version: MotionVersion): void {
+  if (version.interaction && hasHoldTriggers(version.interaction)) void playerFor(el, version).reset();
+  else playInteractionEntrance(el, version);
 }
 
 function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 0): PlayHandle {
@@ -619,8 +636,8 @@ function renderComponentView(params: URLSearchParams): void {
     return animateElement(target, getVersion(componentName, vid));
   }
 
-  // An interaction version has states: buttons to move between them, a click on anything marked
-  // data-motion-set in the markup, and a way to interrupt a move halfway.
+  // An interaction version has states: buttons to move between them and a way to interrupt a move
+  // halfway. The version's own triggers (hover, press, focus, click) are live on the preview.
   if (version.interaction) {
     const interaction = version.interaction;
     const box = document.getElementById('interaction-controls')!;
@@ -638,10 +655,7 @@ function renderComponentView(params: URLSearchParams): void {
       status.dataset['moving'] = String(transitioning);
       for (const [name, btn] of buttons) btn.setAttribute('aria-pressed', String(name === state));
     });
-    const go = (state: string): void => {
-      const handle = player.goTo(state);
-      if (handle) activeAnimations.push(handle);
-    };
+    const go = (state: string): void => { player.goTo(state); };
     for (const name of stateNames(interaction)) {
       const btn = document.createElement('button');
       btn.className = 'lab-btn lab-btn--sm';
@@ -655,7 +669,7 @@ function renderComponentView(params: URLSearchParams): void {
     toggle.className = 'lab-btn lab-btn--sm';
     toggle.id = 'state-toggle';
     toggle.textContent = 'Toggle';
-    toggle.addEventListener('click', () => { const h = player.toggle(); if (h) activeAnimations.push(h); });
+    toggle.addEventListener('click', () => { player.toggle(); });
     // Move to the first other state, then back after INTERRUPT_MS: what a runtime does with a motion cut short.
     const interrupt = document.createElement('button');
     interrupt.className = 'lab-btn lab-btn--sm';
@@ -672,14 +686,10 @@ function renderComponentView(params: URLSearchParams): void {
     });
     row.append(toggle, interrupt);
     box.append(status, row);
-    // Clicking something in the component that names a state moves to it.
-    primaryInner.addEventListener('click', e => {
-      const hook = (e.target as HTMLElement).closest<HTMLElement>('[data-motion-set]');
-      if (hook?.dataset['motionSet']) go(hook.dataset['motionSet']);
-    });
   }
 
-  playAnimation(primaryTarget, versionId);
+  if (version.interaction) startInteraction(primaryTarget, version);
+  else playAnimation(primaryTarget, versionId);
 
   document.getElementById('replay-btn')!.addEventListener('click', () => {
     playAnimation(primaryTarget, versionId);

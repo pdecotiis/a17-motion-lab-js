@@ -110,6 +110,11 @@ export function validateInteraction(version: MotionVersion): void {
   }
 }
 
+/** Whether the version has triggers a person does with a pointer or the keyboard (hover, press, focus), as opposed to clicks. */
+export function hasHoldTriggers(interaction: Interaction): boolean {
+  return (interaction.triggers ?? []).some(t => t.on === 'hover' || t.on === 'press' || t.on === 'focus');
+}
+
 /** The layers that have values for the states. */
 export function layerNames(interaction: Interaction): string[] {
   return Object.keys(interaction.layers ?? {});
@@ -180,11 +185,11 @@ export function cssTransitionPlan(
   interaction: Interaction,
   to: string,
   raw: Record<string, unknown>,
-  options: { reducedMotion?: boolean; reducedPolicy?: 'fade' | 'none' } = {},
+  options: { reducedMotion?: boolean; reducedPolicy?: 'fade' | 'none'; target?: string | null } = {},
 ): CssTransitionPlan {
-  const { reducedMotion = false, reducedPolicy = 'fade' } = options;
-  const t = transitionInto(interaction, to);
-  const values = resolveState(interaction.states[to]!, raw);
+  const { reducedMotion = false, reducedPolicy = 'fade', target = null } = options;
+  const t = timingFor(interaction, target, to);
+  const values = resolveState(partValues(interaction, target, to), raw);
   const base = { duration: parseMs(t.duration, raw), delay: parseMs(t.delay, raw), easing: cubicBezier(t.easing, raw) };
   const note = t.model === 'spring' ? 'authored as a spring; CSS plays its easing' : undefined;
 
@@ -209,8 +214,8 @@ export type MotionValues = Record<string, number | string>;
 
 // Every state in Motion's terms, with the same properties in each (a transform property one state
 // leaves out is its resting value there), so going from any state to any other is a plain from → to.
-export function motionStates(interaction: Interaction, raw: Record<string, unknown>): Record<string, MotionValues> {
-  const resolved = Object.fromEntries(Object.entries(interaction.states).map(([n, v]) => [n, resolveState(v, raw)]));
+export function motionStates(interaction: Interaction, raw: Record<string, unknown>, target: string | null = null): Record<string, MotionValues> {
+  const resolved = Object.fromEntries(Object.keys(interaction.states).map(n => [n, resolveState(partValues(interaction, target, n), raw)]));
   const parts = Object.fromEntries(Object.entries(resolved).map(([n, v]) => [n, typeof v['transform'] === 'string' ? transformParts(v['transform']) : { props: {}, unsupported: [] }]));
   const transformKeys = [...new Set(Object.values(parts).flatMap(p => Object.keys(p.props)))];
   const out: Record<string, MotionValues> = {};
@@ -238,11 +243,11 @@ export function motionTransitionPlan(
   interaction: Interaction,
   to: string,
   raw: Record<string, unknown>,
-  options: { reducedMotion?: boolean; reducedPolicy?: 'fade' | 'none'; globalBounce?: string } = {},
+  options: { reducedMotion?: boolean; reducedPolicy?: 'fade' | 'none'; globalBounce?: string; target?: string | null } = {},
 ): MotionTransitionPlan {
-  const { reducedMotion = false, reducedPolicy = 'fade', globalBounce = DEFAULT_BOUNCE } = options;
-  const t = transitionInto(interaction, to);
-  const values = motionStates(interaction, raw)[to]!;
+  const { reducedMotion = false, reducedPolicy = 'fade', globalBounce = DEFAULT_BOUNCE, target = null } = options;
+  const t = timingFor(interaction, target, to);
+  const values = motionStates(interaction, raw, target)[to]!;
   const own = t.model === 'spring' ? t.bounce : undefined;
   const bounceToken = typeof own === 'number' ? undefined : (own ?? globalBounce);
   const ms = parseMs(t.duration, raw);

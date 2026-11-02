@@ -185,3 +185,85 @@ test.describe('Interactions: tokens and exports', () => {
     await expect(pre).toContainText('type: "spring", visualDuration: 0.56, bounce: 0.5');
   });
 });
+
+// Hover and press on the card (v5): real pointer events, declared in the version, with the image as a layer.
+test.describe('Interactions: hover and press on the card', () => {
+  const CARD = '#preview-inner-primary [data-motion-target]';
+  const IMAGE = `${CARD} [data-motion="image"]`;
+  const cardUrl = (runtime: 'css' | 'motion') => `/?view=component&component=card&version=v5&runtime=${runtime}`;
+  // The card's lift (px, up is negative) and scale, and the image's scale, right now.
+  const pose = (page: Page) => page.evaluate(([card, image]) => {
+    const m = (sel: string) => new DOMMatrixReadOnly(getComputedStyle(document.querySelector(sel)!).transform);
+    const c = m(card!), i = m(image!);
+    return { lift: +c.m42.toFixed(2), scale: +c.m11.toFixed(3), image: +i.m11.toFixed(3) };
+  }, [CARD, IMAGE]);
+  const settledPose = async (page: Page, expected: Partial<{ lift: number; scale: number; image: number }>) => {
+    await expect.poll(() => pose(page), { timeout: 4000 }).toMatchObject(Object.fromEntries(
+      Object.entries(expected).map(([k, v]) => [k, expect.closeTo(v, 1)]),
+    ));
+  };
+
+  for (const runtime of ['css', 'motion'] as const) {
+    test.describe(`under ${runtime}`, () => {
+      test('starts at rest, so it can be hovered: nothing is lifted', async ({ page }) => {
+        await page.goto(cardUrl(runtime));
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'rest');
+        await expect(stateNow(page)).toHaveText('State: rest');
+        await settledPose(page, { lift: 0, scale: 1, image: 1 });
+      });
+
+      test('hovering lifts the card 4px and scales the image to 103%; leaving puts them back', async ({ page }) => {
+        await page.goto(cardUrl(runtime));
+        await page.hover(CARD);
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'hover');
+        await settledPose(page, { lift: -4, scale: 1, image: 1.03 });
+        await page.mouse.move(2, 2);
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'rest');
+        await settledPose(page, { lift: 0, scale: 1, image: 1 });
+      });
+
+      test('pressing settles it to 98%; releasing goes back to hover, leaving goes to rest', async ({ page }) => {
+        await page.goto(cardUrl(runtime));
+        await page.hover(CARD);
+        await settledPose(page, { lift: -4, image: 1.03 });
+        await page.mouse.down();
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'pressed');
+        await settledPose(page, { lift: -4, scale: 0.98, image: 1.03 });
+        await page.mouse.up();
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'hover');
+        await settledPose(page, { lift: -4, scale: 1 });
+        await page.mouse.move(2, 2);
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'rest');
+      });
+
+      test('the state buttons still force a state, and the status follows the real events', async ({ page }) => {
+        await page.goto(cardUrl(runtime));
+        await page.click('[data-state-btn="pressed"]');
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'pressed');
+        await settledPose(page, { lift: -4, scale: 0.98 });
+        await page.click('[data-state-btn="rest"]');
+        await expect(stateNow(page)).toHaveText(/State: (rest|moving to rest)/);
+        await page.hover(CARD);
+        await expect(stateNow(page)).toContainText('hover');
+      });
+
+      test('Replay shows a hover and a leave: it lifts, then goes back to rest by itself', async ({ page }) => {
+        await page.goto(cardUrl(runtime));
+        await page.click('#replay-btn');
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'hover');
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'rest', { timeout: 4000 });
+        await settledPose(page, { lift: 0, image: 1 });
+      });
+    });
+  }
+
+  test('Playback and Tokens used name the layer\'s own timing and tokens', async ({ page }) => {
+    await page.goto(cardUrl('css'));
+    await expect(playbackRow(page)).toContainText('into hover: Easing · productive-standard, 220ms');
+    await expect(playbackRow(page)).toContainText('into rest: Easing · productive-exit, 140ms (authored as a spring; CSS plays its easing)');
+    await expect(page.locator('#tokens-used-list')).toContainText('image into hover duration');
+    await expect(page.locator('#tokens-used-list')).toContainText('image hover transform');
+    await expect(page.locator('#tokens-used-list')).toContainText('pressed transform');
+  });
+
+});
