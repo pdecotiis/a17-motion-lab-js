@@ -41,6 +41,30 @@ function stepRefs(layer: string | null, version: MotionVersion, raw: Record<stri
     else if (value !== '0ms' && value !== '0') hardcoded.push({ label, value });
   }
 
+  // An interaction version names its tokens per transition (into each state) and in each state's values.
+  if (version.interaction) {
+    for (const [state, t] of Object.entries(version.interaction.transitions)) {
+      check(t.duration, `into ${state} duration`);
+      if (runtime !== 'motion') check(t.easing, `into ${state} easing`);
+      if (t.delay) check(t.delay, `into ${state} delay`);
+      const own = t.model === 'spring' ? t.bounce : undefined;
+      if (runtime === 'motion') {
+        if (typeof own === 'number') hardcoded.push({ label: `into ${state} bounce`, value: String(own) });
+        else if (own ?? globalBounce) check(own ?? globalBounce, `into ${state} bounce`);
+      } else if (runtime === undefined && own !== undefined) {
+        if (typeof own === 'number') hardcoded.push({ label: `into ${state} bounce`, value: String(own) });
+        else check(own, `into ${state} bounce`);
+      }
+    }
+    for (const [state, values] of Object.entries(version.interaction.states)) {
+      for (const [prop, v] of Object.entries(values)) {
+        if (typeof v === 'string') findRefs(v).filter(p => p in raw).forEach(p => use(p, `${state} ${prop}`));
+      }
+    }
+    if (withStagger && version.stagger) check(version.stagger, 'stagger');
+    return { layer, uses: [...uses].map(([token, where]) => ({ token, where })), hardcoded };
+  }
+
   const m = version.model;
   check(m.duration, 'duration');
   // Under Motion everything plays as a spring, from its duration and bounce: easing is CSS only.
@@ -98,8 +122,12 @@ function ms(value: string | undefined, raw: Record<string, unknown>): number | u
 // easings with 400–1200ms. A layer's
 // warnings start with its name. Under Motion nothing plays an easing, so there is nothing to pair.
 export function pairingWarnings(version: MotionVersion, raw: Record<string, unknown>, runtime?: Runtime): string[] {
-  return stepsOf(version).flatMap(({ name, version: step }) => {
-    const { duration, easing } = step.model;
+  // An interaction version pairs each transition's duration with its easing; a motion otherwise.
+  const motions = version.interaction
+    ? Object.entries(version.interaction.transitions).map(([state, t]) => ({ name: `into ${state}` as string | null, model: t }))
+    : stepsOf(version).map(({ name, version: step }) => ({ name, model: step.model }));
+  return motions.flatMap(({ name, model }) => {
+    const { duration, easing } = model;
     if (!(easing in raw) || runtime === 'motion') return [];
     const eName = easing.slice(easing.indexOf('.') + 1);
     const warnings: string[] = [];

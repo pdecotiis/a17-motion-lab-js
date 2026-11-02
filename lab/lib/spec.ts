@@ -2,6 +2,7 @@ import type { MotionVersion, TweenModel, SpringModel } from './types.js';
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getStepRefs, getTokenRefs } from './token-refs.js';
+import { resolveState, stateNames } from './interaction.js';
 import { resolveKeyframes, stepsOf } from './motion-models.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import {
@@ -72,6 +73,28 @@ function animatedLines(version: MotionVersion, raw: Record<string, unknown>): st
   });
 }
 
+// An interaction version: its states, and the transition into each.
+function stateLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
+  const i = version.interaction!;
+  return stateNames(i).map(n => {
+    const values = Object.entries(resolveState(i.states[n]!, raw)).map(([k, v]) => `${k} ${String(v)}`).join(', ');
+    return `- ${n}${n === i.initial ? ' (rest, where it starts)' : ''}: ${values}`;
+  });
+}
+
+function transitionLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
+  const i = version.interaction!;
+  return stateNames(i).flatMap(n => {
+    const t = i.transitions[n]!;
+    const lines = [`- **Into ${n}**: ${describeValue(t.duration, raw, '300ms')}, easing ${describeValue(t.easing, raw, 'ease')}${t.delay ? `, delay ${describeValue(t.delay, raw, '0ms')}` : ''}`];
+    if (t.model === 'spring') {
+      const b = t.bounce === undefined ? 'the global bounce setting' : typeof t.bounce === 'string' ? describeValue(t.bounce, raw, '0') : `${t.bounce} (hard-coded, not a token)`;
+      lines.push(`  - Authored as a spring, bounce: ${b}. CSS plays the easing curve; only a spring runtime (Motion) bounces.`);
+    }
+    return lines;
+  });
+}
+
 function reducedMotionLines(version: MotionVersion): string[] {
   const policy = getReducedMotionPolicy(version);
   const lines = [`- ${REDUCED_MOTION_LABELS[policy]}.`];
@@ -112,14 +135,14 @@ export function buildVersionExport(
     '',
     trigger ?? '**Not specified.** The designer has not said what triggers this. Ask before wiring it up.',
     '',
-    '## What animates',
+    version.interaction ? '## States' : '## What animates',
     '',
     ...(layers.length ? ['The component\'s root element (the one marked `data-motion-target`):', ''] : []),
-    ...animatedLines(version, raw),
+    ...(version.interaction ? stateLines(version, raw) : animatedLines(version, raw)),
     '',
-    '## Timing',
+    version.interaction ? '## Transitions' : '## Timing',
     '',
-    ...motionLines(version, raw),
+    ...(version.interaction ? transitionLines(version, raw) : motionLines(version, raw)),
     '',
     // Each layer is a motion of its own: it names its own duration, easing and delay.
     ...layers.flatMap(({ name: layer, version: step }) => [
@@ -143,7 +166,9 @@ export function buildVersionExport(
     '## Using it',
     '',
     '1. Load `tokens.css` (or any stylesheet that defines the same custom properties) and `motion.css`.',
-    `2. Add the class \`.${name}\` to the animated element when the trigger fires${layers.length ? ', and each layer\'s class (above) to its element' : ''}.`,
+    version.interaction
+      ? `2. Add the class \`.${name}\` to the element, and set \`data-state="<state>"\` on it (${stateNames(version.interaction).join(', ')}) when the trigger fires; the CSS transitions do the rest.`
+      : `2. Add the class \`.${name}\` to the animated element when the trigger fires${layers.length ? ', and each layer\'s class (above) to its element' : ''}.`,
     ...(version.stagger ? [`3. Set \`--motion-index: 0, 1, 2…\` on each sibling to stagger them.`] : []),
     '',
     'The CSS is plain and stack-neutral. For a project on GSAP or Motion, run `npm run spec -- <component> <version> --format gsap` (or `motion`, or `all`) for the same motion as code: `motion.gsap.js` (easing only, GSAP has no springs) and `motion.motion.js` (every motion a spring, with the bounce tokens). Both are built from the same version file and tokens as this CSS.',

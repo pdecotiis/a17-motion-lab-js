@@ -11,6 +11,8 @@ import { prefersReducedMotion } from './lib/reduced-motion.js';
 import { animate as motionAnimate } from 'motion';
 import { motionArgsOf, describeMotionArgs, DEFAULT_BOUNCE } from './lib/motion-args.js';
 import { cssHandle, runtimeFromParam, RUNTIMES, type PlayHandle, type Runtime } from './lib/runtime.js';
+import { createInteractionPlayer, type InteractionPlayer } from './lib/interaction-player.js';
+import { describeTransition, stateNames } from './lib/interaction.js';
 import {
   VERSION_STATUSES, STATUS_LABELS, getVersionStatus, filterVersions, describeLineage, filterFromParams,
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
@@ -312,7 +314,38 @@ function parseMsLocal(value: string): number {
 // Plays a version: its root motion on `el`, and each layer's motion on the elements inside it marked
 // data-motion="<layer>". Every motion is tracked in activeAnimations, so the speed control reaches
 // them. Returns the root's handle.
+// One player per element and version, so the component view and the entrance share it.
+const players = new WeakMap<HTMLElement, { versionId: string; runtime: Runtime; player: InteractionPlayer }>();
+
+function playerFor(el: HTMLElement, version: MotionVersion, onChange?: (state: string, transitioning: boolean) => void): InteractionPlayer {
+  const known = players.get(el);
+  if (known && known.versionId === version.id && known.runtime === runtime && !onChange) return known.player;
+  const player = createInteractionPlayer(el, version, {
+    raw, runtime, globalBounce,
+    reducedMotion: () => prefersReducedMotion(),
+    reducedPolicy: getReducedMotionPolicy(version),
+    playbackRate: () => playbackRate,
+    ...(onChange ? { onChange } : {}),
+  });
+  players.set(el, { versionId: version.id, runtime, player });
+  return player;
+}
+
+// What an interaction version plays when something just asks it to play (a replay, a page, a library
+// card): back to its resting state, then to the first other state.
+function playInteractionEntrance(el: HTMLElement, version: MotionVersion): PlayHandle {
+  const player = playerFor(el, version);
+  // Reset first, and move on once it has taken effect (Motion applies it on its next frame).
+  void player.reset().then(() => {
+    const next = player.states().find(s => s !== player.state());
+    const handle = next ? player.goTo(next) : null;
+    if (handle) activeAnimations.push(handle);
+  });
+  return cssHandle(el, el.animate([{}], { duration: 0, fill: 'both' }));
+}
+
 function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 0): PlayHandle {
+  if (version.interaction) return playInteractionEntrance(el, version);
   el.getAnimations({ subtree: true }).forEach(a => a.cancel());
   activeAnimations.filter(h => el.contains(h.target)).forEach(h => h.cancel());
   activeAnimations = activeAnimations.filter(h => !h.finished && !el.contains(h.target));
@@ -424,6 +457,9 @@ function buildVersionFilterControls(filter: VersionFilter, onChange: (next: Vers
 
 // ── Component view ─────────────────────────────────────────────────────────
 
+// How long into a transition the "Interrupt" button cuts it short.
+const INTERRUPT_MS = 150;
+
 function renderComponentView(params: URLSearchParams): void {
   const componentName = params.get('component') ?? 'card';
   const versionId = params.get('version') ?? 'v1';
@@ -458,6 +494,7 @@ function renderComponentView(params: URLSearchParams): void {
             <p class="lab-lineage" id="version-lineage"></p>
             <dl class="lab-spec-meta" id="version-spec-meta"></dl>
             <button class="lab-btn" id="replay-btn">Replay</button>
+            <div class="lab-states" id="interaction-controls" hidden></div>
           </div>
         </details>
         <details class="lab-controls lab-accordion" open>
@@ -532,7 +569,9 @@ function renderComponentView(params: URLSearchParams): void {
     ['Plays', triggerText ?? 'Trigger not specified', triggerText === null],
     ['Reduced motion', REDUCED_MOTION_LABELS[getReducedMotionPolicy(version)], false],
     // What is playing, one line per motion (the root, then each layer).
-    ['Playback', stepsOf(version).map(({ name, version: step }) =>
+    ['Playback', version.interaction
+      ? stateNames(version.interaction).map(s => describeTransition(version.interaction!, s, raw, runtime, { globalBounce })).join('\n')
+      : stepsOf(version).map(({ name, version: step }) =>
       `${name ? `${name}: ` : ''}${runtime === 'motion'
         ? describeMotionArgs(motionArgsOf(step, raw, { globalBounce }))
         : describePlayback(playbackOf(step, raw))}`).join('\n'), false],
@@ -578,6 +617,66 @@ function renderComponentView(params: URLSearchParams): void {
 
   function playAnimation(target: HTMLElement, vid: string): PlayHandle {
     return animateElement(target, getVersion(componentName, vid));
+  }
+
+  // An interaction version has states: buttons to move between them, a click on anything marked
+  // data-motion-set in the markup, and a way to interrupt a move halfway.
+  if (version.interaction) {
+    const interaction = version.interaction;
+    const box = document.getElementById('interaction-controls')!;
+    box.hidden = false;
+    const status = document.createElement('p');
+    status.id = 'state-now';
+    status.className = 'lab-states__now';
+    status.setAttribute('role', 'status');
+    const row = document.createElement('div');
+    row.className = 'lab-states__row';
+    const buttons = new Map<string, HTMLButtonElement>();
+    const player = playerFor(primaryTarget, version, (state, transitioning) => {
+      status.textContent = transitioning ? `State: moving to ${state}` : `State: ${state}`;
+      status.dataset['state'] = state;
+      status.dataset['moving'] = String(transitioning);
+      for (const [name, btn] of buttons) btn.setAttribute('aria-pressed', String(name === state));
+    });
+    const go = (state: string): void => {
+      const handle = player.goTo(state);
+      if (handle) activeAnimations.push(handle);
+    };
+    for (const name of stateNames(interaction)) {
+      const btn = document.createElement('button');
+      btn.className = 'lab-btn lab-btn--sm';
+      btn.dataset['stateBtn'] = name;
+      btn.textContent = name;
+      btn.addEventListener('click', () => go(name));
+      buttons.set(name, btn);
+      row.appendChild(btn);
+    }
+    const toggle = document.createElement('button');
+    toggle.className = 'lab-btn lab-btn--sm';
+    toggle.id = 'state-toggle';
+    toggle.textContent = 'Toggle';
+    toggle.addEventListener('click', () => { const h = player.toggle(); if (h) activeAnimations.push(h); });
+    // Move to the first other state, then back after INTERRUPT_MS: what a runtime does with a motion cut short.
+    const interrupt = document.createElement('button');
+    interrupt.className = 'lab-btn lab-btn--sm';
+    interrupt.id = 'state-interrupt';
+    interrupt.textContent = `Interrupt (${INTERRUPT_MS}ms)`;
+    interrupt.title = 'Go to the next state, then back after a moment, before it arrives';
+    interrupt.addEventListener('click', () => {
+      void player.reset().then(() => {
+        const next = player.states().find(s => s !== player.state());
+        if (!next) return;
+        go(next);
+        window.setTimeout(() => go(interaction.initial), INTERRUPT_MS / playbackRate);
+      });
+    });
+    row.append(toggle, interrupt);
+    box.append(status, row);
+    // Clicking something in the component that names a state moves to it.
+    primaryInner.addEventListener('click', e => {
+      const hook = (e.target as HTMLElement).closest<HTMLElement>('[data-motion-set]');
+      if (hook?.dataset['motionSet']) go(hook.dataset['motionSet']);
+    });
   }
 
   playAnimation(primaryTarget, versionId);
