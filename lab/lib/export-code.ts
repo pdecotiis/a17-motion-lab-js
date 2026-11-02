@@ -1,10 +1,11 @@
-import type { MotionVersion } from './types.js';
+import type { MotionVersion, EntranceVersion } from './types.js';
 import { stepsOf, playbackOf } from './motion-models.js';
 import { motionArgsOf, DEFAULT_BOUNCE } from './motion-args.js';
 import { orderedKeyframes } from './css-output.js';
 import { getTokenRefs } from './token-refs.js';
 import { describeTrigger, getReducedMotionPolicy, getVersionStatus } from './version-meta.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
+import { interactionParts, motionStates, motionTransitionPlan, partProps, stateNames, timingFor } from './interaction.js';
 
 // The same version as code for the library a project uses. The CSS export (css-output.ts) is the
 // baseline; these are the same motion in GSAP and Motion terms, built from the same version file and
@@ -114,7 +115,7 @@ class EaseRegistry {
 }
 
 function gsapStep(
-  version: MotionVersion, raw: Record<string, unknown>, ease: EaseRegistry, target: string, position: string, notes: string[],
+  version: EntranceVersion, raw: Record<string, unknown>, ease: EaseRegistry, target: string, position: string, notes: string[],
 ): string[] {
   const model = version.model;
   const p = playbackOf(version, raw);
@@ -137,9 +138,214 @@ function gsapStep(
   ];
 }
 
+// The interaction's triggers as code a developer can drop in: `attach<Base>(el)` listens for hover, press, focus
+// and click (the same rules as the lab's player: a touch never hovers, a press lasts until the pointer is
+// released anywhere, focus is keyboard focus, the latest hold wins and the base state returns) and returns the
+// function that stops listening. Both libraries use the same wiring; only goTo differs.
+function attachLines(version: MotionVersion, base: string): string[] {
+  const i = version.interaction!;
+  const triggers = i.triggers ?? [];
+  if (triggers.length === 0) {
+    return [
+      '// No triggers are declared for this version: call goTo' + base + '(el, state) from whatever starts the change.',
+      '',
+    ];
+  }
+  return [
+    '// What starts each move. hover, press and focus hold a state while they last; click sets one (or swaps two).',
+    'const triggers = [',
+    ...triggers.map(t => `  ${JSON.stringify(t)},`),
+    '];',
+    '',
+    `/** Wire the triggers on \`el\` (and on the data-motion elements they name). Returns a function that removes them. */`,
+    `export function attach${base}(el) {`,
+    `  let base = ${str(i.initial)};`,
+    '  const holds = [];',
+    `  const settle = () => goTo${base}(el, holds.length ? holds[holds.length - 1].state : base);`,
+    '  const off = [];',
+    '  const on = (node, type, fn) => { node.addEventListener(type, fn); off.push(() => node.removeEventListener(type, fn)); };',
+    '  for (const t of triggers) {',
+    '    const nodes = t.target ? el.querySelectorAll(\'[data-motion="\' + t.target + \'"]\') : [el];',
+    '    for (const node of nodes) {',
+    '      if (t.on === "click") {',
+    '        on(node, "click", () => {',
+    '          base = t.set ?? (base === t.toggle[0] ? t.toggle[1] : t.toggle[0]);',
+    '          settle();',
+    '        });',
+    '        continue;',
+    '      }',
+    '      const hold = { state: t.state };',
+    '      const enter = () => { if (!holds.includes(hold)) { holds.push(hold); settle(); } };',
+    '      const leave = () => { const at = holds.indexOf(hold); if (at >= 0) { holds.splice(at, 1); settle(); } };',
+    '      if (t.on === "hover") {',
+    '        on(node, "pointerenter", e => { if (e.pointerType !== "touch") enter(); });',
+    '        on(node, "pointerleave", leave);',
+    '      } else if (t.on === "press") {',
+    '        on(node, "pointerdown", e => {',
+    '          if (e.button > 0) return;',
+    '          enter();',
+    '          const end = () => { leave(); document.removeEventListener("pointerup", end); document.removeEventListener("pointercancel", end); };',
+    '          document.addEventListener("pointerup", end);',
+    '          document.addEventListener("pointercancel", end);',
+    '        });',
+    '      } else {',
+    '        on(node, "focusin", e => { if (e.target.matches(":focus-visible")) enter(); });',
+    '        on(node, "focusout", leave);',
+    '      }',
+    '    }',
+    '  }',
+    '  return () => off.forEach(fn => fn());',
+    '}',
+    '',
+  ];
+}
+
+const jsKey = (n: string): string => (/^[a-zA-Z_]\w*$/.test(n) ? n : str(n));
+
+// An interaction version as GSAP: per part (the component, then each layer) the states and the timing into
+// each, a function that moves an element to a state, and one that wires the triggers. A move interrupted
+// halfway is retargeted from where the element is (`overwrite: "auto"`).
+function buildGsapInteraction(version: MotionVersion, raw: Record<string, unknown>, component: string): string {
+  const i = version.interaction!;
+  const base = `${pascal(component)}${pascal(version.id)}`;
+  const names = stateNames(i);
+  const parts = interactionParts(i).filter(part => partProps(i, part).length > 0);
+  const many = parts.length > 1;
+  const ease = new EaseRegistry(raw);
+  const gsapName = (k: string): string => (k === 'rotate' ? 'rotation' : k);
+  const partLines = parts.flatMap(part => {
+    const states = motionStates(i, raw, part);
+    const stateLine = (n: string): string =>
+      `      ${jsKey(n)}: { ${Object.entries(states[n]!).map(([k, v]) => `${gsapName(k)}: ${typeof v === 'number' ? num(v) : str(v)}`).join(', ')} },`;
+    const timing = names.map(n => {
+      const t = timingFor(i, part, n);
+      const delay = parseMs(t.delay, raw);
+      return `      ${jsKey(n)}: { duration: ${seconds(parseMs(t.duration, raw))}, ease: ${str(ease.nameOf(t.easing))}${delay ? `, delay: ${seconds(delay)}` : ''} }, // ${t.easing in raw ? t.easing : 'hard-coded easing'}${t.model === 'spring' ? ' (authored as a spring: GSAP has no springs, so the easing plays)' : ''}`;
+    });
+    return [
+      `  { layer: ${part === null ? 'null' : str(part)}, // ${part === null ? 'the element itself' : `elements marked data-motion="${part}"`}`,
+      '    states: {', ...names.map(stateLine), '    },',
+      '    // The timing of going TO each state.',
+      '    transitions: {', ...timing, '    },',
+      '  },',
+    ];
+  });
+  const hasOpacity = parts.some(part => partProps(i, part).includes('opacity'));
+  const fade = hasOpacity && getReducedMotionPolicy(version) === 'fade';
+  const out: string[] = [
+    ...header(version, component, 'GSAP has no springs, so this is easing only.'),
+    tokenComment(version, raw, 'gsap'),
+    '',
+    'import { gsap } from "gsap";',
+    'import { CustomEase } from "gsap/CustomEase";',
+    '',
+    'gsap.registerPlugin(CustomEase);',
+    ...[...ease.entries].map(([n, e]) => `CustomEase.create(${str(n)}, ${str(e.bezier)}); // ${e.comment}`),
+    '',
+    'const parts = [',
+    ...partLines,
+    '];',
+    '',
+    'const nodesOf = (el, layer) => (layer ? [...el.querySelectorAll(\'[data-motion="\' + layer + \'"]\')] : [el]);',
+    '',
+    `/** Put \`el\` in its resting state (${i.initial}) with no animation. */`,
+    `export function setup${base}(el) {`,
+    `  for (const { layer, states } of parts) gsap.set(nodesOf(el, layer), states.${jsKey(i.initial)});`,
+    `  el.dataset.state = ${str(i.initial)};`,
+    '}',
+    '',
+    `/** Move \`el\` to a state (${names.join(', ')}). A move cut short is retargeted from where it is.${many ? ' Returns one tween per part.' : ''} */`,
+    `export function goTo${base}(el, state) {`,
+    '  el.dataset.state = state;',
+    '  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;',
+    '  const tweens = [];',
+    '  for (const { layer, states, transitions } of parts) {',
+    '    const nodes = nodesOf(el, layer);',
+    '    if (reduced) {',
+    fade
+      ? `      // reduced motion: the opacity change still fades (at most ${REDUCED_MOTION_FADE_MS}ms), movement snaps\n      const { opacity, ...movement } = states[state];\n      gsap.set(nodes, movement);\n      if (opacity !== undefined) tweens.push(gsap.to(nodes, { opacity, duration: Math.min(transitions[state].duration, ${seconds(REDUCED_MOTION_FADE_MS)}), ease: transitions[state].ease, overwrite: "auto" }));`
+      : '      // reduced motion: no animation, the element goes straight to the state\n      gsap.set(nodes, states[state]);',
+    '    } else {',
+    '      tweens.push(gsap.to(nodes, { ...states[state], ...transitions[state], overwrite: "auto" }));',
+    '    }',
+    '  }',
+    many ? '  return tweens;' : '  return tweens[0];',
+    '}',
+    '',
+    ...attachLines(version, base),
+  ];
+  return out.join('\n');
+}
+
+// An interaction version as Motion: every transition a spring. Motion's time-defined springs (a duration
+// and a bounce) retarget from the current value but do not inherit the speed of the move they cut short.
+function buildMotionInteraction(version: MotionVersion, raw: Record<string, unknown>, component: string, globalBounce: string): string {
+  const i = version.interaction!;
+  const base = `${pascal(component)}${pascal(version.id)}`;
+  const names = stateNames(i);
+  const parts = interactionParts(i).filter(part => partProps(i, part).length > 0);
+  const many = parts.length > 1;
+  const plan = (part: string | null, n: string, reducedMotion: boolean) => motionTransitionPlan(i, n, raw, { reducedMotion, reducedPolicy: getReducedMotionPolicy(version), globalBounce, target: part });
+  const entry = (part: string | null, n: string, reducedMotion: boolean): string => {
+    const p = plan(part, n, reducedMotion);
+    const o = p.options;
+    return `      ${jsKey(n)}: { animate: ${JSON.stringify(p.animate)}, snap: ${JSON.stringify(p.snap)}, options: { type: "spring", visualDuration: ${num(o.visualDuration)}, bounce: ${num(o.bounce)}${o.delay ? `, delay: ${num(o.delay)}` : ''} } },${!reducedMotion && p.bounceToken ? ` // ${p.bounceToken}${p.note ? `; ${p.note}` : ''}` : ''}`;
+  };
+  const partLines = parts.flatMap(part => {
+    const states = motionStates(i, raw, part);
+    return [
+      `  { layer: ${part === null ? 'null' : str(part)}, // ${part === null ? 'the element itself' : `elements marked data-motion="${part}"`}`,
+      '    states: {', ...names.map(n => `      ${jsKey(n)}: ${JSON.stringify(states[n])},`), '    },',
+      '    // Going TO each state: what to animate, what to set at once, and the spring.',
+      '    transitions: {', ...names.map(n => entry(part, n, false)), '    },',
+      '    // With prefers-reduced-motion: the opacity change fades briefly (no bounce), movement snaps.',
+      '    reducedTransitions: {', ...names.map(n => entry(part, n, true)), '    },',
+      '  },',
+    ];
+  });
+  return [
+    ...header(version, component, 'Motion plays every motion as a spring.'),
+    tokenComment(version, raw, 'motion'),
+    `// Bounce: a transition's own bounce token, otherwise the global bounce setting (${globalBounce}).`,
+    '// Interrupted moves: Motion\'s duration-based springs retarget from the current value but do not carry the',
+    '// speed of the move they cut short (physics-based springs, with stiffness and damping, would).',
+    '',
+    'import { animate } from "motion";',
+    '',
+    'const parts = [',
+    ...partLines,
+    '];',
+    '',
+    'const nodesOf = (el, layer) => (layer ? [...el.querySelectorAll(\'[data-motion="\' + layer + \'"]\')] : [el]);',
+    '',
+    `/** Put \`el\` in its resting state (${i.initial}) with no animation. */`,
+    `export function setup${base}(el) {`,
+    `  el.dataset.state = ${str(i.initial)};`,
+    `  return parts.map(({ layer, states }) => animate(nodesOf(el, layer), states.${jsKey(i.initial)}, { duration: 0.001 }));`,
+    '}',
+    '',
+    `/** Move \`el\` to a state (${names.join(', ')}).${many ? ' Returns one animation per part.' : ''} */`,
+    `export function goTo${base}(el, state) {`,
+    '  el.dataset.state = state;',
+    '  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;',
+    '  const moves = [];',
+    '  for (const part of parts) {',
+    '    const nodes = nodesOf(el, part.layer);',
+    '    const { animate: to, snap, options } = (reduced ? part.reducedTransitions : part.transitions)[state];',
+    '    if (Object.keys(snap).length) animate(nodes, snap, { duration: 0.001 });',
+    '    if (Object.keys(to).length) moves.push(animate(nodes, to, options));',
+    '  }',
+    many ? '  return moves;' : '  return moves[0];',
+    '}',
+    '',
+    ...attachLines(version, base),
+  ].join('\n');
+}
+
 // The version as GSAP code: a timeline of the root and each layer, easing only.
 export function buildGsapCode(version: MotionVersion, raw: Record<string, unknown>, options: ExportCodeOptions = {}): string {
   const { component = 'component' } = options;
+  if (version.interaction) return buildGsapInteraction(version, raw, component);
   const fn = `play${pascal(component)}${pascal(version.id)}`;
   const steps = stepsOf(version);
   const ease = new EaseRegistry(raw);
@@ -198,12 +404,13 @@ export function buildGsapCode(version: MotionVersion, raw: Record<string, unknow
 // lab plays under Motion.
 export function buildMotionCode(version: MotionVersion, raw: Record<string, unknown>, options: ExportCodeOptions = {}): string {
   const { component = 'component', globalBounce = DEFAULT_BOUNCE } = options;
+  if (version.interaction) return buildMotionInteraction(version, raw, component, globalBounce);
   const fn = `play${pascal(component)}${pascal(version.id)}`;
   const steps = stepsOf(version);
   const staggerMs = version.stagger ? parseMs(version.stagger, raw) : 0;
   const reducedPolicy = getReducedMotionPolicy(version);
 
-  const call = (target: string, step: MotionVersion, reducedMotion: boolean, indent: string): string[] => {
+  const call = (target: string, step: EntranceVersion, reducedMotion: boolean, indent: string): string[] => {
     const a = motionArgsOf(step, raw, { reducedMotion, globalBounce });
     const o = a.options;
     const delay = o.delay ? `${num(o.delay)} + ` : '';

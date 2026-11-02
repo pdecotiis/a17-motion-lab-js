@@ -1,8 +1,8 @@
-import type { MotionVersion } from './types.js';
-import { playbackOf, resolveBounce } from './motion-models.js';
+import type { MotionVersion, EntranceVersion } from './types.js';
+import { playbackOf, modelOf } from './motion-models.js';
+import { resolveBounce, DEFAULT_BOUNCE } from './bounce.js';
 
-// The global bounce setting a motion uses when it names none: Motion's own default.
-export const DEFAULT_BOUNCE = 'bounce.25';
+export { DEFAULT_BOUNCE };
 
 // What the Motion runtime (motion.dev) is asked to play for one motion. This is only the translation
 // of a version into Motion's own terms: Motion does the playing, the spring maths included.
@@ -56,7 +56,7 @@ export function motionArgsOf(
   const { reducedMotion = false, extraDelayMs = 0, globalBounce = DEFAULT_BOUNCE } = options;
   const p = playbackOf(version, raw, { reducedMotion });
   const all = toMotionKeyframes(p.keyframes);
-  const model = version.model;
+  const model = modelOf(version);
 
   const skipped = p.keyframes.length > 2;
   const keyframes = Object.fromEntries(

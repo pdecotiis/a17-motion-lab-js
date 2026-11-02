@@ -1,6 +1,7 @@
-import type { MotionVersion, SpringProperty } from './types.js';
+import type { Interaction, MotionVersion, EntranceVersion, SpringProperty } from './types.js';
 import { resolveRefs, tokenVarName } from './token-compiler.js';
 import { stepsOf } from './motion-models.js';
+import { interactionParts, partProps, partValues, stateNames, timingFor } from './interaction.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { describeTrigger, getReducedMotionPolicy, getVersionStatus } from './version-meta.js';
 
@@ -117,7 +118,7 @@ function block(selector: string, lines: string[], indent = ''): string[] {
 }
 
 // One motion (the root's or a layer's) as @keyframes, a class and its reduced-motion block.
-function stepCss(version: MotionVersion, raw: Record<string, unknown>, name: string, stagger: string | undefined): string[] {
+function stepCss(version: EntranceVersion, raw: Record<string, unknown>, name: string, stagger: string | undefined): string[] {
   const out: string[] = [];
 
   // A spring version has no real spring in CSS: it plays its from/to values with the easing curve.
@@ -180,6 +181,90 @@ function stepCss(version: MotionVersion, raw: Record<string, unknown>, name: str
   return out;
 }
 
+// The selectors on the component's root that put it in a state because of a hover, press or focus. Hover,
+// press and focus triggers are CSS pseudo-classes; a click has none, so it sets data-state (below). A trigger
+// on an inner element (`target`) is `:has()` on the root.
+function triggerSelectors(i: Interaction, base: string, on: 'hover' | 'press' | 'focus', state: string): string[] {
+  const out: string[] = [];
+  for (const t of i.triggers ?? []) {
+    if (t.on !== on || t.state !== state) continue;
+    const inner = t.target ? `[data-motion="${t.target}"]` : null;
+    if (on === 'focus') out.push(...(inner ? [`.${base}:has(${inner}:focus-visible)`] : [`.${base}:focus-visible`, `.${base}:has(:focus-visible)`]));
+    else {
+      const pseudo = on === 'hover' ? ':hover' : ':active';
+      out.push(inner ? `.${base}:has(${inner}${pseudo})` : `.${base}${pseudo}`);
+    }
+  }
+  return out;
+}
+
+// An interaction version as CSS transitions between states. The rest state is the class itself; every
+// other state is `[data-state="…"]` (for a click, or anything a script sets), and a hover, press or focus
+// trigger is the matching pseudo-class (hover inside @media (hover: hover), so a touch screen never sticks
+// on it). Each state carries the timing of going TO it (that is how a CSS transition works: it takes the
+// timing of the state it arrives in). A layer (an element marked data-motion="…" inside) is a descendant rule.
+function interactionCss(version: MotionVersion, raw: Record<string, unknown>, base: string): string[] {
+  const i = version.interaction!;
+  const names = stateNames(i);
+  const parts = interactionParts(i).filter(part => partProps(i, part).length > 0);
+  const partSuffix = (part: string | null): string => (part ? ` [data-motion="${part}"]` : '');
+  const out: string[] = [
+    `/* States: ${names.map(n => (n === i.initial ? `${n} (rest)` : n)).join(', ')}. ${i.triggers?.length ? 'Hover, press and focus are wired below; a click (or anything a script does) sets data-state="<state>" on the element.' : 'Set data-state="<state>" on the element to move between them.'} The transition into a state is the one declared on that state. */`,
+  ];
+
+  // One rule per state: the root, then each layer, under the given root selectors.
+  const rules = (state: string, rootSelectors: string[], note: string, indent = ''): string[] => {
+    const lines: string[] = [];
+    for (const part of parts) {
+      const t = timingFor(i, part, state);
+      const props = partProps(i, part);
+      const values = partValues(i, part, state);
+      const decl: string[] = props.map(prop => {
+        const v = values[prop]!;
+        return `${kebab(prop)}: ${typeof v === 'string' ? resolveRefs(v, raw, { cssVars: true }) : v};`;
+      });
+      decl.push(
+        `transition-property: ${props.map(kebab).join(', ')};`,
+        `transition-duration: ${cssValue(t.duration, raw, '300ms')};`,
+        `transition-timing-function: ${cssValue(t.easing, raw, 'ease')};`,
+      );
+      const delay = literalValue(t.delay, raw, '0ms');
+      if (delay !== '0ms' && delay !== '0s' && delay !== '0') decl.push(`transition-delay: ${delay};`);
+      const spring = t.model === 'spring' ? ': authored as a spring; CSS plays its easing, only a spring runtime (Motion) bounces' : '';
+      if (lines.length) lines.push('');
+      lines.push(`${indent}/* ${part ?? 'the component'}: ${note}${spring} */`, ...block(rootSelectors.map(r => r + partSuffix(part)).join(',\n' + indent), decl, indent));
+    }
+    return lines;
+  };
+
+  const allSelectors: string[] = [];
+  for (const name of names) {
+    const sel = name === i.initial ? `.${base}` : `.${base}[data-state="${name}"]`;
+    allSelectors.push(...parts.map(part => sel + partSuffix(part)));
+    out.push('', ...rules(name, [sel], name === i.initial ? `${name} (rest), and the transition into it` : `into ${name}`));
+  }
+
+  // Hover, press and focus triggers. Later rules win, so a press settles over a hover, as in the lab.
+  for (const on of ['focus', 'hover', 'press'] as const) {
+    for (const name of names) {
+      const selectors = triggerSelectors(i, base, on, name);
+      if (selectors.length === 0) continue;
+      allSelectors.push(...selectors.flatMap(sel => parts.map(part => sel + partSuffix(part))));
+      const note = `into ${name} while ${on === 'hover' ? 'hovered' : on === 'press' ? 'pressed' : 'keyboard-focused'}`;
+      if (on === 'hover') out.push('', '@media (hover: hover) {', ...rules(name, selectors, note, '  '), '}');
+      else out.push('', ...rules(name, selectors, note));
+    }
+  }
+
+  // Reduced motion: the opacity change still fades (briefly); movement snaps.
+  const policy = getReducedMotionPolicy(version);
+  const fades = policy === 'fade' && parts.some(part => partProps(i, part).includes('opacity'));
+  const reducedMs = Math.round(Math.min(...parts.flatMap(part => names.map(n => parseMs(literalValue(timingFor(i, part, n).duration, raw, '300ms')))), REDUCED_MOTION_FADE_MS));
+  const reduced = fades ? ['transition-property: opacity;', `transition-duration: ${reducedMs}ms;`] : ['transition: none;'];
+  out.push('', '/* Reduced motion */', '@media (prefers-reduced-motion: reduce) {', ...block([...new Set(allSelectors)].join(',\n  '), reduced, '  '), '}');
+  return out;
+}
+
 export function buildVersionCss(
   version: MotionVersion,
   raw: Record<string, unknown>,
@@ -193,11 +278,17 @@ export function buildVersionCss(
 
   const out: string[] = [`/* ${component} ${version.id}: ${version.label} (${getVersionStatus(version)}) */`];
   const trigger = describeTrigger(version.trigger);
-  out.push(
+  if (version.interaction) out.push(`/* Add .${base} to the element once, for good: it is the resting state. */`);
+  else out.push(
     trigger
       ? `/* Plays: ${trigger}. Add .${base} when the trigger fires. */`
       : `/* Plays: trigger not specified, confirm with the designer. Add .${base} when it should play. */`,
   );
+
+  if (version.interaction) {
+    out.push(...interactionCss(version, raw, base));
+    return out.join('\n');
+  }
 
   for (const { name, version: step } of stepsOf(version)) {
     if (name) out.push('', `/* Layer ${name}: add .${base}-${name} to the element marked data-motion="${name}" when the trigger fires. */`);

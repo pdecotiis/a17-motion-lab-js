@@ -246,8 +246,8 @@ describe('getStepRefs: which tokens are used where', () => {
     expect(getStepRefs(bounceVersion, raw, 'motion')[0]!.uses).toEqual([{ token: 'duration.560', where: ['duration'] }]);
     expect(getStepRefs(tweenVersion, raw, 'motion')[0]!.uses.map(u => u.token)).toEqual(['duration.300']);
     for (const v of [bounceVersion, tweenVersion]) {
-      expect(getStepRefs(v, raw, 'css')[0]!.uses.map(u => u.token), v.id).toContain(v.model.easing);
-      expect(getStepRefs(v, raw)[0]!.uses.map(u => u.token), v.id).toContain(v.model.easing);
+      expect(getStepRefs(v, raw, 'css')[0]!.uses.map(u => u.token), v.id).toContain(v.model!.easing);
+      expect(getStepRefs(v, raw)[0]!.uses.map(u => u.token), v.id).toContain(v.model!.easing);
     }
   });
 
@@ -258,7 +258,7 @@ describe('getStepRefs: which tokens are used where', () => {
   });
 
   it('under Motion layers list no easing either', () => {
-    const layered: MotionVersion = { ...bounceVersion, layers: { text: { model: tweenVersion.model, keyframes: [] } } };
+    const layered: MotionVersion = { ...bounceVersion, layers: { text: { model: tweenVersion.model!, keyframes: [] } } };
     const steps = getStepRefs(layered, raw, 'motion');
     expect(steps[0]!.uses.map(u => u.token)).toEqual(['duration.560']);
     expect(steps[1]!.uses.map(u => u.token)).toEqual(['duration.300']);

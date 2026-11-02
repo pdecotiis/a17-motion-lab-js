@@ -204,7 +204,7 @@ describe('layers', () => {
   });
 
   it('a layer can be a spring', () => {
-    const v: MotionVersion = { ...tweenVersion, layers: { badge: { model: springVersion.model } } };
+    const v: MotionVersion = { ...tweenVersion, layers: { badge: { model: springVersion.model! } } };
     expect(playbackOf(stepsOf(v)[1]!.version, raw).keyframes).toHaveLength(2);
   });
 

@@ -1,7 +1,8 @@
-import type { MotionVersion, TweenModel, SpringModel } from './types.js';
+import type { MotionVersion, EntranceVersion, TweenModel, SpringModel } from './types.js';
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getStepRefs, getTokenRefs } from './token-refs.js';
+import { interactionParts, partValues, resolveState, stateNames, timingFor } from './interaction.js';
 import { resolveKeyframes, stepsOf } from './motion-models.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import {
@@ -40,7 +41,7 @@ function stagger(value: string, raw: Record<string, unknown>): string {
   return value in raw ? `${value} (${literal(raw[value])})` : value;
 }
 
-function motionLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
+function motionLines(version: EntranceVersion, raw: Record<string, unknown>): string[] {
   const m = version.model;
   const lines = [
     `- Duration: ${describeValue(m.duration, raw, '300ms')}`,
@@ -55,7 +56,7 @@ function motionLines(version: MotionVersion, raw: Record<string, unknown>): stri
   return lines;
 }
 
-function animatedLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
+function animatedLines(version: EntranceVersion, raw: Record<string, unknown>): string[] {
   if (version.model.model === 'tween') {
     return orderedKeyframes(resolveKeyframes(version.keyframes, raw)).map(({ offset, kf }) => {
       const props = Object.entries(kf)
@@ -70,6 +71,64 @@ function animatedLines(version: MotionVersion, raw: Record<string, unknown>): st
     const wrap = (n: number): string => (p.wrapTransform ? `${p.wrapTransform}(${n}${unit})` : `${n}${unit}`);
     return `- ${p.property}: ${wrap(p.from)} → ${wrap(p.to)}`;
   });
+}
+
+// An interaction version: its states, and the transition into each.
+function stateLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
+  const i = version.interaction!;
+  return stateNames(i).flatMap(n => {
+    const values = Object.entries(resolveState(i.states[n]!, raw)).map(([k, v]) => `${k} ${String(v)}`).join(', ');
+    const layerValues = interactionParts(i).filter((part): part is string => part !== null).map(part => {
+      const v = Object.entries(resolveState(partValues(i, part, n), raw)).map(([k, val]) => `${k} ${String(val)}`).join(', ');
+      return `  - layer \`${part}\` (the element marked data-motion="${part}"): ${v}`;
+    });
+    return [`- ${n}${n === i.initial ? ' (rest, where it starts)' : ''}: ${values}`, ...layerValues];
+  });
+}
+
+function transitionLines(version: MotionVersion, raw: Record<string, unknown>): string[] {
+  const i = version.interaction!;
+  return stateNames(i).flatMap(n => {
+    const t = i.transitions[n]!;
+    const lines = [`- **Into ${n}**: ${describeValue(t.duration, raw, '300ms')}, easing ${describeValue(t.easing, raw, 'ease')}${t.delay ? `, delay ${describeValue(t.delay, raw, '0ms')}` : ''}`];
+    if (t.model === 'spring') {
+      const b = t.bounce === undefined ? 'the global bounce setting' : typeof t.bounce === 'string' ? describeValue(t.bounce, raw, '0') : `${t.bounce} (hard-coded, not a token)`;
+      lines.push(`  - Authored as a spring, bounce: ${b}. CSS plays the easing curve; only a spring runtime (Motion) bounces.`);
+    }
+    for (const part of interactionParts(i)) {
+      const own = part === null ? undefined : i.layers?.[part]?.transitions?.[n];
+      if (part === null || !own) continue;
+      const lt = timingFor(i, part, n);
+      lines.push(`  - Layer \`${part}\` has its own timing: ${describeValue(lt.duration, raw, '300ms')}, easing ${describeValue(lt.easing, raw, 'ease')}${lt.delay ? `, delay ${describeValue(lt.delay, raw, '0ms')}` : ''}`);
+    }
+    return lines;
+  });
+}
+
+// What starts each move, and the ones the component can't start itself.
+const TRIGGER_WORDS: Record<string, string> = { hover: 'pointer over it (a mouse or pen, never a touch)', press: 'pointer held down on it', focus: 'keyboard focus (not a mouse click)', click: 'a click or tap' };
+function triggerLines(version: MotionVersion): string[] {
+  const i = version.interaction!;
+  const triggers = i.triggers ?? [];
+  const led = new Set<string>();
+  const rows = triggers.map(t => {
+    const where = t.target ? `the element marked \`data-motion="${t.target}"\`` : 'the component itself';
+    if (t.on === 'click') {
+      const states = 'set' in t ? [t.set] : t.toggle;
+      states.forEach(st => led.add(st));
+      const what = 'set' in t ? `goes to **${t.set}**` : `swaps between **${t.toggle[0]}** and **${t.toggle[1]}**`;
+      return `| click | ${where} | ${TRIGGER_WORDS['click']} | ${what} |`;
+    }
+    led.add(t.state);
+    return `| ${t.on} | ${where} | ${TRIGGER_WORDS[t.on]} | holds **${t.state}** while it lasts, then goes back to where it was (rest, or what a click set) |`;
+  });
+  const outside = stateNames(i).filter(n => n !== i.initial && !led.has(n));
+  return [
+    ...(rows.length
+      ? ['| Event | On | Means | What happens |', '|---|---|---|---|', ...rows, '', 'The CSS wires hover (inside `@media (hover: hover)`), press (`:active`) and focus (`:focus-visible`) itself, and a click needs `data-state="<state>"` set by a script. The GSAP and Motion files have an `attach…(el)` function that wires all of them and returns a function that removes them. Later triggers win: a press settles over a hover.']
+      : ['No triggers are declared: the component only moves when something sets `data-state="<state>"` (CSS) or calls the `goTo…` function (GSAP, Motion).']),
+    ...(outside.length ? ['', `**Set from outside the component:** ${outside.map(n => `\`${n}\``).join(', ')}. Nothing inside the component leads there (for example a button elsewhere that opens a panel); the developer wires it by setting \`data-state\` or calling \`goTo…\`.`] : []),
+  ];
 }
 
 function reducedMotionLines(version: MotionVersion): string[] {
@@ -112,14 +171,15 @@ export function buildVersionExport(
     '',
     trigger ?? '**Not specified.** The designer has not said what triggers this. Ask before wiring it up.',
     '',
-    '## What animates',
+    ...(version.interaction ? ['## Triggers', '', ...triggerLines(version), ''] : []),
+    version.interaction ? '## States' : '## What animates',
     '',
     ...(layers.length ? ['The component\'s root element (the one marked `data-motion-target`):', ''] : []),
-    ...animatedLines(version, raw),
+    ...(version.interaction ? stateLines(version, raw) : animatedLines(stepsOf(version)[0]!.version, raw)),
     '',
-    '## Timing',
+    version.interaction ? '## Transitions' : '## Timing',
     '',
-    ...motionLines(version, raw),
+    ...(version.interaction ? transitionLines(version, raw) : motionLines(stepsOf(version)[0]!.version, raw)),
     '',
     // Each layer is a motion of its own: it names its own duration, easing and delay.
     ...layers.flatMap(({ name: layer, version: step }) => [
@@ -143,7 +203,9 @@ export function buildVersionExport(
     '## Using it',
     '',
     '1. Load `tokens.css` (or any stylesheet that defines the same custom properties) and `motion.css`.',
-    `2. Add the class \`.${name}\` to the animated element when the trigger fires${layers.length ? ', and each layer\'s class (above) to its element' : ''}.`,
+    version.interaction
+      ? `2. Add the class \`.${name}\` to the element, and keep it there for good: it is the resting state. Hover, press and focus are in the CSS already; set \`data-state="<state>"\` on it (${stateNames(version.interaction).join(', ')}) for a click or anything a script decides, and the CSS transitions do the rest.`
+      : `2. Add the class \`.${name}\` to the animated element when the trigger fires${layers.length ? ', and each layer\'s class (above) to its element' : ''}.`,
     ...(version.stagger ? [`3. Set \`--motion-index: 0, 1, 2…\` on each sibling to stagger them.`] : []),
     '',
     'The CSS is plain and stack-neutral. For a project on GSAP or Motion, run `npm run spec -- <component> <version> --format gsap` (or `motion`, or `all`) for the same motion as code: `motion.gsap.js` (easing only, GSAP has no springs) and `motion.motion.js` (every motion a spring, with the bounce tokens). Both are built from the same version file and tokens as this CSS.',
