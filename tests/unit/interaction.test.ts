@@ -321,7 +321,7 @@ describe('the CSS export of states', () => {
   });
 
   it('says how to use it, and that a spring plays its easing in CSS', () => {
-    expect(css).toContain('Set data-state="<state>" on the element');
+    expect(css).toContain('sets data-state="<state>" on the element');
     expect(css).toContain('authored as a spring; CSS plays its easing');
   });
 

@@ -288,3 +288,35 @@ test.describe('Interactions: what it does', () => {
     await expect(page.locator('#version-behaviour')).toBeHidden();
   });
 });
+
+// The exported CSS, used the way a developer would: on a plain element, no lab code, only the stylesheet.
+test.describe('Interactions: the exported CSS works on its own', () => {
+  test('hover and press on a plain element lift it and scale the layer', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v5');
+    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+    const cssText = await page.locator('#css-pre').innerText();
+    await page.evaluate(css => {
+      const style = document.createElement('style');
+      style.textContent = css.replace(/transition-duration: [^;]+;/g, 'transition-duration: 1ms;');
+      document.head.appendChild(style);
+      const box = document.createElement('div');
+      box.id = 'plain';
+      box.className = 'motion-card-v5';
+      box.style.cssText = 'position:fixed;left:40px;bottom:40px;width:200px;height:100px;background:#ccc;z-index:99999';
+      box.innerHTML = '<div data-motion="image" style="width:50px;height:50px;background:#888"></div>';
+      document.body.appendChild(box);
+    }, cssText);
+    const pose = () => page.evaluate(() => {
+      const m = (s: string) => new DOMMatrixReadOnly(getComputedStyle(document.querySelector(s)!).transform);
+      return { lift: +m('#plain').m42.toFixed(1), image: +m('#plain [data-motion="image"]').m11.toFixed(2) };
+    });
+    expect(await pose()).toEqual({ lift: 0, image: 1 });
+    await page.hover('#plain');
+    await expect.poll(pose).toEqual({ lift: -4, image: 1.03 });
+    await page.mouse.down();
+    await expect.poll(async () => (await pose()).lift).toBe(-4);
+    await page.mouse.up();
+    await page.mouse.move(600, 100);
+    await expect.poll(pose).toEqual({ lift: 0, image: 1 });
+  });
+});
