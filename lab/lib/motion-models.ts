@@ -1,6 +1,8 @@
 import type { MotionVersion, TweenModel, SpringModel, SpringProperty } from './types.js';
 import { getEffectiveKeyframes, REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { resolveRefs } from './token-compiler.js';
+import { resolveBounce } from './bounce.js';
+import { validateInteraction } from './interaction.js';
 import { isVersionStatus, isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
 
 export interface ResolvedTiming {
@@ -155,17 +157,10 @@ export function describePlayback(p: Playback): string {
   return p.note ? `${text} (${p.note})` : text;
 }
 
-// A bounce as a number from 0 to 1: a token path ("bounce.50") resolves through the tokens, a number
-// is used as it is. An unknown token, or a value outside 0 to 1, throws.
-export function resolveBounce(value: string | number, raw: Record<string, unknown>): number {
-  const v = typeof value === 'string' ? raw[value] : value;
-  if (typeof v !== 'number') throw new Error(`Unknown bounce token: "${String(value)}"`);
-  if (v < 0 || v > 1) throw new Error(`Bounce "${String(value)}" must be from 0 to 1`);
-  return v;
-}
+export { resolveBounce };
 
 export function validateMotionVersion(version: MotionVersion): void {
-  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
+  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'interaction', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
   for (const key of Object.keys(version)) {
     if (!allowed.has(key)) {
       throw new Error(`MotionVersion "${version.id}" has disallowed property: "${key}"`);
@@ -195,6 +190,8 @@ export function validateMotionVersion(version: MotionVersion): void {
   if (version.reducedMotion !== undefined && !isReducedMotionPolicy(version.reducedMotion)) {
     throw new Error(`MotionVersion "${version.id}" has unknown reducedMotion "${String(version.reducedMotion)}" (use fade or none)`);
   }
+
+  validateInteraction(version);
 
   if (version.model.model === 'tween') {
     const { duration, easing } = version.model;

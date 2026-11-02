@@ -1,6 +1,7 @@
 import type { MotionVersion, SpringProperty } from './types.js';
 import { resolveRefs, tokenVarName } from './token-compiler.js';
 import { stepsOf } from './motion-models.js';
+import { stateNames, stateProps } from './interaction.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { describeTrigger, getReducedMotionPolicy, getVersionStatus } from './version-meta.js';
 
@@ -180,6 +181,46 @@ function stepCss(version: MotionVersion, raw: Record<string, unknown>, name: str
   return out;
 }
 
+// An interaction version as CSS transitions between states. The rest state is the class itself; every
+// other state is `[data-state="…"]`, and each carries the timing of going TO it (that is how a CSS
+// transition works: it takes the timing of the state it arrives in).
+function interactionCss(version: MotionVersion, raw: Record<string, unknown>, base: string): string[] {
+  const i = version.interaction!;
+  const props = stateProps(i);
+  const names = stateNames(i);
+  const out: string[] = [
+    `/* States: ${names.map(n => (n === i.initial ? `${n} (rest)` : n)).join(', ')}. Set data-state="<state>" on the element to move between them; the transition into a state is the one declared on that state. */`,
+  ];
+  for (const name of names) {
+    const t = i.transitions[name]!;
+    const selector = name === i.initial ? `.${base}` : `.${base}[data-state="${name}"]`;
+    const values = i.states[name]!;
+    const lines: string[] = [];
+    for (const prop of props) {
+      if (!(prop in values)) continue;
+      const v = values[prop]!;
+      lines.push(`${kebab(prop)}: ${typeof v === 'string' ? resolveRefs(v, raw, { cssVars: true }) : v};`);
+    }
+    lines.push(
+      `transition-property: ${props.map(kebab).join(', ')};`,
+      `transition-duration: ${cssValue(t.duration, raw, '300ms')};`,
+      `transition-timing-function: ${cssValue(t.easing, raw, 'ease')};`,
+    );
+    const delay = literalValue(t.delay, raw, '0ms');
+    if (delay !== '0ms' && delay !== '0s' && delay !== '0') lines.push(`transition-delay: ${delay};`);
+    out.push('', `/* ${name === i.initial ? `${name} (rest), and the transition into it` : `into ${name}`}${t.model === 'spring' ? `: authored as a spring; CSS plays its easing, only a spring runtime (Motion) bounces` : ''} */`, ...block(selector, lines));
+  }
+  // Reduced motion: the opacity change still fades (briefly); movement snaps.
+  const policy = getReducedMotionPolicy(version);
+  const selectors = names.map(n => (n === i.initial ? `.${base}` : `.${base}[data-state="${n}"]`));
+  const fades = policy === 'fade' && props.includes('opacity');
+  const reduced = fades
+    ? ['transition-property: opacity;', `transition-duration: ${Math.round(Math.min(...names.map(n => parseMs(literalValue(i.transitions[n]!.duration, raw, '300ms'))), REDUCED_MOTION_FADE_MS))}ms;`]
+    : ['transition: none;'];
+  out.push('', '/* Reduced motion */', '@media (prefers-reduced-motion: reduce) {', ...block(selectors.join(',\n  '), reduced, '  '), '}');
+  return out;
+}
+
 export function buildVersionCss(
   version: MotionVersion,
   raw: Record<string, unknown>,
@@ -198,6 +239,11 @@ export function buildVersionCss(
       ? `/* Plays: ${trigger}. Add .${base} when the trigger fires. */`
       : `/* Plays: trigger not specified, confirm with the designer. Add .${base} when it should play. */`,
   );
+
+  if (version.interaction) {
+    out.push(...interactionCss(version, raw, base));
+    return out.join('\n');
+  }
 
   for (const { name, version: step } of stepsOf(version)) {
     if (name) out.push('', `/* Layer ${name}: add .${base}-${name} to the element marked data-motion="${name}" when the trigger fires. */`);

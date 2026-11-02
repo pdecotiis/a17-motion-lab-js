@@ -105,7 +105,8 @@ describe('buildGsapCode', () => {
 
 describe('buildMotionCode', () => {
   it('plays every motion as a spring, with the same arguments the lab plays under Motion', () => {
-    for (const v of [...cardVersions, ...panelVersions]) {
+    // (interaction versions are states, not an entrance: tests/unit/interaction.test.ts covers them)
+    for (const v of [...cardVersions, ...panelVersions].filter(x => !x.interaction)) {
       const code = buildMotionCode(v, raw, { component: 'c', globalBounce: 'bounce.50' });
       for (const { version: step } of stepsOf(v)) {
         const a = motionArgsOf(step, raw, { globalBounce: 'bounce.50' });
@@ -172,7 +173,7 @@ describe('the GSAP code runs in GSAP and matches the CSS timing', () => {
   };
 
   for (const [component, versions] of [['card', cardVersions], ['side-panel', panelVersions]] as const) {
-    for (const v of versions) {
+    for (const v of versions.filter(x => !x.interaction)) {
       it(`${component} ${v.id}: the root and each layer start and last as the CSS says, staggered by index`, () => {
         const expected = cssTimings(buildVersionCss(v, raw, { component }));
         for (const index of [0, 2]) {

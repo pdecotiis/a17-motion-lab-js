@@ -44,6 +44,26 @@ export type SpringModel = {
 
 export type MotionModel = TweenModel | SpringModel;
 
+// ── Interactions (spike) ───────────────────────────────────────────────────
+// A version can describe a component's states and the transitions between them, instead of one
+// entrance: a panel is closed or open, a button rests or is hovered. The values of a state are motion
+// properties only, as in keyframes (token references allowed). A transition is named by the state it
+// goes TO, because that is how CSS, GSAP and Motion all take their timing: at the moment you move to a
+// state. Going to "open" can bounce while going to "closed" is a plain exit.
+export type StateValues = Record<string, string | number>;
+
+export type TransitionTiming =
+  | { model: 'tween'; duration: string; easing: string; delay?: string }
+  | { model: 'spring'; duration: string; easing: string; bounce?: string | number; delay?: string };
+
+export interface Interaction {
+  /** The state the component rests in, and starts in. */
+  initial: string;
+  states: Record<string, StateValues>;
+  /** Timing of going TO each state; every state needs one. */
+  transitions: Record<string, TransitionTiming>;
+}
+
 export type VersionStatus = 'in-progress' | 'review' | 'approved' | 'archived';
 
 // What makes the motion play in production. The lab plays on demand, so this is a spec for the
@@ -76,6 +96,9 @@ export interface MotionVersion {
   // name of a layer, the value of its data-motion attribute (e.g. 'title'). Each layer names its own
   // duration, easing and delay, so text can move differently from the card.
   layers?: Record<string, MotionStep>;
+  // States and transitions (spike). An interaction version still names a `model`: by convention the
+  // timing of its first transition, so the panels that expect one have it.
+  interaction?: Interaction;
   stagger?: string;
   trigger?: MotionTrigger;               // absent = not specified; the spec says so rather than guessing
   reducedMotion?: ReducedMotionPolicy;   // absent = 'fade'
