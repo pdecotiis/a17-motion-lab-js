@@ -512,3 +512,10 @@ html, body {
 .lab-states__now { color: var(--color-text-muted); font-size: 13px; margin: 0; }
 .lab-states__row { display: flex; flex-wrap: wrap; gap: 6px; }
 .lab-states__row .lab-btn[aria-pressed="true"] { background: var(--color-accent, #1a73e8); border-color: var(--color-accent, #1a73e8); color: #fff; }
+
+/* What an interaction version does, in plain words (Version panel) */
+.lab-behaviour { margin: 0 0 10px; font-size: 12px; }
+.lab-behaviour__title { margin: 0 0 4px; font-size: 12px; font-weight: 600; }
+.lab-behaviour__list { display: grid; gap: 6px; margin: 0; }
+.lab-behaviour__list dt { color: var(--color-text-muted); font-weight: 600; }
+.lab-behaviour__list dd { margin: 0 0 2px; line-height: 1.4; }

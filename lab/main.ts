@@ -12,7 +12,8 @@ import { animate as motionAnimate } from 'motion';
 import { motionArgsOf, describeMotionArgs, DEFAULT_BOUNCE } from './lib/motion-args.js';
 import { cssHandle, runtimeFromParam, RUNTIMES, type PlayHandle, type Runtime } from './lib/runtime.js';
 import { createInteractionPlayer, type InteractionPlayer } from './lib/interaction-player.js';
-import { describeTransition, hasHoldTriggers, stateNames } from './lib/interaction.js';
+import { describeTransition, hasHoldTriggers, interactionParts, stateNames } from './lib/interaction.js';
+import { summarizeInteraction } from './lib/interaction-summary.js';
 import {
   VERSION_STATUSES, STATUS_LABELS, getVersionStatus, filterVersions, describeLineage, filterFromParams,
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
@@ -510,6 +511,7 @@ function renderComponentView(params: URLSearchParams): void {
             <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
             <p class="lab-lineage" id="version-lineage"></p>
             <dl class="lab-spec-meta" id="version-spec-meta"></dl>
+            <div class="lab-behaviour" id="version-behaviour" hidden></div>
             <button class="lab-btn" id="replay-btn">Replay</button>
             <div class="lab-states" id="interaction-controls" hidden></div>
           </div>
@@ -587,7 +589,13 @@ function renderComponentView(params: URLSearchParams): void {
     ['Reduced motion', REDUCED_MOTION_LABELS[getReducedMotionPolicy(version)], false],
     // What is playing, one line per motion (the root, then each layer).
     ['Playback', version.interaction
-      ? stateNames(version.interaction).map(s => describeTransition(version.interaction!, s, raw, runtime, { globalBounce })).join('\n')
+      ? stateNames(version.interaction).flatMap(s => {
+          const i = version.interaction!;
+          // The root, then each layer that has its own timing into this state.
+          return interactionParts(i)
+            .filter(part => part === null || i.layers?.[part]?.transitions?.[s])
+            .map(part => describeTransition(i, s, raw, runtime, { globalBounce, target: part }));
+        }).join('\n')
       : stepsOf(version).map(({ name, version: step }) =>
       `${name ? `${name}: ` : ''}${runtime === 'motion'
         ? describeMotionArgs(motionArgsOf(step, raw, { globalBounce }))
@@ -600,6 +608,25 @@ function renderComponentView(params: URLSearchParams): void {
     dd.textContent = text;
     if (muted) dd.className = 'lab-spec-meta__unset';
     specMeta.append(dt, dd);
+  }
+  // What an interaction version does, in plain words.
+  const behaviour = document.getElementById('version-behaviour')!;
+  if (version.interaction) {
+    const summary = summarizeInteraction(version, raw, runtime, { component: componentName, globalBounce });
+    const title = document.createElement('h3');
+    title.className = 'lab-behaviour__title';
+    title.textContent = 'What it does';
+    const list = document.createElement('dl');
+    list.className = 'lab-behaviour__list';
+    for (const line of summary.lines) {
+      const dt = document.createElement('dt');
+      dt.textContent = line.heading;
+      const dd = document.createElement('dd');
+      dd.textContent = line.text;
+      list.append(dt, dd);
+    }
+    behaviour.append(title, list);
+    behaviour.hidden = false;
   }
   const historyList = document.getElementById('version-history')!;
   for (const v of allVersions) {

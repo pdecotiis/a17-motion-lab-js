@@ -284,16 +284,19 @@ export function describeTransition(
   to: string,
   raw: Record<string, unknown>,
   runtime: 'css' | 'motion',
-  options: { globalBounce?: string } = {},
+  options: { globalBounce?: string; target?: string | null } = {},
 ): string {
+  const target = options.target ?? null;
+  // A layer's line starts with its name: "image into hover: …".
+  const label = `${target ? `${target} ` : ''}into ${to}`;
   if (runtime === 'motion') {
-    const p = motionTransitionPlan(interaction, to, raw, options);
+    const p = motionTransitionPlan(interaction, to, raw, { ...options, target });
     const token = p.bounceToken ? ` (${p.bounceToken})` : '';
     const text = `Spring · bounce ${p.options.bounce}${token}, ${Math.round(p.options.visualDuration * 1000)}ms`;
-    return `into ${to}: ${p.note ? `${text} (${p.note})` : text}`;
+    return `${label}: ${p.note ? `${text} (${p.note})` : text}`;
   }
-  const p = cssTransitionPlan(interaction, to, raw);
-  const t = transitionInto(interaction, to);
+  const p = cssTransitionPlan(interaction, to, raw, { target });
+  const t = timingFor(interaction, target, to);
   const text = `Easing · ${t.easing.slice(t.easing.indexOf('.') + 1)}, ${Math.round(p.duration)}ms`;
-  return `into ${to}: ${p.note ? `${text} (${p.note})` : text}`;
+  return `${label}: ${p.note ? `${text} (${p.note})` : text}`;
 }

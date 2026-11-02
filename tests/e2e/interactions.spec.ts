@@ -267,3 +267,24 @@ test.describe('Interactions: hover and press on the card', () => {
   });
 
 });
+
+test.describe('Interactions: what it does', () => {
+  test('card v5 says what hover and press do, and Playback lists the image layer', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v5');
+    const box = page.locator('#version-behaviour');
+    await expect(box).toBeVisible();
+    await expect(box.locator('dt')).toHaveText(['Hover', 'Press']);
+    await expect(box).toContainText('When you hover over the card');
+    await expect(box).toContainText('the image scales to 103%');
+    await expect(playbackRow(page)).toContainText('image into hover: Easing · productive-standard, 300ms');
+    // It follows the runtime
+    await page.goto('/?view=component&component=card&version=v5&runtime=motion');
+    await expect(box).toContainText('bounce');
+    await expect(box).not.toContainText('productive standard');
+  });
+
+  test('a version with no interaction has no panel', async ({ page }) => {
+    await page.goto('/?view=component&component=card&version=v1');
+    await expect(page.locator('#version-behaviour')).toBeHidden();
+  });
+});
