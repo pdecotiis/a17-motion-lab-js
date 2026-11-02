@@ -103,7 +103,7 @@ Tokens are **primitives only**: no composite tokens, no component-specific names
 | Kind (group) | `$type` | Names | Values | CSS variable |
 |---|---|---|---|---|
 | `duration` | `duration` | `100 140 220 300 400 560 800 1200` | ms | `--motion-duration-300` |
-| `easing` | `cubicBezier` | `productive-standard/-entrance/-exit`, `expressive-standard/-entrance/-exit`, `expressive-settle`, `expressive-bounce`, `linear` | `[x1, y1, x2, y2]` | `--motion-easing-productive-standard` |
+| `easing` | `cubicBezier` | `productive-standard/-entrance/-exit`, `expressive-standard/-entrance/-exit`, `linear` | `[x1, y1, x2, y2]` | `--motion-easing-productive-standard` |
 | `bounce` | `number` | `0 25 50` | 0, 0.25, 0.5 (Motion's own: none, its default, a clear overshoot) | `--motion-bounce-25` |
 | `distance` | `dimension` | `4 8 12 16 24 32 40 48` | px | `--motion-distance-16` |
 | `scale` | `number` | `60 75 90 95 96 97 98 99 103 106` | percent as a number (0.95) | `--motion-scale-95` |
@@ -119,7 +119,7 @@ Scale kinds are **named by their value** (`duration.300` is 300ms, `scale.95` is
 
 **Pairing rules** (warnings, never errors; `pairingWarnings`): productive easings pair with 100–300ms, expressive easings with 400–1200ms. Shown under "Tokens used".
 
-**Status.** Every token is `system` (approved) or `experimental`, in `$extensions.status`. A token with no status is experimental, as **new tokens start experimental**. **A renamed or merged token keeps the highest status of the tokens folded into it** (system outranks experimental). Notes are `$description`; old names are `$extensions.oldNames` (shown with usage in the Tokens view tooltip). `expressive-settle` and `expressive-bounce` currently hold **placeholder curves** (experimental) until the system values are set.
+**Status.** Every token is `system` (approved) or `experimental`, in `$extensions.status`. A token with no status is experimental, as **new tokens start experimental**. **A renamed or merged token keeps the highest status of the tokens folded into it** (system outranks experimental). Notes are `$description`; old names are `$extensions.oldNames` (shown with usage in the Tokens view tooltip).
 
 **References in keyframes.** A tween keyframe value may name tokens: `translateY({distance.16})`, `{opacity.56}`, `scale({scale.95})`; a leading minus negates one (`translateY(-{distance.16})`, the "-distance-N" form). Playback resolves them to values (`resolveKeyframes`); the CSS export writes `var(--motion-distance-16, 16px)` and `calc(-1 * var(…))` for a negative; they count as usage. An unknown reference throws. Spring `properties[]` `from`/`to` are still plain numbers.
 

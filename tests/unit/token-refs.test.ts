@@ -9,7 +9,7 @@ const raw: Record<string, unknown> = {
   'duration.1200': '1200ms',
   'easing.productive-standard': [0.2, 0, 0.38, 0.9],
   'easing.expressive-standard': [0.4, 0.1, 0.3, 1],
-  'easing.expressive-bounce': [0.34, 1.15, 0.64, 1],
+  'easing.expressive-entrance': [0.34, 1.15, 0.64, 1],
   'easing.productive-exit': [0.2, 0, 1, 0.9],
   'distance.16': '16px',
   'opacity.56': 0.56,
@@ -32,7 +32,7 @@ const bounceVersion: MotionVersion = {
   model: {
     model: 'spring',
     duration: 'duration.560',
-    easing: 'easing.expressive-bounce',
+    easing: 'easing.expressive-entrance',
     bounce: 0.25,
     properties: [{ property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 }],
   },
@@ -58,7 +58,7 @@ describe('getTokenRefs', () => {
   });
 
   it('a spring lists its duration and easing', () => {
-    expect(getTokenRefs(bounceVersion, raw).tokens).toEqual(['duration.560', 'easing.expressive-bounce']);
+    expect(getTokenRefs(bounceVersion, raw).tokens).toEqual(['duration.560', 'easing.expressive-entrance']);
   });
 
   it('lists a stagger that is a delay token, and a delay that is one', () => {
@@ -145,7 +145,7 @@ describe('buildUsageIndex', () => {
       { componentName: 'card', version: bounceVersion },
     ], raw);
     expect(index.get('duration.300')![0]).toMatchObject({ componentName: 'card', versionId: 'v1' });
-    expect(index.get('easing.expressive-bounce')![0]!.versionId).toBe('v2');
+    expect(index.get('easing.expressive-entrance')![0]!.versionId).toBe('v2');
   });
 
   it('tokens used by multiple versions accumulate entries', () => {
@@ -169,12 +169,12 @@ describe('buildUsageIndex', () => {
 
   it('reflects a version added and then removed', () => {
     const before = buildUsageIndex([{ componentName: 'card', version: tweenVersion }], raw);
-    expect(before.has('easing.expressive-bounce')).toBe(false);
+    expect(before.has('easing.expressive-entrance')).toBe(false);
     const added = buildUsageIndex([
       { componentName: 'card', version: tweenVersion },
       { componentName: 'card', version: bounceVersion },
     ], raw);
-    expect(added.get('easing.expressive-bounce')).toEqual([{ componentName: 'card', versionId: 'v2', versionLabel: 'Bounce In' }]);
+    expect(added.get('easing.expressive-entrance')).toEqual([{ componentName: 'card', versionId: 'v2', versionLabel: 'Bounce In' }]);
     expect(buildUsageIndex([{ componentName: 'card', version: bounceVersion }], raw).has('easing.productive-standard')).toBe(false);
   });
 });
@@ -190,7 +190,7 @@ describe('buildPageUsageIndex', () => {
     const index = buildPageUsageIndex(pages, defaults, raw);
     expect(index.get('duration.300')).toEqual(['home']);
     expect(index.get('easing.productive-standard')).toEqual(['home']);
-    expect(index.get('easing.expressive-bounce')).toEqual(['about']);
+    expect(index.get('easing.expressive-entrance')).toEqual(['about']);
   });
 
   it('lists a page once even when a component appears several times', () => {
@@ -238,7 +238,7 @@ describe('getStepRefs: which tokens are used where', () => {
   it('a spring lists its duration and easing', () => {
     expect(getStepRefs(bounceVersion, raw)[0]!.uses).toEqual([
       { token: 'duration.560', where: ['duration'] },
-      { token: 'easing.expressive-bounce', where: ['easing'] },
+      { token: 'easing.expressive-entrance', where: ['easing'] },
     ]);
   });
 
@@ -284,8 +284,8 @@ describe('getStepRefs: which tokens are used where', () => {
 
   it('under CSS no bounce is listed; as authored only a spring\'s own bounce token is', () => {
     const tokenSpring: MotionVersion = { ...bounceVersion, model: { ...(bounceVersion.model as object), bounce: 'bounce.50' } as MotionVersion['model'] };
-    expect(getStepRefs(tokenSpring, raw, 'css')[0]!.uses.map(u => u.token)).toEqual(['duration.560', 'easing.expressive-bounce']);
-    expect(getStepRefs(tokenSpring, raw)[0]!.uses.map(u => u.token)).toEqual(['duration.560', 'easing.expressive-bounce', 'bounce.50']);
+    expect(getStepRefs(tokenSpring, raw, 'css')[0]!.uses.map(u => u.token)).toEqual(['duration.560', 'easing.expressive-entrance']);
+    expect(getStepRefs(tokenSpring, raw)[0]!.uses.map(u => u.token)).toEqual(['duration.560', 'easing.expressive-entrance', 'bounce.50']);
     expect(getStepRefs(tweenVersion, raw)[0]!.uses.map(u => u.token)).toEqual(['duration.300', 'easing.productive-standard']);
   });
 

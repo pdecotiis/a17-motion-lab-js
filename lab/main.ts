@@ -856,7 +856,7 @@ const tokenKinds = (): string[] => (runtime === 'motion' ? [...TOKEN_KINDS, 'bou
 // Easings in system order: productive, then expressive, then linear.
 const EASING_ORDER = [
   'productive-standard', 'productive-entrance', 'productive-exit',
-  'expressive-standard', 'expressive-entrance', 'expressive-exit', 'expressive-settle', 'expressive-bounce',
+  'expressive-standard', 'expressive-entrance', 'expressive-exit',
   'linear',
 ];
 // How long an easing preview plays.

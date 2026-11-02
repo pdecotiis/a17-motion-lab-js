@@ -12,7 +12,7 @@ Motion Lab is a reusable template for iterating on motion for components importe
 - Shell: Vite + vanilla TS, Web Animations runtime, component view, compare, speed, stagger, light/dark, page view with motion map (URL state) and presets.
 - Library view: every component as a scaled live preview that plays on hover, with name search and the status filter; cards link to the component view.
 - Token architecture v2 (see Decisions and CLAUDE.md): primitives only, pairing warnings, token status, name-only token rows with tooltips, token references in keyframes, and a scale generator.
-- Token structure: primitives only, no composite tokens. Value-named scales: `duration` (100–1200ms), `distance` (4–48px), `scale` (60–106%), `opacity` (04–56%), `delay` (40/70/120ms, for short offsets and staggers). `easing` is the one semantic layer (productive/expressive standard, entrance, exit, expressive-settle, expressive-bounce, linear). Token paths have no `motion.` root, so they match the Figma variable collection one to one (`easing.productive-standard` is `easing/productive-standard` in Figma); CSS variables keep the prefix (`--motion-duration-300`). A motion step names a duration plus an easing directly.
+- Token structure: primitives only, no composite tokens. Value-named scales: `duration` (100–1200ms), `distance` (4–48px), `scale` (60–106%), `opacity` (04–56%), `delay` (40/70/120ms, for short offsets and staggers). `easing` is the one semantic layer (productive/expressive standard, entrance, exit, linear). Token paths have no `motion.` root, so they match the Figma variable collection one to one (`easing.productive-standard` is `easing/productive-standard` in Figma); CSS variables keep the prefix (`--motion-duration-300`). A motion step names a duration plus an easing directly.
 - No controls in the component view: motion changes are new versions. The panel that tweaked duration and easing is gone, along with its plumbing (`LiveControls`, `control-options`).
 - Component view sidebar panels are accordions: Version and Tokens Used open, Version history and Generated code closed, Compare with unchanged.
 - The lab simulates no springs. The Easing / Spring playback lens, the spring engine (baked keyframes, `linear()` curves, the 0.82 duration rule) and the spring curve previews are removed; bounce tokens and the spring form on easings are gone too. Runtime libraries replace them (see Decisions and the next item).
@@ -74,7 +74,6 @@ The pilot project repo was freshly created from the template and pulled the late
 
 ## Open questions
 
-- `expressive-settle` and `expressive-bounce` hold placeholder curves (experimental): set the system values.
 - Gesture thresholds are in the system but have no tokens here: needs values.
 - Spring `properties[]` `from`/`to` could name scale, distance and opacity tokens like tween keyframes do.
 

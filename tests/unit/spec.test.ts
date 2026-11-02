@@ -27,7 +27,7 @@ const tween = (over: Partial<MotionVersion> = {}): MotionVersion => ({
 const spring = (properties: SpringProperty[], over: Partial<MotionVersion> = {}): MotionVersion => ({
   id: 'v2',
   label: 'Scale In',
-  model: { model: 'spring', duration: 'duration.560', easing: 'easing.expressive-bounce', bounce: 0.25, properties },
+  model: { model: 'spring', duration: 'duration.560', easing: 'easing.expressive-entrance', bounce: 0.25, properties },
   forkedFrom: 'v1',
   ...over,
 });
@@ -164,14 +164,14 @@ describe('buildVersionCss: spring', () => {
     const css = buildVersionCss(mixedSpring, raw, { component: 'card' });
     expect(css).not.toContain('linear(');
     expect(css).toContain('animation-duration: var(--motion-duration-560, 560ms);');
-    expect(css).toContain('animation-timing-function: var(--motion-easing-expressive-bounce, cubic-bezier(');
+    expect(css).toContain('animation-timing-function: var(--motion-easing-expressive-entrance, cubic-bezier(');
     expect(css).toMatch(/from \{[^}]*opacity: 0;[^}]*transform: scale\(0\.92\);/);
     expect(css).toMatch(/to \{[^}]*opacity: 1;[^}]*transform: scale\(1\);/);
   });
 
   it('says it was authored as a spring and which easing CSS plays', () => {
     const css = buildVersionCss(mixedSpring, raw, { component: 'card' });
-    expect(css).toContain('/* authored as a spring of easing.expressive-bounce; CSS plays its easing, only a spring runtime (Motion) bounces */');
+    expect(css).toContain('/* authored as a spring of easing.expressive-entrance; CSS plays its easing, only a spring runtime (Motion) bounces */');
   });
 
   it('is one animation, whatever the properties', () => {
@@ -221,7 +221,7 @@ describe('buildVersionExport', () => {
     const springOut = buildVersionExport('card', mixedSpring, [mixedSpring], tokens);
     expect(springOut.css).not.toContain('linear(');
     expect(springOut.markdown).toContain('- Duration: duration.560 (560ms)');
-    expect(springOut.markdown).toContain('- Easing: easing.expressive-bounce');
+    expect(springOut.markdown).toContain('- Easing: easing.expressive-entrance');
     expect(springOut.markdown).toContain('Authored as a spring');
     expect(springOut.markdown).not.toContain('linear() curve');
   });

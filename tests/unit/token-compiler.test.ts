@@ -165,7 +165,7 @@ describe('the real token file', () => {
   it('has the easings in system order', () => {
     expect(names('easing')).toEqual([
       'productive-standard', 'productive-entrance', 'productive-exit',
-      'expressive-standard', 'expressive-entrance', 'expressive-exit', 'expressive-settle', 'expressive-bounce',
+      'expressive-standard', 'expressive-entrance', 'expressive-exit',
       'linear',
     ]);
   });
@@ -174,10 +174,14 @@ describe('the real token file', () => {
     expect(Object.keys(raw).some(k => k.endsWith('.spring'))).toBe(false);
   });
 
-  it('every token has a status, and the two placeholder curves are experimental', () => {
+  it('has no overshooting easings: settle and bounce are gone, springs come from the bounce tokens', () => {
+    expect(raw['easing.expressive-settle']).toBeUndefined();
+    expect(raw['easing.expressive-bounce']).toBeUndefined();
+  });
+
+  it('every token has a status, and the bounce tokens are experimental', () => {
     for (const path of Object.keys(raw)) expect(meta[path]?.status).toMatch(/^(system|experimental)$/);
-    expect(meta['easing.expressive-settle']?.status).toBe('experimental');
-    expect(meta['easing.expressive-bounce']?.status).toBe('experimental');
+    for (const b of ['bounce.0', 'bounce.25', 'bounce.50']) expect(meta[b]?.status, b).toBe('experimental');
     expect(meta['duration.300']?.status).toBe('system');
   });
 });
