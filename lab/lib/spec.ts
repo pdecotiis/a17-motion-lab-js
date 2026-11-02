@@ -146,7 +146,7 @@ export function buildVersionExport(
     `2. Add the class \`.${name}\` to the animated element when the trigger fires${layers.length ? ', and each layer\'s class (above) to its element' : ''}.`,
     ...(version.stagger ? [`3. Set \`--motion-index: 0, 1, 2…\` on each sibling to stagger them.`] : []),
     '',
-    'The CSS is plain and stack-neutral. On GSAP, Motion or another library, take the numbers from this file instead.',
+    'The CSS is plain and stack-neutral. For a project on GSAP or Motion, run `npm run spec -- <component> <version> --format gsap` (or `motion`, or `all`) for the same motion as code: `motion.gsap.js` (easing only, GSAP has no springs) and `motion.motion.js` (every motion a spring, with the bounce tokens). Both are built from the same version file and tokens as this CSS.',
     '',
     '## Tokens',
     '',

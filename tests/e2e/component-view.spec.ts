@@ -138,11 +138,11 @@ test.describe('Sidebar accordions', () => {
   const accordions = (page: import('@playwright/test').Page) => page.locator('.lab-sidebar > details.lab-accordion');
   const summary = (page: import('@playwright/test').Page, title: string) => page.locator('.lab-sidebar > details > summary', { hasText: title });
 
-  test('the panels are accordions, in the order Version, Tokens Used, Version history, Generated CSS', async ({ page }) => {
-    await expect(accordions(page).locator('> summary')).toHaveText(['Version', 'Tokens Used', 'Version history', 'Generated CSS']);
+  test('the panels are accordions, in the order Version, Tokens Used, Version history, Generated code', async ({ page }) => {
+    await expect(accordions(page).locator('> summary')).toHaveText(['Version', 'Tokens Used', 'Version history', 'Generated code']);
   });
 
-  test('Version and Tokens Used are open by default; Version history and Generated CSS are closed', async ({ page }) => {
+  test('Version and Tokens Used are open by default; Version history and Generated code are closed', async ({ page }) => {
     await expect(accordions(page).nth(0)).toHaveAttribute('open', '');
     await expect(accordions(page).nth(1)).toHaveAttribute('open', '');
     await expect(accordions(page).nth(2)).not.toHaveAttribute('open', '');
@@ -160,7 +160,7 @@ test.describe('Sidebar accordions', () => {
     await summary(page, 'Version history').click();
     await expect(page.locator('#version-history')).toBeHidden();
 
-    await summary(page, 'Generated CSS').click();
+    await summary(page, 'Generated code').click();
     await expect(page.locator('#css-pre')).toBeVisible();
     await expect(page.locator('#css-pre')).toContainText('@keyframes motion-card-v1');
 
@@ -169,7 +169,7 @@ test.describe('Sidebar accordions', () => {
   });
 
   test('the title can be opened from the keyboard', async ({ page }) => {
-    await summary(page, 'Generated CSS').focus();
+    await summary(page, 'Generated code').focus();
     await page.keyboard.press('Enter');
     await expect(page.locator('#css-pre')).toBeVisible();
   });
@@ -349,10 +349,10 @@ test.describe('Runtime (CSS / Motion)', () => {
 
   test('exports are as authored whatever the runtime: the CSS is the same', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
-    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated CSS' }).click();
+    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
     const before = await page.locator('#css-pre').textContent();
     await page.goto('/?view=component&component=card&version=v1&runtime=motion');
-    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated CSS' }).click();
+    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
     expect(await page.locator('#css-pre').textContent()).toBe(before);
   });
 
@@ -365,5 +365,62 @@ test.describe('Runtime (CSS / Motion)', () => {
       await page.waitForTimeout(500);
     }
     expect(errors).toEqual([]);
+  });
+});
+
+// The Generated code panel exports the same version as CSS, GSAP (easing only) or Motion (springs).
+test.describe('Export format', () => {
+  const open = async (page: import('@playwright/test').Page, url: string) => {
+    await page.goto(url);
+    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+  };
+
+  test('defaults to CSS and offers GSAP and Motion', async ({ page }) => {
+    await open(page, '/?view=component&component=card&version=v1');
+    await expect(page.locator('#export-format')).toHaveValue('css');
+    await expect(page.locator('#export-format option')).toHaveText(['CSS', 'GSAP', 'Motion']);
+    await expect(page.locator('#css-pre')).toContainText('@keyframes motion-card-v1');
+    await expect(page.locator('#copy-css-btn')).toHaveText('Copy CSS');
+  });
+
+  test('GSAP is the same motion as easing code, with the CustomEase for the token', async ({ page }) => {
+    await open(page, '/?view=component&component=card&version=v1');
+    await page.selectOption('#export-format', 'gsap');
+    const pre = page.locator('#css-pre');
+    await expect(pre).toContainText('import { gsap } from "gsap";');
+    await expect(pre).toContainText('export function playCardV1(el, { index = 0 } = {})');
+    await expect(pre).toContainText('CustomEase.create("productive-entrance", "0, 0, 0.38, 0.9"); // easing.productive-entrance');
+    await expect(pre).toContainText('duration: 0.22, ease: "productive-entrance"');
+    await expect(page.locator('#copy-css-btn')).toHaveText('Copy GSAP');
+  });
+
+  test('Motion is the same motion as springs, with the bounce token', async ({ page }) => {
+    await open(page, '/?view=component&component=side-panel&version=v2');
+    await page.selectOption('#export-format', 'motion');
+    const pre = page.locator('#css-pre');
+    await expect(pre).toContainText('import { animate } from "motion";');
+    await expect(pre).toContainText('type: "spring", visualDuration: 0.56, bounce: 0.5');
+    await expect(pre).toContainText('// bounce.50');
+    await expect(page.locator('#copy-css-btn')).toHaveText('Copy Motion');
+  });
+
+  test('layers become timeline positions in GSAP and their own calls in Motion', async ({ page }) => {
+    await open(page, '/?view=component&component=card&version=v4');
+    await page.selectOption('#export-format', 'gsap');
+    await expect(page.locator('#css-pre')).toContainText('el.querySelectorAll("[data-motion=\\"title\\"]")');
+    await page.selectOption('#export-format', 'motion');
+    await expect(page.locator('#css-pre')).toContainText('el.querySelectorAll("[data-motion=\\"text\\"]")');
+  });
+
+  test('the Motion export follows the global bounce setting, and exports never follow the runtime', async ({ page }) => {
+    await open(page, '/?view=component&component=card&version=v1&runtime=motion&bounce=0');
+    await page.selectOption('#export-format', 'motion');
+    await expect(page.locator('#css-pre')).toContainText('global bounce setting (bounce.0)');
+    await page.selectOption('#export-format', 'gsap');
+    const underMotion = await page.locator('#css-pre').textContent();
+    await page.click('#runtime-css');
+    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+    await page.selectOption('#export-format', 'gsap');
+    expect(await page.locator('#css-pre').textContent()).toBe(underMotion);
   });
 });
