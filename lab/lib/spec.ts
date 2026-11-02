@@ -2,8 +2,7 @@ import type { MotionVersion, TweenModel, SpringModel } from './types.js';
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getStepRefs, getTokenRefs } from './token-refs.js';
-import { resolveKeyframes, springParts, stepsOf } from './motion-models.js';
-import { springKeyframes } from './spring-engine.js';
+import { resolveKeyframes, stepsOf } from './motion-models.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import {
   STATUS_LABELS, describeLineage, describeTrigger, getReducedMotionPolicy, getVersionStatus,
@@ -48,12 +47,8 @@ function motionLines(version: MotionVersion, raw: Record<string, unknown>): stri
     `- Easing: ${describeValue(m.easing, raw, 'ease')}`,
   ];
   if (m.model === 'spring') {
-    const { bounce, durationMs, bounceToken } = springParts(m, raw);
-    const { duration: settle } = springKeyframes({ from: 0, to: 1, duration: durationMs, bounce, span: 1 });
-    lines.push(
-      `- Plays as a spring: bounce ${bounce}${bounce === 0 ? '' : ` (${bounceToken})`}, a spring duration of ${Math.round(durationMs)}ms (the duration / 0.82)`,
-      `- Settles in about ${Math.round(settle)}ms (a real spring, shipped as a CSS linear() curve)`,
-    );
+    const b = m.bounce === undefined ? 'the global bounce setting' : typeof m.bounce === 'string' ? describeValue(m.bounce, raw, '0') : `${m.bounce} (hard-coded, not a token)`;
+    lines.push(`- Authored as a spring, bounce: ${b}. CSS plays its easing curve over the duration; only a spring runtime (Motion) bounces`);
   }
   lines.push(`- Delay: ${m.delay ? describeValue(m.delay, raw, '0ms') : '0ms'}`);
   if (version.stagger) lines.push(`- Stagger: ${stagger(version.stagger, raw)} between siblings`);
@@ -73,7 +68,7 @@ function animatedLines(version: MotionVersion, raw: Record<string, unknown>): st
   return m.properties.map(p => {
     const unit = p.unit ?? '';
     const wrap = (n: number): string => (p.wrapTransform ? `${p.wrapTransform}(${n}${unit})` : `${n}${unit}`);
-    return `- ${p.property}: ${wrap(p.from)} → ${wrap(p.to)} (${p.useSpring === false ? 'linear' : 'spring'})`;
+    return `- ${p.property}: ${wrap(p.from)} → ${wrap(p.to)}`;
   });
 }
 
@@ -151,7 +146,7 @@ export function buildVersionExport(
     `2. Add the class \`.${name}\` to the animated element when the trigger fires${layers.length ? ', and each layer\'s class (above) to its element' : ''}.`,
     ...(version.stagger ? [`3. Set \`--motion-index: 0, 1, 2…\` on each sibling to stagger them.`] : []),
     '',
-    'The CSS is plain and stack-neutral. On GSAP, Motion or another library, take the numbers from this file instead.',
+    'The CSS is plain and stack-neutral. For a project on GSAP or Motion, run `npm run spec -- <component> <version> --format gsap` (or `motion`, or `all`) for the same motion as code: `motion.gsap.js` (easing only, GSAP has no springs) and `motion.motion.js` (every motion a spring, with the bounce tokens). Both are built from the same version file and tokens as this CSS.',
     '',
     '## Tokens',
     '',

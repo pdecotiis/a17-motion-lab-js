@@ -1,11 +1,8 @@
-import type { DtcgToken, DtcgGroup, SpringForm, TokenMeta, TokenStatus } from './types.js';
+import type { DtcgToken, DtcgGroup, TokenMeta, TokenStatus } from './types.js';
 
 export interface CompiledTokens {
   cssVars: Record<string, string>;
-  /**
-   * Token values by path. An easing token that has a spring form also has `<path>.spring`
-   * (a SpringForm), a view of the easing, not a token in the file. See springKey.
-   */
+  /** Token values by path. */
   raw: Record<string, unknown>;
   /** Notes, status and old names by token path. */
   meta: Record<string, TokenMeta>;
@@ -18,22 +15,6 @@ export const TOKEN_STATUSES: readonly TokenStatus[] = ['system', 'experimental']
 // (easing/productive-standard). The CSS variable keeps the prefix so it can't collide with others.
 export function tokenVarName(path: string): string {
   return `--motion-${path.replace(/\./g, '-')}`;
-}
-
-// Where an easing's spring form lives in `raw`: 'easing.expressive-settle' → 'easing.expressive-settle.spring'.
-export function springKey(easingPath: string): string {
-  return `${easingPath}.spring`;
-}
-
-export function isSpringForm(v: unknown): v is SpringForm {
-  return typeof v === 'object' && v !== null && !Array.isArray(v)
-    && typeof (v as SpringForm).bounce === 'number' && typeof (v as SpringForm).token === 'string';
-}
-
-// A token waiting for the bounce token its spring form refers to.
-interface PendingSpring {
-  path: string;
-  bounce: unknown;
 }
 
 function isDtcgToken(v: unknown): v is DtcgToken {
@@ -65,7 +46,6 @@ function flattenGroup(
   cssVars: Record<string, string>,
   raw: Record<string, unknown>,
   meta: Record<string, TokenMeta>,
-  springs: PendingSpring[],
 ): void {
   for (const [key, value] of Object.entries(group)) {
     if (key.startsWith('$')) continue;
@@ -85,8 +65,6 @@ function flattenGroup(
             throw new Error(`Token ${fullKey}: cubicBezier $value must be array of 4 numbers`);
           const [x1, y1, x2, y2] = value.$value as number[];
           cssVars[cssKey] = `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
-          const spring = value.$extensions?.['spring'] as { bounce?: unknown } | undefined;
-          if (spring !== undefined) springs.push({ path: fullKey, bounce: spring.bounce });
           break;
         }
         case 'dimension':
@@ -103,22 +81,8 @@ function flattenGroup(
           throw new Error(`Token ${fullKey}: unknown $type "${value.$type}"`);
       }
     } else if (typeof value === 'object' && value !== null) {
-      flattenGroup(value as DtcgGroup, fullKey, cssVars, raw, meta, springs);
+      flattenGroup(value as DtcgGroup, fullKey, cssVars, raw, meta);
     }
-  }
-}
-
-// An easing's spring form is `$extensions.spring.bounce`: a "{bounce.10}" reference to a number token.
-function resolveSprings(springs: PendingSpring[], raw: Record<string, unknown>): void {
-  for (const { path, bounce } of springs) {
-    const m = typeof bounce === 'string' ? /^\{(.+)\}$/.exec(bounce) : null;
-    if (!m) throw new Error(`Token ${path}: spring bounce must be a token reference like "{bounce.10}"`);
-    const ref = m[1]!;
-    if (!(ref in raw)) throw new Error(`Token ${path}: spring bounce refers to unknown token "${ref}"`);
-    const value = raw[ref];
-    if (typeof value !== 'number') throw new Error(`Token ${path}: spring bounce "${ref}" is not a number token`);
-    if (value < 0 || value > 1) throw new Error(`Token ${path}: spring bounce "${ref}" must be from 0 to 1`);
-    raw[springKey(path)] = { bounce: value, token: ref } satisfies SpringForm;
   }
 }
 
@@ -126,9 +90,7 @@ export function compileTokens(dtcgJson: DtcgGroup): CompiledTokens {
   const cssVars: Record<string, string> = {};
   const raw: Record<string, unknown> = {};
   const meta: Record<string, TokenMeta> = {};
-  const springs: PendingSpring[] = [];
-  flattenGroup(dtcgJson, '', cssVars, raw, meta, springs);
-  resolveSprings(springs, raw);
+  flattenGroup(dtcgJson, '', cssVars, raw, meta);
   return { cssVars, raw, meta };
 }
 

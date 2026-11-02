@@ -23,22 +23,18 @@ describe('bezierCurve', () => {
   });
 });
 
-describe('springCurve', () => {
-  it('a bouncy spring overshoots 1 and settles at 1 over about its duration', () => {
-    const c = springCurve(0.4, 600);
-    expect(c.yMax).toBeGreaterThan(1);
+describe('springCurve (Motion\'s own spring)', () => {
+  it('no bounce does not overshoot; more bounce overshoots further', () => {
+    expect(springCurve(0, 600).yMax).toBeCloseTo(1, 2);
+    expect(springCurve(0.5, 600).yMax).toBeGreaterThan(springCurve(0.25, 600).yMax);
+    expect(springCurve(0.25, 600).yMax).toBeGreaterThan(1);
+  });
+
+  it('starts at 0 and settles at 1', () => {
+    const c = springCurve(0.25, 600);
     expect(c.points[0]).toEqual({ x: 0, y: 0 });
-    expect(c.points.at(-1)!.y).toBe(1);
-    expect(c.points.at(-1)!.x).toBe(1);
+    expect(c.points.at(-1)).toEqual({ x: 1, y: 1 });
     expect(c.durationMs).toBeGreaterThan(0);
-  });
-
-  it('a spring with no bounce does not overshoot', () => {
-    expect(springCurve(0, 400).yMax).toBeCloseTo(1, 2);
-  });
-
-  it('more bounce overshoots further', () => {
-    expect(springCurve(0.5, 500).yMax).toBeGreaterThan(springCurve(0.1, 500).yMax);
   });
 });
 

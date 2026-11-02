@@ -7,13 +7,6 @@ export type TweenModel = {
   delay?: string;
 };
 
-// An easing token's spring form: the bounce token it names and that token's value (0–1).
-// Derived when the tokens compile; bounce-0 means no bounce.
-export interface SpringForm {
-  bounce: number;
-  token: string;
-}
-
 // Token status: 'system' is approved. A token with no status is 'experimental', as new tokens are.
 export type TokenStatus = 'system' | 'experimental';
 
@@ -23,38 +16,33 @@ export interface TokenMeta {
   oldNames?: string[];
 }
 
-// One property animated by the spring engine.
+// One property a spring version moves, from → to.
 // property: CSS property name ('opacity', 'transform').
 // wrapTransform: wraps value in a transform function, e.g. 'scale' → 'scale(0.94)'.
 // unit: appended to the numeric value, e.g. 'px', '%'; default ''.
-// span: isSettled threshold — 20 for pixels, 1 for unitless (opacity, scale).
-// useSpring: false = linear interpolation (good for opacity alongside a spring transform).
 export interface SpringProperty {
   property: string;
   from: number;
   to: number;
   unit?: string;
   wrapTransform?: string;
-  span?: number;
-  useSpring?: boolean;
 }
 
-// A spring names the same primitives as a tween: a duration and an easing. The easing must have a
-// spring form (its bounce comes from there; exits and linear have none). The spring's own duration
-// is the paired duration / 0.82.
+// A spring names the same primitives as a tween, a duration and an easing, and may name its own
+// bounce: a bounce token (`bounce.50`) or a plain number from 0 (no bounce) to 1 (very bouncy).
+// Without one it uses the global bounce setting, as every tween does. Only Motion plays it as a
+// spring (the duration is its visual duration); the lab never simulates a spring itself. Under CSS
+// it plays its from/to values with the easing curve over the duration.
 export type SpringModel = {
   model: 'spring';
   duration: string;
   easing: string;
+  bounce?: string | number;
   delay?: string;
   properties: SpringProperty[];
 };
 
 export type MotionModel = TweenModel | SpringModel;
-
-// How a version plays in the lab: as its easing curve (the default) or as the easing's spring.
-// A view of the same tokens: it never changes what a version exports.
-export type PlayMode = 'easing' | 'spring';
 
 export type VersionStatus = 'in-progress' | 'review' | 'approved' | 'archived';
 

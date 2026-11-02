@@ -8,17 +8,15 @@ const raw: Record<string, unknown> = {
   'duration.560': '560ms',
   'duration.1200': '1200ms',
   'easing.productive-standard': [0.2, 0, 0.38, 0.9],
-  'easing.productive-standard.spring': { bounce: 0, token: 'bounce.0' },
   'easing.expressive-standard': [0.4, 0.1, 0.3, 1],
-  'easing.expressive-standard.spring': { bounce: 0, token: 'bounce.0' },
   'easing.expressive-bounce': [0.34, 1.15, 0.64, 1],
-  'easing.expressive-bounce.spring': { bounce: 0.25, token: 'bounce.25' },
   'easing.productive-exit': [0.2, 0, 1, 0.9],
-  'bounce.0': 0,
-  'bounce.25': 0.25,
   'distance.16': '16px',
   'opacity.56': 0.56,
   'delay.70': '70ms',
+  'bounce.0': 0,
+  'bounce.25': 0.25,
+  'bounce.50': 0.5,
 };
 
 const tweenVersion: MotionVersion = {
@@ -35,7 +33,8 @@ const bounceVersion: MotionVersion = {
     model: 'spring',
     duration: 'duration.560',
     easing: 'easing.expressive-bounce',
-    properties: [{ property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1, span: 1 }],
+    bounce: 0.25,
+    properties: [{ property: 'transform', wrapTransform: 'scale', from: 0.92, to: 1 }],
   },
 };
 
@@ -58,14 +57,8 @@ describe('getTokenRefs', () => {
     expect(getTokenRefs(tweenVersion, raw).tokens).toEqual(['duration.300', 'easing.productive-standard']);
   });
 
-  it('a spring lists its duration, its easing and the easing\'s bounce token', () => {
-    expect(getTokenRefs(bounceVersion, raw).tokens).toEqual(['duration.560', 'easing.expressive-bounce', 'bounce.25']);
-  });
-
-  it('bounce-0 means no bounce and is never listed', () => {
-    const { tokens } = getTokenRefs(flatSpring, raw);
-    expect(tokens).toEqual(['duration.300', 'easing.productive-standard']);
-    expect(tokens).not.toContain('bounce.0');
+  it('a spring lists its duration and easing', () => {
+    expect(getTokenRefs(bounceVersion, raw).tokens).toEqual(['duration.560', 'easing.expressive-bounce']);
   });
 
   it('lists a stagger that is a delay token, and a delay that is one', () => {
@@ -126,11 +119,10 @@ describe('pairingWarnings', () => {
     expect(pairingWarnings(tween('1500ms', 'easing.expressive-standard'), raw)).toHaveLength(1);
   });
 
-  it('a bounce easing is expressive only', () => {
-    expect(pairingWarnings(tween('duration.560', 'easing.expressive-bounce'), raw)).toEqual([]);
-    const odd = { ...raw, 'easing.productive-bounce': [0, 0, 1, 1], 'easing.productive-bounce.spring': { bounce: 0.25, token: 'bounce.25' } };
-    expect(pairingWarnings(tween('duration.300', 'easing.productive-bounce'), odd))
-      .toEqual(['productive-bounce has a bounce, so it is for expressive motion only']);
+  it('there are no pairing warnings under Motion: nothing plays an easing', () => {
+    const slow = tween('duration.1200', 'easing.productive-standard');
+    expect(pairingWarnings(slow, raw, 'css')).toHaveLength(1);
+    expect(pairingWarnings(slow, raw, 'motion')).toEqual([]);
   });
 
   it('applies to springs too, using the paired duration', () => {
@@ -154,7 +146,6 @@ describe('buildUsageIndex', () => {
     ], raw);
     expect(index.get('duration.300')![0]).toMatchObject({ componentName: 'card', versionId: 'v1' });
     expect(index.get('easing.expressive-bounce')![0]!.versionId).toBe('v2');
-    expect(index.get('bounce.25')![0]!.versionId).toBe('v2');
   });
 
   it('tokens used by multiple versions accumulate entries', () => {
@@ -167,10 +158,9 @@ describe('buildUsageIndex', () => {
     expect(entries.some(e => e.componentName === 'hero')).toBe(true);
   });
 
-  it('tokens not referenced by any version, and bounce-0, are absent from the index', () => {
+  it('tokens not referenced by any version are absent from the index', () => {
     const index = buildUsageIndex([{ componentName: 'card', version: flatSpring }], raw);
     expect(index.has('duration.560')).toBe(false);
-    expect(index.has('bounce.0')).toBe(false);
   });
 
   it('returns an empty map when given no versions', () => {
@@ -179,12 +169,12 @@ describe('buildUsageIndex', () => {
 
   it('reflects a version added and then removed', () => {
     const before = buildUsageIndex([{ componentName: 'card', version: tweenVersion }], raw);
-    expect(before.has('bounce.25')).toBe(false);
+    expect(before.has('easing.expressive-bounce')).toBe(false);
     const added = buildUsageIndex([
       { componentName: 'card', version: tweenVersion },
       { componentName: 'card', version: bounceVersion },
     ], raw);
-    expect(added.get('bounce.25')).toEqual([{ componentName: 'card', versionId: 'v2', versionLabel: 'Bounce In' }]);
+    expect(added.get('easing.expressive-bounce')).toEqual([{ componentName: 'card', versionId: 'v2', versionLabel: 'Bounce In' }]);
     expect(buildUsageIndex([{ componentName: 'card', version: bounceVersion }], raw).has('easing.productive-standard')).toBe(false);
   });
 });
@@ -200,7 +190,7 @@ describe('buildPageUsageIndex', () => {
     const index = buildPageUsageIndex(pages, defaults, raw);
     expect(index.get('duration.300')).toEqual(['home']);
     expect(index.get('easing.productive-standard')).toEqual(['home']);
-    expect(index.get('bounce.25')).toEqual(['about']);
+    expect(index.get('easing.expressive-bounce')).toEqual(['about']);
   });
 
   it('lists a page once even when a component appears several times', () => {
@@ -245,13 +235,58 @@ describe('getStepRefs: which tokens are used where', () => {
     }]);
   });
 
-  it('a spring says its bounce token sits in the spring, and bounce-0 is not listed', () => {
+  it('a spring lists its duration and easing', () => {
     expect(getStepRefs(bounceVersion, raw)[0]!.uses).toEqual([
       { token: 'duration.560', where: ['duration'] },
       { token: 'easing.expressive-bounce', where: ['easing'] },
-      { token: 'bounce.25', where: ['spring bounce'] },
     ]);
-    expect(getStepRefs(flatSpring, raw)[0]!.uses.map(u => u.token)).not.toContain('bounce.0');
+  });
+
+  it('under Motion nothing lists an easing: every motion is a spring, from its duration', () => {
+    expect(getStepRefs(bounceVersion, raw, 'motion')[0]!.uses).toEqual([{ token: 'duration.560', where: ['duration'] }]);
+    expect(getStepRefs(tweenVersion, raw, 'motion')[0]!.uses.map(u => u.token)).toEqual(['duration.300']);
+    for (const v of [bounceVersion, tweenVersion]) {
+      expect(getStepRefs(v, raw, 'css')[0]!.uses.map(u => u.token), v.id).toContain(v.model.easing);
+      expect(getStepRefs(v, raw)[0]!.uses.map(u => u.token), v.id).toContain(v.model.easing);
+    }
+  });
+
+  it('under Motion a literal easing is not flagged as hard-coded, since no easing plays', () => {
+    const literal: MotionVersion = { ...tweenVersion, model: { model: 'tween', duration: 'duration.300', easing: 'ease-out' } };
+    expect(getStepRefs(literal, raw, 'css')[0]!.hardcoded).toEqual([{ label: 'easing', value: 'ease-out' }]);
+    expect(getStepRefs(literal, raw, 'motion')[0]!.hardcoded).toEqual([]);
+  });
+
+  it('under Motion layers list no easing either', () => {
+    const layered: MotionVersion = { ...bounceVersion, layers: { text: { model: tweenVersion.model, keyframes: [] } } };
+    const steps = getStepRefs(layered, raw, 'motion');
+    expect(steps[0]!.uses.map(u => u.token)).toEqual(['duration.560']);
+    expect(steps[1]!.uses.map(u => u.token)).toEqual(['duration.300']);
+  });
+
+  it('under Motion every motion lists a bounce: its own token, else the global setting', () => {
+    const tokenSpring: MotionVersion = { ...bounceVersion, model: { ...(bounceVersion.model as object), bounce: 'bounce.50' } as MotionVersion['model'] };
+    expect(getStepRefs(tokenSpring, raw, 'motion', 'bounce.25')[0]!.uses).toEqual([
+      { token: 'duration.560', where: ['duration'] },
+      { token: 'bounce.50', where: ['bounce'] },
+    ]);
+    expect(getStepRefs(tweenVersion, raw, 'motion', 'bounce.25')[0]!.uses).toEqual([
+      { token: 'duration.300', where: ['duration'] },
+      { token: 'bounce.25', where: ['bounce'] },
+    ]);
+    expect(getStepRefs(tweenVersion, raw, 'motion', 'bounce.0')[0]!.uses.map(u => u.token)).toEqual(['duration.300', 'bounce.0']);
+  });
+
+  it('under Motion a plain-number bounce is hard-coded, not a token', () => {
+    expect(getStepRefs(bounceVersion, raw, 'motion', 'bounce.25')[0]!.hardcoded).toEqual([{ label: 'bounce', value: '0.25' }]);
+    expect(getStepRefs(bounceVersion, raw, 'css')[0]!.hardcoded).toEqual([]);
+  });
+
+  it('under CSS no bounce is listed; as authored only a spring\'s own bounce token is', () => {
+    const tokenSpring: MotionVersion = { ...bounceVersion, model: { ...(bounceVersion.model as object), bounce: 'bounce.50' } as MotionVersion['model'] };
+    expect(getStepRefs(tokenSpring, raw, 'css')[0]!.uses.map(u => u.token)).toEqual(['duration.560', 'easing.expressive-bounce']);
+    expect(getStepRefs(tokenSpring, raw)[0]!.uses.map(u => u.token)).toEqual(['duration.560', 'easing.expressive-bounce', 'bounce.50']);
+    expect(getStepRefs(tweenVersion, raw)[0]!.uses.map(u => u.token)).toEqual(['duration.300', 'easing.productive-standard']);
   });
 
   it('keyframes with no offset are placed evenly', () => {
@@ -322,44 +357,3 @@ describe('getStepRefs: which tokens are used where', () => {
   });
 });
 
-describe('getStepRefs under a playback lens', () => {
-  const tweenBounce: MotionVersion = {
-    ...tweenVersion,
-    model: { model: 'tween', duration: 'duration.560', easing: 'easing.expressive-bounce' },
-  };
-  const bounces = (v: MotionVersion, mode?: 'easing' | 'spring'): string[] =>
-    getStepRefs(v, raw, mode)[0]!.uses.filter(u => u.where.includes('spring bounce')).map(u => u.token);
-
-  it('a tween adds its easing\'s bounce token only when it plays as a spring', () => {
-    expect(bounces(tweenBounce)).toEqual([]);
-    expect(bounces(tweenBounce, 'easing')).toEqual([]);
-    expect(bounces(tweenBounce, 'spring')).toEqual(['bounce.25']);
-  });
-
-  it('bounce-0 is never listed, even when a tween plays as a spring', () => {
-    expect(bounces(tweenVersion, 'spring')).toEqual([]);
-    expect(getStepRefs(tweenVersion, raw, 'spring')[0]!.uses.map(u => u.token)).toEqual(['duration.300', 'easing.productive-standard']);
-  });
-
-  it('an easing with no spring form adds nothing under the spring lens', () => {
-    const exit: MotionVersion = { ...tweenVersion, model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-exit' } };
-    expect(getStepRefs(exit, raw, 'spring')[0]!.uses.map(u => u.token)).toEqual(['duration.100', 'easing.productive-exit']);
-  });
-
-  it('a spring version lists its bounce as authored and under the spring lens, but not when it plays as easing', () => {
-    expect(bounces(bounceVersion)).toEqual(['bounce.25']);
-    expect(bounces(bounceVersion, 'spring')).toEqual(['bounce.25']);
-    expect(bounces(bounceVersion, 'easing')).toEqual([]);
-  });
-
-  it('applies to layers too', () => {
-    const layered: MotionVersion = { ...tweenVersion, layers: { text: { model: tweenBounce.model, keyframes: [] } } };
-    expect(getStepRefs(layered, raw, 'spring')[1]!.uses.map(u => u.token)).toContain('bounce.25');
-    expect(getStepRefs(layered, raw, 'easing')[1]!.uses.map(u => u.token)).not.toContain('bounce.25');
-  });
-
-  it('the version as a whole (getTokenRefs, what exports) ignores the lens', () => {
-    expect(getTokenRefs(tweenBounce, raw).tokens).toEqual(['duration.560', 'easing.expressive-bounce']);
-    expect(getTokenRefs(bounceVersion, raw).tokens).toContain('bounce.25');
-  });
-});

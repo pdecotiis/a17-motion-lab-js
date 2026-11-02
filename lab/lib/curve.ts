@@ -1,8 +1,8 @@
-import { springKeyframes } from './spring-engine.js';
+import { spring } from 'motion';
 
 // A motion curve for the Tokens view: progress (y) over time (x), the classic easing graph.
 // x runs 0 → 1 across the duration; y runs 0 → 1 and may leave that range when the motion
-// overshoots (a bouncy spring, an easing with a control point above 1).
+// overshoots (an easing with a control point above 1).
 
 export interface Curve {
   points: { x: number; y: number }[];
@@ -17,6 +17,22 @@ function withRange(points: { x: number; y: number }[], durationMs: number): Curv
   return { points, yMin: Math.min(0, ...ys), yMax: Math.max(1, ...ys), durationMs };
 }
 
+// A spring (0 → 1) as Motion plays it: sampled from Motion's own spring generator, not from any
+// maths of ours. `visualDuration` is when it visually arrives.
+export function springCurve(bounce: number, visualDurationMs: number): Curve {
+  const generator = spring({ keyframes: [0, 1], visualDuration: visualDurationMs / 1000, bounce });
+  const values: number[] = [];
+  let t = 0;
+  for (let done = false; !done && t <= 4000; t += 16) {
+    const r = generator.next(t);
+    values.push(r.value);
+    done = r.done;
+  }
+  values.push(1);
+  const last = values.length - 1;
+  return withRange(values.map((y, i) => ({ x: i / last, y })), last * 16);
+}
+
 // A cubic-bezier easing, sampled along the curve.
 export function bezierCurve(
   [x1, y1, x2, y2]: readonly [number, number, number, number],
@@ -29,13 +45,6 @@ export function bezierCurve(
     return { x: bez(x1, x2, s), y: bez(y1, y2, s) };
   });
   return withRange(points, 0);
-}
-
-// A spring (0 → 1), simulated by the same engine the lab plays.
-export function springCurve(bounce: number, durationMs: number): Curve {
-  const { keyframes, duration } = springKeyframes({ from: 0, to: 1, duration: durationMs, bounce, span: 1 });
-  const last = Math.max(keyframes.length - 1, 1);
-  return withRange(keyframes.map((y, i) => ({ x: i / last, y })), duration);
 }
 
 // An SVG path for the curve inside a width × height box with `pad` around it.

@@ -1,7 +1,6 @@
-import type { MotionVersion, TweenModel, SpringModel, SpringProperty } from './types.js';
-import { springKeyframes, springToLinear } from './spring-engine.js';
+import type { MotionVersion, SpringProperty } from './types.js';
 import { resolveRefs, tokenVarName } from './token-compiler.js';
-import { springParts, stepsOf } from './motion-models.js';
+import { stepsOf } from './motion-models.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { describeTrigger, getReducedMotionPolicy, getVersionStatus } from './version-meta.js';
 
@@ -99,10 +98,6 @@ function springFrames(props: SpringProperty[]): { at: string; decls: string[] }[
   ];
 }
 
-function touchesTransform(props: SpringProperty[]): boolean {
-  return props.some(p => p.wrapTransform !== undefined || p.property === 'transform');
-}
-
 // Lines for the animation-delay declaration: the version's delay plus, when it staggers,
 // an index the developer sets on each sibling (--motion-index: 0, 1, 2, …).
 function delayLines(delay: string, stagger: string | undefined): string[] {
@@ -125,80 +120,39 @@ function block(selector: string, lines: string[], indent = ''): string[] {
 function stepCss(version: MotionVersion, raw: Record<string, unknown>, name: string, stagger: string | undefined): string[] {
   const out: string[] = [];
 
+  // A spring version has no real spring in CSS: it plays its from/to values with the easing curve.
+  const model = version.model;
+  const kfs = model.model === 'tween' ? (version.keyframes ?? []) : null;
+  const frames = model.model === 'spring' ? springFrames(model.properties) : kfs!.length >= 2 ? tweenFrames(kfs!, raw) : null;
+  const duration = cssValue(model.duration, raw, '300ms');
+  const easing = cssValue(model.easing, raw, 'ease');
+  const delay = literalValue(model.delay, raw, '0ms');
+
+  out.push('');
+  if (model.model === 'spring') out.push(`/* authored as a spring of ${model.easing}; CSS plays its easing, only a spring runtime (Motion) bounces */`);
+  if (frames) out.push(...keyframesBlock(name, frames), '');
+  out.push(
+    ...block(`.${name}`, [
+      `animation-name: ${name};`,
+      `animation-duration: ${duration};`,
+      `animation-timing-function: ${easing};`,
+      ...delayLines(delay, stagger),
+      'animation-fill-mode: both;',
+    ]),
+  );
+
+  const reducedEasing = easing;
+  const reducedMs = Math.min(parseMs(literalValue(model.duration, raw, '300ms')), REDUCED_MOTION_FADE_MS);
   let reducedFrames: { at: string; decls: string[] }[] | null = null;
-  // Same easing the version uses (tween), or linear (spring), matching the lab's reduced-motion run.
-  let reducedEasing = 'linear';
-  let reducedMs = REDUCED_MOTION_FADE_MS;
-
-  if (version.model.model === 'tween') {
-    const model = version.model as TweenModel;
-    const duration = cssValue(model.duration, raw, '300ms');
-    const easing = cssValue(model.easing, raw, 'ease');
-    const delay = literalValue(model.delay, raw, '0ms');
-    const kfs = version.keyframes ?? [];
-
-    out.push('');
-    if (kfs.length >= 2) out.push(...keyframesBlock(name, tweenFrames(kfs, raw)), '');
-    out.push(
-      ...block(`.${name}`, [
-        `animation-name: ${name};`,
-        `animation-duration: ${duration};`,
-        `animation-timing-function: ${easing};`,
-        ...delayLines(delay, stagger),
-        'animation-fill-mode: both;',
-      ]),
-    );
-
-    reducedEasing = easing;
-    reducedMs = Math.min(parseMs(literalValue(model.duration, raw, '300ms')), REDUCED_MOTION_FADE_MS);
-    if (kfs.some(kf => 'opacity' in kf)) {
+  if (model.model === 'tween') {
+    if (kfs!.some(kf => 'opacity' in kf)) {
       // Opacity only, as the lab does: a keyframe without opacity ends fully visible.
-      reducedFrames = orderedKeyframes(kfs).map(({ offset, kf }) => ({
+      reducedFrames = orderedKeyframes(kfs!).map(({ offset, kf }) => ({
         at: pct(offset),
         decls: [`opacity: ${'opacity' in kf ? resolveRefs(String(kf.opacity), raw, { cssVars: true }) : '1'};`],
       }));
     }
   } else {
-    const model = version.model as SpringModel;
-    const { bounce, durationMs, pairedMs } = springParts(model, raw);
-    const delay = literalValue(model.delay, raw, '0ms');
-
-    out.push(`/* spring of ${model.easing}: bounce ${bounce}, ${Math.round(durationMs)}ms (${pairedMs}ms / 0.82) */`);
-
-    // The spring is a linear() curve, which eases a whole animation, not each property. Properties
-    // that follow the spring and properties that fade linearly (useSpring: false) therefore become
-    // two animations, unless both want `transform` (they would overwrite each other).
-    const springProps = model.properties.filter(p => p.useSpring !== false);
-    const linearProps = model.properties.filter(p => p.useSpring === false);
-    const split = springProps.length > 0 && linearProps.length > 0
-      && !(touchesTransform(springProps) && touchesTransform(linearProps));
-
-    out.push('');
-    if (springProps.length > 0 && linearProps.length > 0 && !split) {
-      out.push('/* Note: both spring and linear parts animate transform, so they share the spring curve here. */');
-    }
-
-    const groups = split
-      ? [{ name, props: springProps, easing: 'spring' as const }, { name: `${name}-linear`, props: linearProps, easing: 'linear' as const }]
-      : [{ name, props: model.properties, easing: springProps.length === 0 ? 'linear' as const : 'spring' as const }];
-    for (const g of groups) out.push(...keyframesBlock(g.name, springFrames(g.props)), '');
-
-    // The spring runs until it settles, which can be longer than its nominal duration.
-    const hasSpring = groups.some(g => g.easing === 'spring');
-    const { duration: settleDuration } = springKeyframes({ from: 0, to: 1, duration: durationMs, bounce, span: 1 });
-    const ms = Math.round(hasSpring ? settleDuration : durationMs);
-    const linear = springToLinear(durationMs, bounce, 30);
-
-    out.push(
-      ...block(`.${name}`, [
-        `animation-name: ${groups.map(g => g.name).join(', ')};`,
-        `animation-duration: ${groups.map(() => `${ms}ms`).join(', ')};`,
-        `animation-timing-function: ${groups.map(g => (g.easing === 'linear' ? 'linear' : linear)).join(', ')};`,
-        ...delayLines(delay, stagger),
-        'animation-fill-mode: both;',
-      ]),
-    );
-
     const opacity = model.properties.find(p => p.property === 'opacity');
     if (opacity) {
       reducedFrames = [

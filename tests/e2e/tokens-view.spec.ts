@@ -84,49 +84,27 @@ test.describe('Tokens view', () => {
     await expect.poll(async () => Number(await dot.getAttribute('cx'))).toBeGreaterThan(before + 20);
   });
 
-  test('the easing view plays as Easing by default and has an Easing / Spring switch', async ({ page }) => {
-    await expect(page.locator('#easing-mode-easing')).toHaveCount(0);
-    await open(page, 'Easing');
-    await expect(page.locator('#easing-mode-easing')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#easing-mode-spring')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.locator('.lab-tokens-table th')).toHaveText(['Preview', 'Token']);
-    await expect(page.locator('.lab-tokens-heading')).toHaveCount(0);
+  test('Bounce shows only under Motion: three tokens, each with a spring curve from Motion', async ({ page }) => {
+    await page.goto('/?view=tokens');
+    await expect(page.locator('.lab-tokens-subtab', { hasText: 'Bounce' })).toHaveCount(0);
+    await page.click('#runtime-motion');
+    await open(page, 'Bounce');
+    await expect(page.locator('.lab-token-name')).toHaveText(['bounce.0', 'bounce.25', 'bounce.50']);
+    await expect(page.locator('#bounce-control')).toHaveValue('bounce.25');
+    await expect(page.locator('.lab-tokens-table .lab-curve')).toHaveCount(3);
+    const tip = (key: string) => page.locator('.lab-token-row', { hasText: key }).getAttribute('title');
+    expect(await tip('bounce.25')).toContain('Used by: the global bounce setting');
+    expect(await tip('bounce.50')).toContain('Used by: side-panel/v2');
+    await page.click('#runtime-css');
+    await expect(page.locator('.lab-tokens-subtab', { hasText: 'Bounce' })).toHaveCount(0);
   });
 
-  test('Spring shows each easing\'s bounce step, a spring curve, and a Bounces table', async ({ page }) => {
+  test('the easing view is just easings: no bounce column, no Bounces table, no Easing / Spring switch', async ({ page }) => {
     await open(page, 'Easing');
-    const before = await page.locator('.lab-token-row').first().locator('.lab-curve__line').getAttribute('d');
-    const easingNames = await names(page);
-
-    await page.click('#easing-mode-spring');
-    await expect(page.locator('#easing-mode-spring')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.lab-tokens-table').first().locator('th')).toHaveText(['Preview', 'Token', 'Bounce']);
-    expect((await names(page)).slice(0, 9)).toEqual(easingNames);
-
-    const bounceCell = (i: number) => page.locator('.lab-tokens-table').first().locator('.lab-token-row').nth(i).locator('td').nth(2);
-    const steps = ['bounce-0', 'bounce-0', 'no spring', 'bounce-0', 'bounce-0', 'no spring', 'bounce-10', 'bounce-25', 'no spring'];
-    for (const [i, step] of steps.entries()) await expect(bounceCell(i)).toHaveText(step);
-
-    // a spring curve for the six with a spring form; none for the two exits and linear
-    await expect(page.locator('.lab-tokens-table').first().locator('.lab-curve')).toHaveCount(6);
-    expect(await page.locator('.lab-token-row').first().locator('.lab-curve__line').getAttribute('d')).not.toBe(before);
-
-    await expect(page.locator('.lab-tokens-heading')).toHaveText('Bounces');
-    const bounces = page.locator('.lab-tokens-table').nth(1);
-    await expect(bounces.locator('.lab-token-name')).toHaveText(['bounce.0', 'bounce.10', 'bounce.25']);
-    await expect(bounces.locator('.lab-curve')).toHaveCount(3);
-
-    await page.click('#easing-mode-easing');
-    await expect(page.locator('.lab-tokens-heading')).toHaveCount(0);
+    await expect(page.locator('.lab-tokens-table')).toHaveCount(1);
     await expect(page.locator('.lab-tokens-table th')).toHaveText(['Preview', 'Token']);
-  });
-
-  test('bounce-0 is never listed as a dependency; other bounces list the easings that use them', async ({ page }) => {
-    await open(page, 'Easing');
-    await page.click('#easing-mode-spring');
-    const tip = (key: string) => page.locator('.lab-tokens-table').nth(1).locator('.lab-token-row', { hasText: key }).getAttribute('title');
-    expect(await tip('bounce.0')).toContain('Not used yet');
-    expect(await tip('bounce.10')).toContain('Used by: easing.expressive-settle (spring)');
-    expect(await tip('bounce.25')).toContain('Used by: easing.expressive-bounce (spring)');
+    await expect(page.locator('.lab-tokens-heading')).toHaveCount(0);
+    await expect(page.locator('#easing-mode-spring')).toHaveCount(0);
+    await expect(page.locator('.lab-tokens-subtab', { hasText: 'Bounce' })).toHaveCount(0);
   });
 });
