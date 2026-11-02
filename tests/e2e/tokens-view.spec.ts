@@ -29,7 +29,7 @@ test.describe('Tokens view', () => {
     await open(page, 'Easing');
     expect(await names(page)).toEqual([
       'productive-standard', 'productive-entrance', 'productive-exit',
-      'expressive-standard', 'expressive-entrance', 'expressive-exit', 'expressive-settle', 'expressive-bounce',
+      'expressive-standard', 'expressive-entrance', 'expressive-exit',
       'linear',
     ].map(n => `easing.${n}`));
   });
@@ -49,17 +49,26 @@ test.describe('Tokens view', () => {
     expect(await tip('duration.1200')).toContain('Not used yet');
 
     await open(page, 'Easing');
-    const settle = await tip('easing.expressive-settle');
-    expect(settle).toContain('Placeholder curve');
-    expect(settle).toContain('Status: experimental');
-    expect(settle).toContain('Value: cubic-bezier(0.34, 1.06, 0.64, 1)');
+    const entrance = await tip('easing.expressive-entrance');
+    expect(entrance).toContain('Status: system');
+    expect(entrance).toContain('Value: cubic-bezier(0, 0, 0.3, 1)');
+    await expect(page.locator('.lab-token-row', { hasText: 'expressive-settle' })).toHaveCount(0);
+    await expect(page.locator('.lab-token-row', { hasText: 'expressive-bounce' })).toHaveCount(0);
+
+    // Notes and status show for an experimental token too: the bounce tokens, under Motion.
+    await page.click('#runtime-motion');
+    await open(page, 'Bounce');
+    const bounce = await tip('bounce.25');
+    expect(bounce).toContain("Motion's default bounce");
+    expect(bounce).toContain('Status: experimental');
+    expect(bounce).toContain('Value: 0.25');
   });
 
   test('easings preview as curves; durations and distances as bars; the rest have no preview', async ({ page }) => {
     await expect(page.locator('.lab-token-row .lab-curve')).toHaveCount(0);
     await expect(page.locator('.lab-token-row .lab-token-preview')).toHaveCount(8);
     await open(page, 'Easing');
-    await expect(page.locator('.lab-token-row .lab-curve')).toHaveCount(9);
+    await expect(page.locator('.lab-token-row .lab-curve')).toHaveCount(7);
     await open(page, 'Distance');
     await expect(page.locator('.lab-token-row .lab-token-preview')).toHaveCount(8);
     await open(page, 'Scale');

@@ -18,6 +18,7 @@ import {
 } from './lib/version-meta.js';
 import { getStepRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
+import { DEFAULT_STAGGER, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken } from './lib/stagger.js';
 import { buildExportCode, EXPORT_FORMATS, EXPORT_LABELS, type ExportFormat } from './lib/export-code.js';
 import { buildLibraryEntries, libraryFilterFromParams } from './lib/library.js';
 import { bezierCurve, springCurve, curvePath, curveYAt, toX, toY, type Curve } from './lib/curve.js';
@@ -141,6 +142,10 @@ const bounceTokens = Object.keys(raw).filter(k => k.startsWith('bounce.')).sort(
 // The global bounce setting under Motion: the bounce token every motion uses unless it names its own.
 const BOUNCE_KEY = 'a17-motion-lab-bounce';
 let globalBounce: string = readBounce();
+// The default stagger under the page view: a delay token, chosen on the Tokens view's Delay tab.
+const STAGGER_KEY = 'a17-motion-lab-stagger';
+const delayTokens = delayTokenPaths(raw);
+let defaultStagger: string = readStagger();
 
 // ── Reduced motion ─────────────────────────────────────────────────────────
 
@@ -190,6 +195,31 @@ function readRuntime(): Runtime {
 }
 
 const runtimeButtons = RUNTIMES.map(r => document.getElementById(`runtime-${r}`) as HTMLButtonElement);
+function readStagger(): string {
+  const fromUrl = new URLSearchParams(window.location.search).get('stagger');
+  if (fromUrl !== null) {
+    const chosen = staggerFromParam(fromUrl, delayTokens, DEFAULT_STAGGER);
+    try { sessionStorage.setItem(STAGGER_KEY, chosen); } catch { /* storage can be blocked */ }
+    return chosen;
+  }
+  try {
+    const saved = sessionStorage.getItem(STAGGER_KEY);
+    return saved && delayTokens.includes(saved) ? saved : DEFAULT_STAGGER;
+  } catch {
+    return DEFAULT_STAGGER;
+  }
+}
+
+// The default stagger: chosen on the Tokens view's Delay tab, from the delay tokens only.
+function setDefaultStagger(token: string): void {
+  if (!delayTokens.includes(token)) return;
+  defaultStagger = token;
+  const params = new URLSearchParams(window.location.search);
+  params.set('stagger', tokenLabel(token));
+  window.history.replaceState(null, '', `?${params.toString()}`);
+  try { sessionStorage.setItem(STAGGER_KEY, token); } catch { /* storage can be blocked */ }
+}
+
 // The global bounce setting: chosen in the Tokens view's Bounce tab, from the bounce tokens only.
 function setGlobalBounce(token: string): void {
   if (!bounceTokens.includes(token)) return;
@@ -684,7 +714,8 @@ function renderPageView(params: URLSearchParams): void {
     });
   }
 
-  const staggerMs = parseInt(params.get('stagger') ?? '80', 10);
+  // A page staggers with a delay token: its own choice (?pageStagger=none|120…), else the default.
+  let pageStagger = params.get('pageStagger') ?? PAGE_STAGGER_DEFAULT;
 
   main.innerHTML = `
     <div class="lab-page-layout">
@@ -699,8 +730,12 @@ function renderPageView(params: URLSearchParams): void {
         <section class="lab-controls" aria-label="Stagger">
           <h3 class="lab-controls__title">Stagger</h3>
           <div class="lab-control-group">
-            <label class="lab-control-label" for="stagger-input">Delay between (ms)</label>
-            <input class="lab-input" type="number" id="stagger-input" min="0" max="500" step="10" value="${staggerMs}" />
+            <label class="lab-control-label" for="stagger-select">Delay between components</label>
+            <select class="lab-select" id="stagger-select">
+              <option value="${PAGE_STAGGER_DEFAULT}">Default (${defaultStagger})</option>
+              <option value="${PAGE_STAGGER_NONE}">None</option>
+              ${delayTokens.map(t => `<option value="${tokenLabel(t)}">${t}</option>`).join('')}
+            </select>
           </div>
         </section>
         <section class="lab-controls" aria-label="Presets">
@@ -716,7 +751,10 @@ function renderPageView(params: URLSearchParams): void {
   const motionMapPanel = document.getElementById('motion-map-panel')!;
   const componentAnims = new Map<string, PlayHandle>();
 
-  function renderComponents(currentStaggerMs: number): void {
+  // The token the page staggers with now, or null for none.
+  const staggerToken = (): string | null => pageStaggerToken(pageStagger, delayTokens, defaultStagger);
+
+  function renderComponents(): void {
     pageGrid.innerHTML = '';
     pageConfig.components.forEach((pc, i) => {
       const markup = getMarkup(pc.component);
@@ -731,8 +769,9 @@ function renderPageView(params: URLSearchParams): void {
         (wrapper.firstElementChild as HTMLElement);
       const vid = motionMap[pc.id] ?? getDefaultVersion(pc.component).id;
       const ver = getVersion(pc.component, vid);
-      const staggered = currentStaggerMs > 0 && i > 0;
-      componentAnims.set(pc.id, animateElement(target, staggered ? { ...ver, stagger: `${currentStaggerMs}ms` } : ver, staggered ? i : 0));
+      const token = staggerToken();
+      const staggered = token !== null && i > 0;
+      componentAnims.set(pc.id, animateElement(target, staggered ? { ...ver, stagger: token } : ver, staggered ? i : 0));
     });
   }
 
@@ -794,22 +833,19 @@ function renderPageView(params: URLSearchParams): void {
     });
   }
 
-  renderComponents(staggerMs);
+  const staggerSelect = document.getElementById('stagger-select') as HTMLSelectElement;
+  staggerSelect.value = [PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, ...delayTokens.map(tokenLabel)].includes(pageStagger) ? pageStagger : PAGE_STAGGER_DEFAULT;
+  renderComponents();
   buildMotionMapPanel();
 
-  document.getElementById('replay-all-btn')!.addEventListener('click', () => {
-    const currentStagger = parseInt(
-      (document.getElementById('stagger-input') as HTMLInputElement).value,
-      10
-    );
-    renderComponents(currentStagger);
-  });
+  document.getElementById('replay-all-btn')!.addEventListener('click', () => renderComponents());
 
-  document.getElementById('stagger-input')!.addEventListener('change', (e) => {
-    const val = parseInt((e.target as HTMLInputElement).value, 10);
+  staggerSelect.addEventListener('change', () => {
+    pageStagger = staggerSelect.value;
     const sp = new URLSearchParams(window.location.search);
-    sp.set('stagger', String(val));
+    if (pageStagger === PAGE_STAGGER_DEFAULT) sp.delete('pageStagger'); else sp.set('pageStagger', pageStagger);
     window.history.replaceState(null, '', `?${sp.toString()}`);
+    renderComponents();
   });
 
   document.getElementById('save-preset-btn')!.addEventListener('click', () => {
@@ -837,11 +873,7 @@ function renderPageView(params: URLSearchParams): void {
       motionMap = { ...preset.motionMap };
       setMotionMapInUrl(motionMap);
       buildMotionMapPanel();
-      const currentStagger = parseInt(
-        (document.getElementById('stagger-input') as HTMLInputElement).value,
-        10
-      );
-      renderComponents(currentStagger);
+      renderComponents();
     });
     presetList.appendChild(btn);
   });
@@ -856,7 +888,7 @@ const tokenKinds = (): string[] => (runtime === 'motion' ? [...TOKEN_KINDS, 'bou
 // Easings in system order: productive, then expressive, then linear.
 const EASING_ORDER = [
   'productive-standard', 'productive-entrance', 'productive-exit',
-  'expressive-standard', 'expressive-entrance', 'expressive-exit', 'expressive-settle', 'expressive-bounce',
+  'expressive-standard', 'expressive-entrance', 'expressive-exit',
   'linear',
 ];
 // How long an easing preview plays.
@@ -900,6 +932,7 @@ function renderTokensView(): void {
       ...(pageUsageIndex.get(key) ?? []).map(p => `page: ${p}`),
     ];
     if (key === globalBounce && runtime === 'motion') used.push('the global bounce setting');
+    if (key === defaultStagger) used.push('the default page stagger');
     lines.push(used.length ? `Used by: ${used.join(', ')}` : 'Not used yet');
     if (m?.oldNames?.length) lines.push(`Old names: ${m.oldNames.join(', ')}`);
     return lines.join('\n');
@@ -1021,8 +1054,8 @@ function renderTokensView(): void {
 
   const subtabs = document.createElement('div');
   subtabs.className = 'lab-tokens-subtabs';
-  const bounceSetting = document.createElement('div');
-  bounceSetting.className = 'lab-bounce-setting';
+  const tokenSetting = document.createElement('div');
+  tokenSetting.className = 'lab-token-setting';
   const tableContainer = document.createElement('div');
   tableContainer.className = 'lab-tokens-table-wrap';
 
@@ -1038,42 +1071,55 @@ function renderTokensView(): void {
     subtabs.appendChild(btn);
   }
 
-  // The global bounce setting, on the Bounce tab (Motion only): which bounce token every motion that
-  // names no bounce of its own plays with.
-  function renderBounceSetting(kind: string): void {
-    bounceSetting.replaceChildren();
-    if (kind !== 'bounce') return;
+  // A setting that picks one token of the kind on its tab, from that kind's tokens only:
+  //  - bounce (Motion only): the bounce every motion that names none plays with
+  //  - delay: the default stagger between components on the page view
+  const SETTINGS: Record<string, { label: string; id: string; tokens: string[]; get: () => string; set: (t: string) => void; hint: string }> = {
+    bounce: {
+      label: 'Global bounce', id: 'bounce-control', tokens: bounceTokens, get: () => globalBounce, set: setGlobalBounce,
+      hint: 'Used by every motion that names no bounce of its own, under Motion.',
+    },
+    delay: {
+      label: 'Default stagger', id: 'stagger-control', tokens: delayTokens, get: () => defaultStagger, set: setDefaultStagger,
+      hint: 'The delay between components on the page view. A page can use another delay token, or none.',
+    },
+  };
+
+  function renderSetting(kind: string): void {
+    tokenSetting.replaceChildren();
+    const setting = SETTINGS[kind];
+    if (!setting) return;
     const label = document.createElement('label');
     label.className = 'lab-control-label';
-    label.append('Global bounce');
+    label.append(setting.label);
     const select = document.createElement('select');
-    select.id = 'bounce-control';
+    select.id = setting.id;
     select.className = 'lab-select';
-    for (const key of bounceTokens) {
+    for (const key of setting.tokens) {
       const opt = document.createElement('option');
       opt.value = key;
       opt.textContent = key;
       select.appendChild(opt);
     }
-    select.value = globalBounce;
+    select.value = setting.get();
     select.addEventListener('change', () => {
-      setGlobalBounce(select.value);
-      renderKind('bounce');
+      setting.set(select.value);
+      renderKind(kind);
     });
     label.appendChild(select);
     const hint = document.createElement('span');
-    hint.className = 'lab-bounce-setting__hint';
-    hint.textContent = 'Used by every motion that names no bounce of its own, under Motion.';
-    bounceSetting.append(label, hint);
+    hint.className = 'lab-token-setting__hint';
+    hint.textContent = setting.hint;
+    tokenSetting.append(label, hint);
   }
 
   function renderKind(kind: string): void {
-    renderBounceSetting(kind);
+    renderSetting(kind);
     tableContainer.replaceChildren();
     tableContainer.appendChild(buildTable(kind));
   }
 
-  wrapper.append(subtabs, bounceSetting, tableContainer);
+  wrapper.append(subtabs, tokenSetting, tableContainer);
   renderKind(activeKind);
   main.appendChild(wrapper);
 }
