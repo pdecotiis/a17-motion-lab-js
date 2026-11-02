@@ -17,7 +17,7 @@ export const BASE_UNIT_PX = 4;
 export type ScaleId = 'fibonacci' | 'minor-third' | 'major-third' | 'perfect-fourth' | 'golden-ratio';
 
 export interface ScaleDef {
-  id: ScaleId;
+  id: ScaleId | string;
   label: string;
   /** The ratio between one step and the next. Fibonacci has none: its steps are 1, 2, 3, 5, 8… */
   ratio: number | 'fibonacci';
@@ -36,10 +36,13 @@ export const SCALES: readonly ScaleDef[] = [
   { id: 'fibonacci', label: 'Fibonacci', ratio: 'fibonacci', note: '1, 2, 3, 5, 8… times the base' },
 ];
 
+// A scale by id, or a custom ratio above 1 given as a number (`1.4`) for a scale of one's own.
 export function scaleDef(id: string): ScaleDef {
   const def = SCALES.find(s => s.id === id);
-  if (!def) throw new Error(`Unknown scale "${id}" (use ${SCALES.map(s => s.id).join(', ')})`);
-  return def;
+  if (def) return def;
+  const ratio = /^\d+(\.\d+)?$/.test(id) ? Number(id) : NaN;
+  if (ratio > 1) return { id, label: `Ratio ${id}`, ratio, note: 'a custom ratio' };
+  throw new Error(`Unknown scale "${id}" (use ${SCALES.map(s => s.id).join(', ')}, or a ratio above 1 such as 1.4)`);
 }
 
 // ── Steps ──────────────────────────────────────────────────────────────────
