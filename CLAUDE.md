@@ -308,9 +308,11 @@ When a designer wants a standard entrance ("the eyebrow, title and text rise in 
 | `npm run typecheck`  | TypeScript type check (no emit)                 |
 | `npm run test`       | Run Vitest unit tests                           |
 | `npm run test:e2e`   | Run Playwright E2E tests (starts dev server; `PORT=5200 npm run test:e2e` when another server holds 5173) |
-| `npm run check`      | typecheck + test + build + test:e2e (all four)  |
+| `npm run test:e2e:fast` | Playwright in Chromium only (about half the time) |
+| `npm run check:fast` | typecheck + test + Chromium e2e (about 35s): while iterating |
+| `npm run check`      | typecheck + test + build + test:e2e (all four, Chromium and WebKit, about 1 minute) |
 
-**`npm run check` must pass before reporting a session as done.**
+**`npm run check` must pass before reporting a session as done.** While iterating, run less: `npm run check:fast` (no WebKit, no build), one spec (`npx playwright test tests/e2e/<file>.spec.ts --project=chromium`) or one unit file (`npx vitest run tests/unit/<file>`), and the full check once before saving. The e2e tests run fully in parallel (`fullyParallel` in `playwright.config.ts`); keep each test independent (own page, no shared state) and avoid fixed sleeps so they stay safe that way.
 
 ## Build
 

@@ -7,7 +7,9 @@ const port = process.env['PORT'] ?? '5173';
 export default defineConfig({
   testDir: './tests/e2e',
   testIgnore: ['**/_template.spec.ts'],
-  fullyParallel: false,
+  // Every test is independent (own page, shared dev server), so run them all in parallel: ~90s down to ~50s.
+  fullyParallel: true,
+  workers: process.env['CI'] ? 2 : '80%',
   retries: 0,
   reporter: 'list',
   use: {
