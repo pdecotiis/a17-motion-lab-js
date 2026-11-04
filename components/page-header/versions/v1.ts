@@ -14,7 +14,6 @@ export const v1: MotionVersion = {
     { opacity: 0, transform: 'translateY({distance.16})', offset: 0 },
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
-  status: 'in-progress',
   lineage: "imported from https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=22246-234733",
 };
 
