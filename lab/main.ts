@@ -14,7 +14,7 @@ import { cssHandle, runtimeFromParam, RUNTIMES, type PlayHandle, type Runtime } 
 import { createInteractionPlayer, type InteractionPlayer } from './lib/interaction-player.js';
 import { describeTransition, hasHoldTriggers, interactionParts, stateNames } from './lib/interaction.js';
 import { summarizeInteraction } from './lib/interaction-summary.js';
-import { PRESET_NAMES, PRESETS, hasFadeTrack, type PresetName } from './lib/entrance-presets.js';
+import { PRESET_NAMES, type PresetName } from './lib/entrance-presets.js';
 import {
   COMPONENT_STATUSES, STATUS_LABELS, getComponentStatus, describeLineage, filterFromParams,
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
@@ -513,6 +513,12 @@ function buildStatusFilterControls(filter: ComponentFilter, onChange: (next: Com
 
 // ── Component view ─────────────────────────────────────────────────────────
 
+// The Compare with panel (side by side with another version): built, switched off for now.
+const SHOW_COMPARE = false;
+
+// The plain-language "What it does" list in the Details panel.
+const SHOW_WHAT_IT_DOES = false;
+
 // How long into a transition the "Interrupt" button cuts it short.
 const INTERRUPT_MS = 150;
 
@@ -541,7 +547,7 @@ function renderComponentView(params: URLSearchParams): void {
         </div>
       </div>
       <aside class="lab-sidebar">
-        <!-- Accordions: Version, Details and Tokens Used open, the rest closed. Compare stays a plain panel. -->
+        <!-- Accordions: only Version is open by default. Compare is built but hidden (SHOW_COMPARE). -->
         <details class="lab-controls lab-accordion" open>
           <summary class="lab-controls__title">Version</summary>
           <div class="lab-accordion__body">
@@ -551,14 +557,14 @@ function renderComponentView(params: URLSearchParams): void {
             <div class="lab-states" id="interaction-controls" hidden></div>
           </div>
         </details>
-        <details class="lab-controls lab-accordion" open id="details-panel">
+        <details class="lab-controls lab-accordion" id="details-panel">
           <summary class="lab-controls__title">Details</summary>
           <div class="lab-accordion__body">
             <div class="lab-behaviour" id="version-behaviour" hidden></div>
             <dl class="lab-spec-meta" id="version-spec-meta"></dl>
           </div>
         </details>
-        <details class="lab-controls lab-accordion" open>
+        <details class="lab-controls lab-accordion">
           <summary class="lab-controls__title">Tokens Used</summary>
           <div class="lab-accordion__body">
             <div id="tokens-used-list"></div>
@@ -583,7 +589,7 @@ function renderComponentView(params: URLSearchParams): void {
             <button class="lab-btn lab-btn--sm" id="copy-css-btn">Copy CSS</button>
           </div>
         </details>
-        <section class="lab-controls" aria-label="Compare">
+        <section class="lab-controls" aria-label="Compare"${SHOW_COMPARE ? '' : ' hidden'}>
           <h3 class="lab-controls__title">Compare with</h3>
           <select class="lab-select" id="compare-select">
             <option value="">None</option>
@@ -659,9 +665,10 @@ function renderComponentView(params: URLSearchParams): void {
     if (muted) dd.className = 'lab-spec-meta__unset';
     specMeta.append(dt, dd);
   }
-  // What an interaction version does, in plain words.
+  // What an interaction version does, in plain words. Off for now (too busy in the Details panel): the
+  // summary logic (lab/lib/interaction-summary.ts) and this block stay; set SHOW_WHAT_IT_DOES to bring it back.
   const behaviour = document.getElementById('version-behaviour')!;
-  if (version.interaction) {
+  if (SHOW_WHAT_IT_DOES && version.interaction) {
     const summary = summarizeInteraction(version, raw, runtime, { component: componentName, globalBounce });
     const title = document.createElement('h3');
     title.className = 'lab-behaviour__title';
@@ -1322,7 +1329,7 @@ function renderTokensView(): void {
 
 // ── Presets view ───────────────────────────────────────────────────────────
 // /?view=presets
-// Each entrance preset (lab/lib/entrance-presets.ts) playing on a simple example, with its token values.
+// Each entrance preset (lab/lib/entrance-presets.ts) playing on a simple example.
 // They play through the same entrance code as any component, so the runtime switch applies.
 
 const PRESET_EXAMPLES: Record<PresetName, string> = {
@@ -1336,13 +1343,6 @@ const PRESET_EXAMPLES: Record<PresetName, string> = {
 
 function presetVersion(name: PresetName): MotionVersion {
   return { id: `preset-${name}`, label: name, entrance: { preset: name }, lineage: 'entrance preset' };
-}
-
-// A token and its value, as the table shows it: "duration.300 (300ms)".
-function tokenValue(token: string): string {
-  const v = raw[token];
-  const shown = Array.isArray(v) ? `[${(v as number[]).join(', ')}]` : String(v);
-  return `${token} (${shown})`;
 }
 
 function renderPresetsView(): void {
@@ -1367,7 +1367,6 @@ function renderPresetsView(): void {
 
   const targets: { name: PresetName; target: HTMLElement }[] = [];
   for (const name of PRESET_NAMES) {
-    const p = PRESETS[name];
     const card = document.createElement('section');
     card.className = 'lab-preset';
     card.dataset['preset'] = name;
@@ -1391,22 +1390,7 @@ function renderPresetsView(): void {
     holder.innerHTML = PRESET_EXAMPLES[name];
     stage.appendChild(holder);
 
-    const table = document.createElement('dl');
-    table.className = 'lab-spec-meta lab-preset__values';
-    const rows: [string, string][] = [
-      ['Fade', hasFadeTrack(p) ? `${tokenValue(p.fade!.duration)}, ${p.fade!.easing}` : `shares the move's timing`],
-      ['Move', `rise ${tokenValue(p.rise)}, ${tokenValue(p.move.duration)}, ${p.move.easing}`],
-      ...(p.scale ? [['Scale', `from ${tokenValue(p.scale)}`] as [string, string]] : []),
-    ];
-    for (const [label, value] of rows) {
-      const dt = document.createElement('dt');
-      dt.textContent = label;
-      const dd = document.createElement('dd');
-      dd.textContent = value;
-      table.append(dt, dd);
-    }
-
-    card.append(head, stage, table);
+    card.append(head, stage);
     grid.appendChild(card);
     targets.push({ name, target: holder });
     replay.addEventListener('click', () => animateElement(holder, presetVersion(name)));

@@ -1,11 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// The Presets view: each entrance preset playing on an example, with its token values.
+// The Presets view: each entrance preset playing on an example.
 // A preset is up to two tracks on the same element: the fade (opacity) and the move (rise, scale).
 const NAMES = ['eyebrow', 'title', 'text', 'card', 'media', 'ui'];
 const holder = (page: Page, name: string) => page.locator(`[data-preset="${name}"] .lab-preset__holder`);
-const value = (page: Page, name: string, label: string) =>
-  page.locator(`[data-preset="${name}"] .lab-preset__values dt:text-is("${label}") + dd`);
 
 type Pose = { opacity: number; y: number; scale: number };
 const pose = (page: Page, name: string): Promise<Pose> => holder(page, name).evaluate(el => {
@@ -47,24 +45,13 @@ test.describe('Presets view', () => {
     await expect(page.locator('#presets-grid')).toBeVisible();
   });
 
-  test('each card shows its token values', async ({ page }) => {
+  test('each card is just the example and a Replay button', async ({ page }) => {
     await page.goto('/?view=presets');
-    for (const name of ['eyebrow', 'title', 'text']) {
-      await expect(value(page, name, 'Fade')).toContainText('duration.300');
-      await expect(value(page, name, 'Fade')).toContainText('easing.productive-entrance');
-      await expect(value(page, name, 'Move')).toContainText('distance.16');
-      await expect(value(page, name, 'Move')).toContainText('duration.560');
-      await expect(value(page, name, 'Move')).toContainText('easing.expressive-entrance');
-      await expect(page.locator(`[data-preset="${name}"] .lab-preset__values dt:text-is("Scale")`)).toHaveCount(0);
+    for (const name of NAMES) {
+      await expect(page.locator(`[data-preset="${name}"] .lab-preset__holder`)).toBeVisible();
+      await expect(page.locator(`[data-replay="${name}"]`)).toBeVisible();
+      await expect(page.locator(`[data-preset="${name}"] dl`)).toHaveCount(0);
     }
-    await expect(value(page, 'card', 'Move')).toContainText('distance.24');
-    await expect(value(page, 'card', 'Scale')).toContainText('scale.95');
-    await expect(value(page, 'media', 'Move')).toContainText('distance.24');
-    await expect(value(page, 'media', 'Scale')).toContainText('scale.98');
-    await expect(value(page, 'ui', 'Fade')).toContainText('duration.100');
-    await expect(value(page, 'ui', 'Move')).toContainText('distance.8');
-    await expect(value(page, 'ui', 'Move')).toContainText('duration.140');
-    await expect(value(page, 'ui', 'Move')).toContainText('easing.productive-standard');
   });
 
   for (const runtime of ['css', 'motion'] as const) {
@@ -116,10 +103,20 @@ test.describe('Presets view', () => {
   test('Replay all replays every preset', async ({ page }) => {
     await page.goto('/?view=presets');
     for (const name of NAMES) await settled(page, name);
-    await page.locator('#presets-replay-all').click();
-    for (const name of NAMES) {
-      await expect.poll(async () => (await pose(page, name)).opacity, { timeout: 2000 }).toBeLessThan(0.99);
-    }
+    // Sample every holder together right after the click (the quickest preset, ui, fades in 100ms, so polling them one by one is flaky)
+    const lows = await page.evaluate(async () => {
+      const els = [...document.querySelectorAll<HTMLElement>('.lab-preset__holder')];
+      const min = els.map(() => 1);
+      document.querySelector<HTMLElement>('#presets-replay-all')!.click();
+      const t0 = performance.now();
+      while (performance.now() - t0 < 80) {
+        els.forEach((el, i) => { min[i] = Math.min(min[i]!, +getComputedStyle(el).opacity); });
+        await new Promise(requestAnimationFrame);
+      }
+      return min;
+    });
+    expect(lows).toHaveLength(NAMES.length);
+    for (const low of lows) expect(low).toBeLessThan(0.99);
     for (const name of NAMES) await settled(page, name);
   });
 

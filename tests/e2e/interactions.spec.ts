@@ -299,24 +299,13 @@ test.describe('Interactions: entrance, then hover and press on the card', () => 
   });
 });
 
-test.describe('Interactions: what it does', () => {
-  test('card v2 starts with how it appears, then says what hover and press do', async ({ page }) => {
+test.describe('Interactions: Playback and the (switched off) plain-language summary', () => {
+  test('card v2 lists how it appears in Playback, and the What it does list is not shown', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v2');
-    const box = page.locator('#version-behaviour');
-    await expect(box).toBeVisible();
-    await expect(box.locator('dt')).toHaveText(['Appears', 'Hover', 'Press']);
-    await expect(box.locator('dd').first()).toContainText('When it appears, the card fades in and rises 16px');
-    await expect(box).toContainText('When you hover over the card');
     await expect(playbackRow(page)).toContainText('appear:');
-    // It follows the runtime
-    await page.goto('/?view=component&component=card&version=v2&runtime=motion');
-    await expect(box).toContainText('bounce');
-    await expect(box).not.toContainText('productive standard');
-  });
-
-  test('a version with no interaction has no panel', async ({ page }) => {
-    await page.goto('/?view=component&component=card&version=v1');
+    // SHOW_WHAT_IT_DOES is off in lab/main.ts: too busy for now. The summary logic stays (unit tests cover it).
     await expect(page.locator('#version-behaviour')).toBeHidden();
+    await expect(page.locator('#version-behaviour')).toBeEmpty();
   });
 });
 

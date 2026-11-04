@@ -527,7 +527,6 @@ html, body {
 .lab-preset__name { margin: 0; font-size: 14px; font-weight: 600; }
 .lab-preset__stage { min-height: 140px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--color-surface, transparent); border-radius: 6px; padding: 16px; }
 .lab-preset__holder { max-width: 100%; }
-.lab-preset__values { margin: 0; }
 .lab-preset-eg { display: block; }
 .lab-preset-eg--eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
 .lab-preset-eg--title { font-size: 28px; font-weight: 600; line-height: 1.15; }
@@ -536,3 +535,4 @@ html, body {
 .lab-preset-eg--card span { font-size: 13px; color: var(--color-text-muted); }
 .lab-preset-eg--media { width: 220px; height: 120px; border-radius: 8px; background: var(--color-border); }
 .lab-presets__intro .lab-btn, .lab-preset__head .lab-btn { width: auto; }
+.lab-compare[hidden] { display: none; }
