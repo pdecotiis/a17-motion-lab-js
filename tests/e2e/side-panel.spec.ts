@@ -26,7 +26,7 @@ test.describe('Side panel', () => {
   });
 
   for (const runtime of ['css', 'motion']) {
-    for (const version of ['v1', 'v2', 'v3']) {
+    for (const version of ['v1', 'v2']) {
       test(`${version} plays without console errors under ${runtime}`, async ({ page }) => {
         const errors: string[] = [];
         page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
@@ -39,28 +39,8 @@ test.describe('Side panel', () => {
     }
   }
 
-  test('the tween never overshoots under CSS, and under Motion only as far as the global bounce allows', async ({ page }) => {
-    await page.goto('/?view=component&component=side-panel&version=v1&runtime=css');
-    await expect(page.locator(ROOT)).toBeVisible();
-    let done = overshootPx(page);
-    await page.click('#replay-btn');
-    expect(await done, 'css').toBeLessThan(1);
-
-    await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion&bounce=0');
-    await expect(page.locator(ROOT)).toBeVisible();
-    done = overshootPx(page);
-    await page.click('#replay-btn');
-    expect(await done, 'motion, bounce 0').toBeLessThan(1);
-
-    await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion&bounce=50');
-    await expect(page.locator(ROOT)).toBeVisible();
-    done = overshootPx(page);
-    await page.click('#replay-btn');
-    expect(await done, 'motion, bounce 50').toBeGreaterThan(2);
-  });
-
   test('the spring overshoots under Motion but not under CSS', async ({ page }) => {
-    await page.goto('/?view=component&component=side-panel&version=v2&runtime=css');
+    await page.goto('/?view=component&component=side-panel&version=v1&runtime=css');
     let done = overshootPx(page);
     await page.click('#replay-btn');
     expect(await done).toBeLessThan(1);
@@ -72,8 +52,8 @@ test.describe('Side panel', () => {
     expect(await done).toBeGreaterThan(2);
   });
 
-  test('v3 plays everything as a spring under Motion: the panel keeps its bounce, the content uses the global one', async ({ page }) => {
-    await page.goto('/?view=component&component=side-panel&version=v3&runtime=motion');
+  test('v1 plays everything as a spring under Motion: the panel keeps its bounce, the content uses the global one', async ({ page }) => {
+    await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion');
     const note = ' (authored as easing; bounce is the global setting)';
     await expect(page.locator('#version-spec-meta dt:has-text("Playback") + dd')).toHaveText([
       'Spring · bounce 0.5 (bounce.50), 560ms',

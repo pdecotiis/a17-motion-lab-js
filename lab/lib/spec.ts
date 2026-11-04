@@ -1,12 +1,12 @@
-import type { MotionVersion, EntranceVersion, TweenModel, SpringModel } from './types.js';
+import type { ComponentStatus, MotionVersion, EntranceVersion, TweenModel, SpringModel } from './types.js';
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getStepRefs, getTokenRefs } from './token-refs.js';
 import { interactionParts, partValues, resolveState, stateNames, timingFor } from './interaction.js';
-import { resolveKeyframes, stepsOf } from './motion-models.js';
+import { hasEntrance, resolveKeyframes, stepsOf } from './motion-models.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import {
-  STATUS_LABELS, describeLineage, describeTrigger, getReducedMotionPolicy, getVersionStatus,
+  STATUS_LABELS, describeLineage, describeTrigger, getReducedMotionPolicy,
   REDUCED_MOTION_LABELS,
 } from './version-meta.js';
 
@@ -148,6 +148,7 @@ export function buildVersionExport(
   version: MotionVersion,
   siblings: MotionVersion[],
   tokens: CompiledTokens,
+  componentStatus: ComponentStatus = 'in-progress',
 ): VersionExport {
   const { raw, cssVars } = tokens;
   const name = `motion-${component}-${version.id}`;
@@ -159,27 +160,17 @@ export function buildVersionExport(
   const tokensCss = varLines.length ? `:root {\n${varLines.join('\n')}\n}\n` : '/* This version uses no CSS-variable tokens. */\n';
 
   const trigger = describeTrigger(version.trigger);
-  const status = getVersionStatus(version);
-  const md: string[] = [
-    `# ${component} ${version.id}: ${version.label}`,
-    '',
-    `Status: ${STATUS_LABELS[status]}${status === 'approved' ? '' : ' (not approved yet, expect changes)'}`,
-    `Lineage: ${describeLineage(version, siblings)}`,
-    'Source: Motion Lab. The values below come from the version file; motion.css is generated from the same data.',
-    '',
-    '## When it plays',
-    '',
-    trigger ?? '**Not specified.** The designer has not said what triggers this. Ask before wiring it up.',
-    '',
-    ...(version.interaction ? ['## Triggers', '', ...triggerLines(version), ''] : []),
-    version.interaction ? '## States' : '## What animates',
+  const status = componentStatus;
+  const combined = version.interaction !== undefined && hasEntrance(version);
+  const entranceBlock: string[] = [
+    combined ? '## On appear: what animates' : '## What animates',
     '',
     ...(layers.length ? ['The component\'s root element (the one marked `data-motion-target`):', ''] : []),
-    ...(version.interaction ? stateLines(version, raw) : animatedLines(stepsOf(version)[0]!.version, raw)),
+    ...animatedLines(stepsOf(version)[0]!.version, raw),
     '',
-    version.interaction ? '## Transitions' : '## Timing',
+    combined ? '## On appear: timing' : '## Timing',
     '',
-    ...(version.interaction ? transitionLines(version, raw) : motionLines(stepsOf(version)[0]!.version, raw)),
+    ...motionLines(stepsOf(version)[0]!.version, raw),
     '',
     // Each layer is a motion of its own: it names its own duration, easing and delay.
     ...layers.flatMap(({ name: layer, version: step }) => [
@@ -196,6 +187,22 @@ export function buildVersionExport(
       ...motionLines({ ...step, stagger: undefined }, raw),
       '',
     ]),
+    ...(combined ? ['The entrance plays first. Hover, press and focus (below) only take over when it has finished: in the CSS a hover during the entrance takes effect when it ends; in the GSAP and Motion files call `attach…(el)` once the entrance has finished.', ''] : []),
+  ];
+  const md: string[] = [
+    `# ${component} ${version.id}: ${version.label}`,
+    '',
+    `Component status: ${STATUS_LABELS[status]}${status === 'approved' ? '' : ' (not approved yet, expect changes)'}`,
+    `Lineage: ${describeLineage(version, siblings)}`,
+    'Source: Motion Lab. The values below come from the version file; motion.css is generated from the same data.',
+    '',
+    '## When it plays',
+    '',
+    trigger ?? '**Not specified.** The designer has not said what triggers this. Ask before wiring it up.',
+    '',
+    ...(version.interaction ? ['## Triggers', '', ...triggerLines(version), ''] : []),
+    ...(version.interaction && !hasEntrance(version) ? [] : entranceBlock),
+    ...(version.interaction ? ['## States', '', ...stateLines(version, raw), '', '## Transitions', '', ...transitionLines(version, raw), ''] : []),
     '## Reduced motion',
     '',
     ...reducedMotionLines(version),
@@ -203,7 +210,9 @@ export function buildVersionExport(
     '## Using it',
     '',
     '1. Load `tokens.css` (or any stylesheet that defines the same custom properties) and `motion.css`.',
-    version.interaction
+    combined
+      ? `2. Add the class \`.${name}\` to the element when the entrance trigger fires (and each layer's class, above, to its element). The entrance plays; from then on hover, press and focus are in the CSS already, and \`data-state="<state>"\` (${stateNames(version.interaction!).join(', ')}) is for a click or anything a script decides.`
+      : version.interaction
       ? `2. Add the class \`.${name}\` to the element, and keep it there for good: it is the resting state. Hover, press and focus are in the CSS already; set \`data-state="<state>"\` on it (${stateNames(version.interaction).join(', ')}) for a click or anything a script decides, and the CSS transitions do the rest.`
       : `2. Add the class \`.${name}\` to the animated element when the trigger fires${layers.length ? ', and each layer\'s class (above) to its element' : ''}.`,
     ...(version.stagger ? [`3. Set \`--motion-index: 0, 1, 2…\` on each sibling to stagger them.`] : []),

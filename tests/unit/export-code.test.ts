@@ -85,7 +85,7 @@ describe('buildGsapCode', () => {
   });
 
   it('plays a spring version as its easing, and says GSAP has no springs', () => {
-    const code = buildGsapCode(panelVersions.find(v => v.id === 'v2')!, raw, { component: 'side-panel' });
+    const code = buildGsapCode(panelVersions.find(v => v.id === 'v1')!, raw, { component: 'side-panel' });
     expect(code).toContain('authored as a spring (GSAP has no springs, so the easing plays)');
     expect(code).toContain('{ opacity: 0, x: 48 }, { opacity: 1, x: 0, duration: 0.56, ease: "expressive-entrance" }');
     expect(code).not.toContain('bounce');
@@ -119,7 +119,7 @@ describe('buildMotionCode', () => {
   });
 
   it('uses the version\'s own bounce token, else the global bounce, and says which', () => {
-    const code = buildMotionCode(panelVersions.find(v => v.id === 'v3')!, raw, { component: 'side-panel', globalBounce: 'bounce.0' });
+    const code = buildMotionCode(panelVersions.find(v => v.id === 'v1')!, raw, { component: 'side-panel', globalBounce: 'bounce.0' });
     expect(code).toContain('// bounce.50\n');
     expect(code).toContain('bounce: 0.5');
     expect(code).toContain('bounce: 0');
@@ -191,7 +191,7 @@ describe('the GSAP code runs in GSAP and matches the CSS timing', () => {
   }
 
   it('under reduced motion it plays only a short fade, or nothing for "none"', () => {
-    const fade = run(cardVersions.find(v => v.id === 'v4')!, 'card', 0, true);
+    const fade = run(cardVersions.find(v => v.id === 'v1')!, 'card', 0, true);
     for (const child of fade.getChildren(false, true, false)) expect(child.duration()).toBeLessThanOrEqual(0.15);
     const none = run({ ...cardVersions[0]!, reducedMotion: 'none' }, 'card', 0, true);
     expect(none.getChildren(false, true, false)).toHaveLength(0);

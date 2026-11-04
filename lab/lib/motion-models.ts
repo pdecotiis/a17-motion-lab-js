@@ -3,7 +3,7 @@ import { getEffectiveKeyframes, REDUCED_MOTION_FADE_MS } from './reduced-motion.
 import { resolveRefs } from './token-compiler.js';
 import { resolveBounce } from './bounce.js';
 import { validateInteraction } from './interaction.js';
-import { isVersionStatus, isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
+import { isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
 
 export interface ResolvedTiming {
   duration: number;
@@ -78,8 +78,20 @@ export function modelOf(version: MotionVersion): MotionModel {
   throw new Error(`MotionVersion "${version.id}" has no model and no interaction`);
 }
 
+/**
+ * Whether a version has an entrance: a motion that plays when the component appears. A version with a
+ * `model` does, whether or not it also has `interaction` (the entrance, then the states: hover, press…).
+ * An interaction version with no `model` has no entrance.
+ */
+export function hasEntrance(version: MotionVersion): boolean {
+  return version.model !== undefined;
+}
+
 export function stepsOf(version: MotionVersion): { name: string | null; version: EntranceVersion }[] {
-  const { layers, ...root } = version;
+  const { layers, interaction, ...rest } = version;
+  // A version with an entrance and states keeps them apart: its steps are the entrance's (root and layers).
+  // An interaction-only version's root step carries the interaction, which is where its timing comes from.
+  const root = version.model !== undefined || interaction === undefined ? rest : { ...rest, interaction };
   return [
     { name: null, version: { ...root, model: modelOf(version) } },
     ...Object.entries(layers ?? {}).map(([name, step]) => ({
@@ -173,15 +185,11 @@ export function describePlayback(p: Playback): string {
 export { resolveBounce };
 
 export function validateMotionVersion(version: MotionVersion): void {
-  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'interaction', 'status', 'reviewNotes', 'forkedFrom', 'lineage']);
+  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'interaction', 'reviewNotes', 'forkedFrom', 'lineage']);
   for (const key of Object.keys(version)) {
     if (!allowed.has(key)) {
       throw new Error(`MotionVersion "${version.id}" has disallowed property: "${key}"`);
     }
-  }
-
-  if (version.status !== undefined && !isVersionStatus(version.status)) {
-    throw new Error(`MotionVersion "${version.id}" has unknown status: "${String(version.status)}"`);
   }
 
   if (version.trigger !== undefined) {

@@ -449,9 +449,7 @@ html, body {
 .lab-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
 .lab-history__item a { color: var(--color-accent); text-decoration: none; }
 .lab-history__item a:hover { text-decoration: underline; }
-.lab-history__item--archived a { color: var(--color-text-muted); }
 .lab-history__origin { display: block; color: var(--color-text-muted); font-size: 11px; }
-.lab-status-slot { margin-left: 6px; }
 
 /* Library view */
 .lab-library__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }

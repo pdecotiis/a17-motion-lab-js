@@ -1,10 +1,10 @@
 import tokensJson from '../tokens/motion.json';
 import type {
-  MotionVersion, PageConfig, MotionMap, ComponentModule, Preset, DtcgGroup,
+  MotionVersion, PageConfig, MotionMap, ComponentModule, ComponentStatus, Preset, DtcgGroup,
 } from './lib/types.js';
 import { compileTokens, applyTokensToDom, tokenLabel } from './lib/token-compiler.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
-import { playbackOf, describePlayback, stepsOf } from './lib/motion-models.js';
+import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
 import { validatePreset } from './lib/presets.js';
 import { prefersReducedMotion } from './lib/reduced-motion.js';
@@ -15,9 +15,9 @@ import { createInteractionPlayer, type InteractionPlayer } from './lib/interacti
 import { describeTransition, hasHoldTriggers, interactionParts, stateNames } from './lib/interaction.js';
 import { summarizeInteraction } from './lib/interaction-summary.js';
 import {
-  VERSION_STATUSES, STATUS_LABELS, getVersionStatus, filterVersions, describeLineage, filterFromParams,
+  COMPONENT_STATUSES, STATUS_LABELS, getComponentStatus, describeLineage, filterFromParams,
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
-  type VersionFilter,
+  type ComponentFilter,
 } from './lib/version-meta.js';
 import { getStepRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
@@ -358,25 +358,58 @@ function playInteractionEntrance(el: HTMLElement, version: MotionVersion): PlayH
 // Where an interaction version starts when the view opens: at rest, so it can be hovered or clicked, unless
 // it has nothing a person would hover (an open/close), when it plays its first move so there is something to see.
 function startInteraction(el: HTMLElement, version: MotionVersion): void {
-  if (version.interaction && hasHoldTriggers(version.interaction)) void playerFor(el, version).reset();
+  // A version that also appears plays its entrance, then rests with its states live.
+  if (hasEntrance(version)) animateElement(el, version);
+  else if (version.interaction && hasHoldTriggers(version.interaction)) void playerFor(el, version).reset();
   else playInteractionEntrance(el, version);
 }
 
-function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 0): PlayHandle {
-  if (version.interaction) return playInteractionEntrance(el, version);
+// The entrance of a version: its root motion and each layer's, cancelling what was playing on the element.
+// Returns every handle, the root's first.
+function playEntrance(el: HTMLElement, version: MotionVersion, staggerIndex: number): PlayHandle[] {
   el.getAnimations({ subtree: true }).forEach(a => a.cancel());
   activeAnimations.filter(h => el.contains(h.target)).forEach(h => h.cancel());
   activeAnimations = activeAnimations.filter(h => !h.finished && !el.contains(h.target));
 
   const [root, ...layers] = stepsOf(version);
-  const rootAnim = playStep(el, root!.version, staggerIndex);
-  activeAnimations.push(rootAnim);
+  const handles = [playStep(el, root!.version, staggerIndex)];
   for (const layer of layers) {
     for (const layerEl of el.querySelectorAll<HTMLElement>(`[data-motion="${layer.name}"]`)) {
-      activeAnimations.push(playStep(layerEl, layer.version, staggerIndex));
+      handles.push(playStep(layerEl, layer.version, staggerIndex));
     }
   }
-  return rootAnim;
+  activeAnimations.push(...handles);
+  return handles;
+}
+
+// A version with an entrance and states (appears, then hovers and presses): the states are locked while
+// the entrance plays; when it ends, the component is left at its resting state (where the entrance ended,
+// so nothing jumps) and the triggers go live. Replaying starts again from the entrance's first frame.
+const entranceRuns = new WeakMap<HTMLElement, number>();
+
+function playEntranceThenStates(el: HTMLElement, version: MotionVersion, staggerIndex: number): PlayHandle {
+  const run = (entranceRuns.get(el) ?? 0) + 1;
+  entranceRuns.set(el, run);
+  const player = playerFor(el, version);
+  player.setLocked(true);
+  void player.reset().then(() => {
+    if (entranceRuns.get(el) !== run) return;
+    const handles = playEntrance(el, version, staggerIndex);
+    void Promise.all(handles.map(h => h.done ?? Promise.resolve())).then(async () => {
+      if (entranceRuns.get(el) !== run) return;
+      // Under CSS the entrance's animations hold their last frame; let go of them so the states can move it.
+      if (runtime === 'css') el.getAnimations({ subtree: true }).forEach(a => a.cancel());
+      await player.reset();
+      if (entranceRuns.get(el) === run) player.setLocked(false);
+    });
+  });
+  return cssHandle(el, el.animate([{}], { duration: 0, fill: 'both' }));
+}
+
+function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 0): PlayHandle {
+  if (version.interaction && hasEntrance(version)) return playEntranceThenStates(el, version, staggerIndex);
+  if (version.interaction) return playInteractionEntrance(el, version);
+  return playEntrance(el, version, staggerIndex)[0]!;
 }
 
 // One motion on one element, played by the current runtime. The speed control sets the runtime's own
@@ -403,6 +436,7 @@ function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number)
       get time() { return controls.time; },
       set time(v: number) { controls.time = v; },
       get finished() { return controls.state === 'finished'; },
+      done: Promise.resolve(controls).then(() => undefined, () => undefined),
       cancel() { controls.cancel(); },
     };
   }
@@ -418,10 +452,10 @@ function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number)
   return cssHandle(el, anim);
 }
 
-// ── Version status helpers ─────────────────────────────────────────────────
+// ── Component status helpers ───────────────────────────────────────────────
+// Approval is the component's, not a version's: the badge shows in the library, the status in the component's Details.
 
-function statusBadge(version: MotionVersion): HTMLSpanElement {
-  const status = getVersionStatus(version);
+function statusBadge(status: ComponentStatus): HTMLSpanElement {
   const badge = document.createElement('span');
   badge.className = `lab-status-badge lab-status-badge--${status}`;
   badge.dataset['status'] = status;
@@ -430,7 +464,7 @@ function statusBadge(version: MotionVersion): HTMLSpanElement {
 }
 
 // Status filter + "Show archived" toggle; state lives in the URL (?status=…&archived=1).
-function buildVersionFilterControls(filter: VersionFilter, onChange: (next: VersionFilter) => void): HTMLElement {
+function buildStatusFilterControls(filter: ComponentFilter, onChange: (next: ComponentFilter) => void): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'lab-version-filter';
 
@@ -442,7 +476,7 @@ function buildVersionFilterControls(filter: VersionFilter, onChange: (next: Vers
   all.value = 'all';
   all.textContent = 'All statuses';
   select.appendChild(all);
-  for (const s of VERSION_STATUSES) {
+  for (const s of COMPONENT_STATUSES) {
     const opt = document.createElement('option');
     opt.value = s;
     opt.textContent = STATUS_LABELS[s];
@@ -459,7 +493,7 @@ function buildVersionFilterControls(filter: VersionFilter, onChange: (next: Vers
   toggleLabel.append(toggle, document.createTextNode(' Show archived'));
 
   const emit = (): void => {
-    const status = select.value as VersionFilter['status'];
+    const status = select.value as ComponentFilter['status'];
     const sp = new URLSearchParams(window.location.search);
     if (status === 'all') sp.delete('status'); else sp.set('status', status as string);
     if (toggle.checked) sp.set('archived', '1'); else sp.delete('archived');
@@ -503,17 +537,21 @@ function renderComponentView(params: URLSearchParams): void {
         </div>
       </div>
       <aside class="lab-sidebar">
-        <!-- Accordions: Version and Tokens Used open, the rest closed. Compare stays a plain panel. -->
+        <!-- Accordions: Version, Details and Tokens Used open, the rest closed. Compare stays a plain panel. -->
         <details class="lab-controls lab-accordion" open>
           <summary class="lab-controls__title">Version</summary>
           <div class="lab-accordion__body">
-            <div id="version-filter"></div>
             <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
             <p class="lab-lineage" id="version-lineage"></p>
-            <dl class="lab-spec-meta" id="version-spec-meta"></dl>
-            <div class="lab-behaviour" id="version-behaviour" hidden></div>
             <button class="lab-btn" id="replay-btn">Replay</button>
             <div class="lab-states" id="interaction-controls" hidden></div>
+          </div>
+        </details>
+        <details class="lab-controls lab-accordion" open id="details-panel">
+          <summary class="lab-controls__title">Details</summary>
+          <div class="lab-accordion__body">
+            <div class="lab-behaviour" id="version-behaviour" hidden></div>
+            <dl class="lab-spec-meta" id="version-spec-meta"></dl>
           </div>
         </details>
         <details class="lab-controls lab-accordion" open>
@@ -556,19 +594,13 @@ function renderComponentView(params: URLSearchParams): void {
   const mod = motionModules[`../components/${componentName}/motion.ts`];
   const allVersions: MotionVersion[] = mod?.versions ?? [];
 
-  const versionFilter = filterFromParams(params);
-  const visibleVersions = filterVersions(allVersions, { ...versionFilter, keepId: versionId });
-  document.getElementById('version-filter')!.appendChild(
-    buildVersionFilterControls(versionFilter, () => renderComponentView(new URLSearchParams(window.location.search))),
-  );
-
-  visibleVersions.forEach(v => {
+  allVersions.forEach(v => {
     const btn = document.createElement('button');
     btn.className = 'lab-version-tab' + (v.id === versionId ? ' lab-version-tab--active' : '');
     btn.dataset['versionId'] = v.id;
     btn.setAttribute('role', 'tab');
     btn.setAttribute('aria-selected', v.id === versionId ? 'true' : 'false');
-    btn.append(document.createTextNode(`${v.id}: ${v.label} `), statusBadge(v));
+    btn.textContent = `${v.id}: ${v.label}`;
     btn.addEventListener('click', () => {
       const sp = new URLSearchParams(window.location.search);
       sp.set('version', v.id);
@@ -584,22 +616,34 @@ function renderComponentView(params: URLSearchParams): void {
   // What a developer needs that the lab can't show: when it plays, and what reduced-motion visitors get.
   const specMeta = document.getElementById('version-spec-meta')!;
   const triggerText = describeTrigger(version.trigger);
+  // What is playing, one line per motion: the entrance (the root, then each layer), then the transition into each state.
+  const playbackLines = (): string[] => {
+    const lines: string[] = [];
+    if (!version.interaction || hasEntrance(version)) {
+      for (const { name, version: step } of stepsOf(version)) {
+        const label = version.interaction ? `${name ? `${name} ` : ''}appear: ` : name ? `${name}: ` : '';
+        lines.push(label + (runtime === 'motion'
+          ? describeMotionArgs(motionArgsOf(step, raw, { globalBounce }))
+          : describePlayback(playbackOf(step, raw))));
+      }
+    }
+    if (version.interaction) {
+      const i = version.interaction;
+      for (const state of stateNames(i)) {
+        // The root, then each layer that has its own timing into this state.
+        for (const part of interactionParts(i)) {
+          if (part === null || i.layers?.[part]?.transitions?.[state]) lines.push(describeTransition(i, state, raw, runtime, { globalBounce, target: part }));
+        }
+      }
+    }
+    return lines;
+  };
   const specRows: [string, string, boolean][] = [
+    ['Component status', STATUS_LABELS[getComponentStatus(mod ?? {})], false],
     ['Plays', triggerText ?? 'Trigger not specified', triggerText === null],
     ['Reduced motion', REDUCED_MOTION_LABELS[getReducedMotionPolicy(version)], false],
     // What is playing, one line per motion (the root, then each layer).
-    ['Playback', version.interaction
-      ? stateNames(version.interaction).flatMap(s => {
-          const i = version.interaction!;
-          // The root, then each layer that has its own timing into this state.
-          return interactionParts(i)
-            .filter(part => part === null || i.layers?.[part]?.transitions?.[s])
-            .map(part => describeTransition(i, s, raw, runtime, { globalBounce, target: part }));
-        }).join('\n')
-      : stepsOf(version).map(({ name, version: step }) =>
-      `${name ? `${name}: ` : ''}${runtime === 'motion'
-        ? describeMotionArgs(motionArgsOf(step, raw, { globalBounce }))
-        : describePlayback(playbackOf(step, raw))}`).join('\n'), false],
+    ['Playback', playbackLines().join('\n'), false],
   ];
   for (const [label, text, muted] of specRows) {
     const dt = document.createElement('dt');
@@ -631,7 +675,7 @@ function renderComponentView(params: URLSearchParams): void {
   const historyList = document.getElementById('version-history')!;
   for (const v of allVersions) {
     const li = document.createElement('li');
-    li.className = 'lab-history__item' + (getVersionStatus(v) === 'archived' ? ' lab-history__item--archived' : '');
+    li.className = 'lab-history__item';
     li.dataset['versionId'] = v.id;
     const link = document.createElement('a');
     link.href = `?view=component&component=${componentName}&version=${v.id}`;
@@ -639,13 +683,13 @@ function renderComponentView(params: URLSearchParams): void {
     const origin = document.createElement('span');
     origin.className = 'lab-history__origin';
     origin.textContent = describeLineage(v, allVersions);
-    li.append(link, document.createTextNode(' '), statusBadge(v), origin);
+    li.append(link, origin);
     historyList.appendChild(li);
   }
 
   // Compare select options
   const compareSelect = document.getElementById('compare-select') as HTMLSelectElement;
-  visibleVersions.filter(v => v.id !== versionId).forEach(v => {
+  allVersions.filter(v => v.id !== versionId).forEach(v => {
     const opt = document.createElement('option');
     opt.value = v.id;
     opt.textContent = `${v.id}: ${v.label}`;
@@ -886,7 +930,6 @@ function renderPageView(params: URLSearchParams): void {
       <aside class="lab-sidebar">
         <section class="lab-controls" aria-label="Motion map">
           <h3 class="lab-controls__title">Motion Map</h3>
-          <div id="motion-map-filter"></div>
           <div id="motion-map-panel" class="lab-motion-map-panel"></div>
           <button class="lab-btn" id="replay-all-btn">Replay All</button>
         </section>
@@ -938,14 +981,6 @@ function renderPageView(params: URLSearchParams): void {
     });
   }
 
-  let mapFilter: VersionFilter = filterFromParams(params);
-  document.getElementById('motion-map-filter')!.appendChild(
-    buildVersionFilterControls(mapFilter, next => {
-      mapFilter = next;
-      buildMotionMapPanel();
-    }),
-  );
-
   function buildMotionMapPanel(): void {
     motionMapPanel.innerHTML = '';
     pageConfig.components.forEach(pc => {
@@ -960,22 +995,13 @@ function renderPageView(params: URLSearchParams): void {
 
       const pcMod = motionModules[`../components/${pc.component}/motion.ts`];
       const versions: MotionVersion[] = pcMod?.versions ?? [];
-      const badgeSlot = document.createElement('span');
-      badgeSlot.className = 'lab-status-slot';
-      const showBadge = (vid: string): void => {
-        const current = versions.find(v => v.id === vid);
-        badgeSlot.replaceChildren(...(current ? [statusBadge(current)] : []));
-      };
-      filterVersions(versions, { ...mapFilter, keepId: motionMap[pc.id] }).forEach(v => {
+      versions.forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.id;
-        opt.textContent = `${v.id}: ${v.label} [${STATUS_LABELS[getVersionStatus(v)]}]`;
+        opt.textContent = `${v.id}: ${v.label}`;
         if (motionMap[pc.id] === v.id) opt.selected = true;
         sel.appendChild(opt);
       });
-      showBadge(sel.value);
-      sel.addEventListener('change', () => showBadge(sel.value));
-
       sel.addEventListener('change', () => {
         motionMap[pc.id] = sel.value;
         setMotionMapInUrl(motionMap);
@@ -991,7 +1017,6 @@ function renderPageView(params: URLSearchParams): void {
 
       group.appendChild(label);
       group.appendChild(sel);
-      group.appendChild(badgeSlot);
       motionMapPanel.appendChild(group);
     });
   }
@@ -1337,7 +1362,7 @@ function renderLibraryView(params: URLSearchParams): void {
   grid.className = 'lab-library__grid';
   grid.id = 'library-grid';
 
-  toolbar.append(search, buildVersionFilterControls(filter, renderGrid), count);
+  toolbar.append(search, buildStatusFilterControls(filter, renderGrid), count);
   main.append(toolbar, grid);
 
   search.addEventListener('input', () => {
@@ -1392,7 +1417,7 @@ function renderLibraryView(params: URLSearchParams): void {
       const versions = document.createElement('span');
       versions.className = 'lab-library-card__versions';
       versions.textContent = `${entry.totalVersions} version${entry.totalVersions === 1 ? '' : 's'}`;
-      footer.append(name, statusBadge(entry.previewVersion), versions);
+      footer.append(name, ...(entry.status === 'in-progress' ? [] : [statusBadge(entry.status)]), versions);
 
       card.append(preview, footer);
       grid.appendChild(card);

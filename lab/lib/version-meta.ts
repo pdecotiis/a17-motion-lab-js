@@ -1,31 +1,31 @@
-import type { MotionVersion, VersionStatus, TriggerType, MotionTrigger, ReducedMotionPolicy } from './types.js';
+import type { ComponentModule, ComponentStatus, MotionVersion, TriggerType, MotionTrigger, ReducedMotionPolicy } from './types.js';
 
-export const VERSION_STATUSES: readonly VersionStatus[] = ['in-progress', 'review', 'approved', 'archived'];
+export const COMPONENT_STATUSES: readonly ComponentStatus[] = ['in-progress', 'review', 'approved', 'archived'];
 
-export const STATUS_LABELS: Record<VersionStatus, string> = {
+export const STATUS_LABELS: Record<ComponentStatus, string> = {
   'in-progress': 'In progress',
   review: 'Review',
   approved: 'Approved',
   archived: 'Archived',
 };
 
-export function isVersionStatus(value: unknown): value is VersionStatus {
-  return typeof value === 'string' && (VERSION_STATUSES as readonly string[]).includes(value);
+export function isComponentStatus(value: unknown): value is ComponentStatus {
+  return typeof value === 'string' && (COMPONENT_STATUSES as readonly string[]).includes(value);
 }
 
-// A version with no stored status counts as in-progress.
-export function getVersionStatus(version: MotionVersion): VersionStatus {
-  return version.status ?? 'in-progress';
+// A component with no stored status counts as in-progress.
+export function getComponentStatus(module: Pick<ComponentModule, 'status'>): ComponentStatus {
+  return module.status ?? 'in-progress';
 }
 
-// Per-component check: valid status values, and every version has lineage
+// Per-component check: a valid component status, and every version has lineage
 // (forkedFrom a sibling version, or an "imported from <source>" string).
-export function validateVersionMeta(versions: MotionVersion[]): void {
+export function validateVersionMeta(versions: MotionVersion[], status?: unknown): void {
+  if (status !== undefined && !isComponentStatus(status)) {
+    throw new Error(`Component has unknown status "${String(status)}"`);
+  }
   const ids = new Set(versions.map(v => v.id));
   for (const v of versions) {
-    if (v.status !== undefined && !isVersionStatus(v.status)) {
-      throw new Error(`Version "${v.id}" has unknown status "${String(v.status)}"`);
-    }
     if (v.forkedFrom === undefined && !v.lineage) {
       throw new Error(`Version "${v.id}" needs lineage: set forkedFrom to its parent version or lineage to "imported from <source>"`);
     }
@@ -38,30 +38,26 @@ export function validateVersionMeta(versions: MotionVersion[]): void {
   }
 }
 
-// New versions start in-progress with lineage pointing at the parent.
+// A new version has lineage pointing at the parent.
 export function forkVersion(parent: MotionVersion, id: string, label: string): MotionVersion {
-  const fork: MotionVersion = { ...structuredClone(parent), id, label, status: 'in-progress', forkedFrom: parent.id };
+  const fork: MotionVersion = { ...structuredClone(parent), id, label, forkedFrom: parent.id };
   delete fork.lineage;
   delete fork.reviewNotes;
   return fork;
 }
 
-export interface VersionFilter {
-  status?: VersionStatus | 'all';
+// The library's filter: components by status.
+export interface ComponentFilter {
+  status?: ComponentStatus | 'all';
   showArchived?: boolean;
-  // Always kept visible, e.g. the version currently open.
-  keepId?: string;
 }
 
-// Archived versions are hidden unless showArchived is set or status === 'archived'.
-export function filterVersions(versions: MotionVersion[], filter: VersionFilter = {}): MotionVersion[] {
-  const { status = 'all', showArchived = false, keepId } = filter;
-  return versions.filter(v => {
-    if (v.id === keepId) return true;
-    const s = getVersionStatus(v);
-    if (status !== 'all') return s === status;
-    return showArchived || s !== 'archived';
-  });
+// Archived components are hidden unless showArchived is set or status === 'archived'.
+export function componentPasses(module: Pick<ComponentModule, 'status'>, filter: ComponentFilter = {}): boolean {
+  const { status = 'all', showArchived = false } = filter;
+  const s = getComponentStatus(module);
+  if (status !== 'all') return s === status;
+  return showArchived || s !== 'archived';
 }
 
 export function describeLineage(version: MotionVersion, siblings: MotionVersion[]): string {
@@ -75,11 +71,11 @@ export function describeLineage(version: MotionVersion, siblings: MotionVersion[
   return 'No lineage recorded';
 }
 
-// Parse the status/archived URL params used by the component and page views.
-export function filterFromParams(params: URLSearchParams): VersionFilter {
+// Parse the status/archived URL params used by the library.
+export function filterFromParams(params: URLSearchParams): ComponentFilter {
   const raw = params.get('status');
   return {
-    status: isVersionStatus(raw) ? raw : 'all',
+    status: isComponentStatus(raw) ? raw : 'all',
     showArchived: params.get('archived') === '1',
   };
 }

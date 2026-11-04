@@ -1,22 +1,45 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 
-// A tween: the panel slides in along the expressive-entrance curve and fades in. The baseline to
-// compare the springs against.
+// The spring panel with its content following: the list and the buttons rise in after the panel, each
+// a tween with its own delay. The panel overshoots under Motion; the content never does.
 export const v1: MotionVersion = {
   id: 'v1',
-  label: 'Slide In',
+  label: 'Spring, Content Follows',
   model: {
-    model: 'tween',
-    duration: 'duration.400',
+    model: 'spring',
+    duration: 'duration.560',
     easing: 'easing.expressive-entrance',
+    bounce: 'bounce.50',
+    properties: [
+      { property: 'transform', wrapTransform: 'translateX', unit: 'px', from: 48, to: 0 },
+      { property: 'opacity', from: 0, to: 1 },
+    ],
   },
-  keyframes: [
-    { opacity: 0, transform: 'translateX({distance.48})', offset: 0 },
-    { opacity: 1, transform: 'translateX(0px)', offset: 1 },
-  ],
+  layers: {
+    title: {
+      model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' },
+      keyframes: [
+        { opacity: 0, transform: 'translateY({distance.8})', offset: 0 },
+        { opacity: 1, transform: 'translateY(0px)', offset: 1 },
+      ],
+    },
+    list: {
+      model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.120' },
+      keyframes: [
+        { opacity: 0, transform: 'translateY({distance.8})', offset: 0 },
+        { opacity: 1, transform: 'translateY(0px)', offset: 1 },
+      ],
+    },
+    actions: {
+      model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.120' },
+      keyframes: [
+        { opacity: 0, transform: 'translateY({distance.8})', offset: 0 },
+        { opacity: 1, transform: 'translateY(0px)', offset: 1 },
+      ],
+    },
+  },
   trigger: { on: 'click' },
-  status: 'in-progress',
-  lineage: 'hand-built example for comparing CSS and Motion',
+  lineage: 'kept from the earlier explorations (older versions removed)',
 };
 
 export default v1;

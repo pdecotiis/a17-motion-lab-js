@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  getVersionStatus, validateVersionMeta, forkVersion, filterVersions, describeLineage, filterFromParams,
+  getComponentStatus, isComponentStatus, COMPONENT_STATUSES, validateVersionMeta, forkVersion, componentPasses, describeLineage, filterFromParams,
 } from '../../lab/lib/version-meta.js';
 import { validateMotionVersion } from '../../lab/lib/motion-models.js';
 import type { MotionVersion } from '../../lab/lib/types.js';
@@ -12,21 +12,27 @@ const base = (over: Partial<MotionVersion> & { id: string }): MotionVersion => (
   ...over,
 });
 
-const v1 = base({ id: 'v1', label: 'Fade Up', status: 'approved', lineage: 'imported from https://figma.com/x' });
-const v2 = base({ id: 'v2', label: 'Scale In', status: 'review', forkedFrom: 'v1' });
-const v3 = base({ id: 'v3', label: 'Old', status: 'archived', forkedFrom: 'v1' });
+const v1 = base({ id: 'v1', label: 'Fade Up', lineage: 'imported from https://figma.com/x' });
+const v2 = base({ id: 'v2', label: 'Scale In', forkedFrom: 'v1' });
+const v3 = base({ id: 'v3', label: 'Old', forkedFrom: 'v1' });
 const versions = [v1, v2, v3];
 
 describe('status and lineage validation', () => {
-  it('accepts valid status and lineage', () => {
+  it('accepts valid lineage, and a valid or absent component status', () => {
     expect(() => validateVersionMeta(versions)).not.toThrow();
+    for (const s of COMPONENT_STATUSES) expect(() => validateVersionMeta(versions, s)).not.toThrow();
     versions.forEach(v => expect(() => validateMotionVersion(v)).not.toThrow());
   });
 
-  it('rejects an unknown status', () => {
-    const bad = base({ id: 'v1', lineage: 'imported from x', status: 'done' as never });
-    expect(() => validateMotionVersion(bad)).toThrow(/unknown status/);
-    expect(() => validateVersionMeta([bad])).toThrow(/unknown status/);
+  it('rejects an unknown component status', () => {
+    expect(() => validateVersionMeta(versions, 'done')).toThrow(/unknown status "done"/);
+    expect(isComponentStatus('review')).toBe(true);
+    expect(isComponentStatus('done')).toBe(false);
+  });
+
+  it('rejects a status on a version: approval is the component\'s', () => {
+    const bad = { ...base({ id: 'v1', lineage: 'imported from x' }), status: 'approved' } as unknown as MotionVersion;
+    expect(() => validateMotionVersion(bad)).toThrow(/disallowed property: "status"/);
   });
 
   it('rejects a version forked from a parent that does not exist', () => {
@@ -44,11 +50,11 @@ describe('status and lineage validation', () => {
 });
 
 describe('new versions', () => {
-  it('default to in-progress with the parent recorded as lineage', () => {
+  it('record the parent as lineage', () => {
     const fork = forkVersion(v2, 'v4', 'Faster Scale');
     expect(fork.id).toBe('v4');
     expect(fork.label).toBe('Faster Scale');
-    expect(fork.status).toBe('in-progress');
+    expect((fork as unknown as { status?: string }).status).toBeUndefined();
     expect(fork.forkedFrom).toBe('v2');
     expect(fork.lineage).toBeUndefined();
     expect(() => validateVersionMeta([...versions, fork])).not.toThrow();
@@ -63,28 +69,29 @@ describe('new versions', () => {
     expect(fork.keyframes).not.toBe(v1.keyframes);
   });
 
-  it('a version with no stored status counts as in-progress', () => {
-    expect(getVersionStatus(base({ id: 'v1', lineage: 'x' }))).toBe('in-progress');
-  });
 });
 
-describe('filterVersions', () => {
-  it('hides archived versions by default', () => {
-    expect(filterVersions(versions).map(v => v.id)).toEqual(['v1', 'v2']);
+describe('component status', () => {
+  it('a component with no stored status counts as in-progress', () => {
+    expect(getComponentStatus({})).toBe('in-progress');
+    expect(getComponentStatus({ status: 'approved' })).toBe('approved');
   });
 
-  it('shows archived versions with the toggle', () => {
-    expect(filterVersions(versions, { showArchived: true }).map(v => v.id)).toEqual(['v1', 'v2', 'v3']);
+  it('componentPasses hides archived components by default', () => {
+    expect(componentPasses({ status: 'review' })).toBe(true);
+    expect(componentPasses({})).toBe(true);
+    expect(componentPasses({ status: 'archived' })).toBe(false);
+  });
+
+  it('shows archived components with the toggle', () => {
+    expect(componentPasses({ status: 'archived' }, { showArchived: true })).toBe(true);
   });
 
   it('filters by a single status', () => {
-    expect(filterVersions(versions, { status: 'review' }).map(v => v.id)).toEqual(['v2']);
-    expect(filterVersions(versions, { status: 'archived' }).map(v => v.id)).toEqual(['v3']);
-  });
-
-  it('always keeps the open version, even if archived or filtered out', () => {
-    expect(filterVersions(versions, { keepId: 'v3' }).map(v => v.id)).toEqual(['v1', 'v2', 'v3']);
-    expect(filterVersions(versions, { status: 'review', keepId: 'v1' }).map(v => v.id)).toEqual(['v1', 'v2']);
+    expect(componentPasses({ status: 'review' }, { status: 'review' })).toBe(true);
+    expect(componentPasses({ status: 'approved' }, { status: 'review' })).toBe(false);
+    expect(componentPasses({ status: 'archived' }, { status: 'archived' })).toBe(true);
+    expect(componentPasses({}, { status: 'in-progress' })).toBe(true);
   });
 });
 
