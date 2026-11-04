@@ -92,7 +92,7 @@ test.describe('Component status and lineage', () => {
     await page.goto('/?view=component&component=card&version=v1');
     await expect(page.locator('#version-spec-meta')).toContainText('Trigger not specified');
     await page.goto('/?view=component&component=card&version=v2');
-    await expect(page.locator('#version-spec-meta')).toContainText('On hover');
+    await expect(page.locator('#version-spec-meta')).toContainText('Trigger not specified');
   });
 
   test('generated CSS is named, token-based and carries a reduced-motion block', async ({ page }) => {

@@ -1,6 +1,6 @@
 import type { Interaction, MotionVersion, EntranceVersion, SpringProperty } from './types.js';
 import { resolveRefs, tokenVarName } from './token-compiler.js';
-import { stepsOf } from './motion-models.js';
+import { hasEntrance, stepsOf } from './motion-models.js';
 import { interactionParts, partProps, partValues, stateNames, timingFor } from './interaction.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { describeTrigger, getReducedMotionPolicy } from './version-meta.js';
@@ -118,7 +118,9 @@ function block(selector: string, lines: string[], indent = ''): string[] {
 }
 
 // One motion (the root's or a layer's) as @keyframes, a class and its reduced-motion block.
-function stepCss(version: EntranceVersion, raw: Record<string, unknown>, name: string, stagger: string | undefined): string[] {
+// `fill` is 'both' (the end state stays) unless the states take over from the entrance: 'backwards', so once it ends the
+// resting state and its transitions apply instead of the animation's last frame.
+function stepCss(version: EntranceVersion, raw: Record<string, unknown>, name: string, stagger: string | undefined, fill: 'both' | 'backwards' = 'both'): string[] {
   const out: string[] = [];
 
   // A spring version has no real spring in CSS: it plays its from/to values with the easing curve.
@@ -138,7 +140,7 @@ function stepCss(version: EntranceVersion, raw: Record<string, unknown>, name: s
       `animation-duration: ${duration};`,
       `animation-timing-function: ${easing};`,
       ...delayLines(delay, stagger),
-      'animation-fill-mode: both;',
+      `animation-fill-mode: ${fill};`,
     ]),
   );
 
@@ -278,21 +280,29 @@ export function buildVersionCss(
 
   const out: string[] = [`/* ${component} ${version.id}: ${version.label} */`];
   const trigger = describeTrigger(version.trigger);
-  if (version.interaction) out.push(`/* Add .${base} to the element once, for good: it is the resting state. */`);
+  const combined = version.interaction !== undefined && hasEntrance(version);
+  if (combined) {
+    out.push(
+      trigger
+        ? `/* Plays: ${trigger}. Add .${base} when the trigger fires: the entrance plays, and from then on hover, press and focus work (a hover during the entrance takes effect when it ends). */`
+        : `/* Plays: trigger not specified, confirm with the designer. Add .${base} when it should play: the entrance plays, and from then on hover, press and focus work. */`,
+    );
+  } else if (version.interaction) out.push(`/* Add .${base} to the element once, for good: it is the resting state. */`);
   else out.push(
     trigger
       ? `/* Plays: ${trigger}. Add .${base} when the trigger fires. */`
       : `/* Plays: trigger not specified, confirm with the designer. Add .${base} when it should play. */`,
   );
 
-  if (version.interaction) {
+  if (version.interaction && !combined) {
     out.push(...interactionCss(version, raw, base));
     return out.join('\n');
   }
 
   for (const { name, version: step } of stepsOf(version)) {
     if (name) out.push('', `/* Layer ${name}: add .${base}-${name} to the element marked data-motion="${name}" when the trigger fires. */`);
-    out.push(...stepCss(step, raw, name ? `${base}-${name}` : base, stagger));
+    out.push(...stepCss(step, raw, name ? `${base}-${name}` : base, stagger, combined ? 'backwards' : 'both'));
   }
+  if (combined) out.push('', ...interactionCss(version, raw, base));
   return out.join('\n');
 }

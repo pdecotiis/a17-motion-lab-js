@@ -133,8 +133,8 @@ describe('runtime', () => {
     expect(runtimeFromParam('gsap')).toBe('css');
   });
 
-  it('cssHandle puts a native animation behind the same speed, time and cancel as Motion', () => {
-    const fake = { playbackRate: 1, currentTime: 250, playState: 'running', cancel() { this.playState = 'idle'; } };
+  it('cssHandle puts a native animation behind the same speed, time and cancel as Motion', async () => {
+    const fake = { finished: Promise.resolve(), playbackRate: 1, currentTime: 250, playState: 'running', cancel() { this.playState = 'idle'; } };
     const handle = cssHandle({} as Element, fake as unknown as Animation);
     expect(handle.time).toBeCloseTo(0.25, 6);
     handle.speed = 0.5;
@@ -146,5 +146,9 @@ describe('runtime', () => {
     expect(handle.finished).toBe(true);
     handle.cancel();
     expect(fake.playState).toBe('idle');
+    // it says when the motion has ended (and never rejects, even when it is cancelled)
+    await expect(handle.done).resolves.toBeUndefined();
+    const cancelled = cssHandle({} as Element, { ...fake, finished: Promise.reject(new Error('cancelled')) } as unknown as Animation);
+    await expect(cancelled.done).resolves.toBeUndefined();
   });
 });

@@ -33,6 +33,11 @@ export interface InteractionPlayer {
    * an instant set on its next frame, so a transition that follows must wait for it.
    */
   reset(): Promise<void>;
+  /**
+   * While locked the triggers do nothing (hover, press, focus and click are ignored, and nothing is held):
+   * an entrance is still playing, and the states take over when it ends.
+   */
+  setLocked(locked: boolean): void;
   /** Listen for the version's triggers on the element and its layers. Returns the function that stops listening. */
   attachTriggers(): () => void;
 }
@@ -49,6 +54,7 @@ function groupHandle(target: Element, handles: PlayHandle[]): PlayHandle {
     get time() { return first.time; },
     set time(v: number) { handles.forEach(h => { h.time = v; }); },
     get finished() { return handles.every(h => h.finished); },
+    done: Promise.all(handles.map(h => h.done ?? Promise.resolve())),
     cancel() { handles.forEach(h => h.cancel()); },
   };
 }
@@ -77,6 +83,7 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
   const holdState = new Map<object, string>();
   const cssAnims = new Map<HTMLElement, Animation>();
   let transitioning = false;
+  let locked = false;
 
   const setInline = (target: HTMLElement, values: StateValues): void => {
     for (const [k, v] of Object.entries(values)) target.style.setProperty(kebab(k), String(v));
@@ -164,6 +171,7 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
         get time() { return controls.time; },
         set time(v: number) { controls.time = v; },
         get finished() { return controls.state === 'finished'; },
+        done: Promise.resolve(controls).then(() => undefined, () => undefined),
         cancel() { controls.cancel(); },
       });
     }
@@ -198,6 +206,10 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
       holdState.clear();
       return move(to);
     },
+    setLocked(value) {
+      locked = value;
+      if (value) { holds.length = 0; holdState.clear(); }
+    },
     toggle() {
       return api.goTo(names[(names.indexOf(current) + 1) % names.length]!);
     },
@@ -224,6 +236,7 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
 
         if (t.on === 'click') {
           for (const e of els) listen(e, 'click', () => {
+            if (locked) return;
             if ('set' in t && t.set !== undefined) base = t.set;
             else if ('toggle' in t && t.toggle !== undefined) base = base === t.toggle[0] ? t.toggle[1] : t.toggle[0];
             settle();
@@ -236,7 +249,7 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
         const state = t.state;
         const hold = {};
         const enter = (): void => {
-          if (holds.includes(hold)) return;
+          if (locked || holds.includes(hold)) return;
           holds.push(hold);
           holdState.set(hold, state);
           settle();

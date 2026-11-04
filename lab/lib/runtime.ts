@@ -17,6 +17,8 @@ export interface PlayHandle {
   /** Seconds into the motion. */
   time: number;
   readonly finished: boolean;
+  /** Settles when the motion ends or is cancelled (never rejects): what a hand-off to the next motion waits on. */
+  done?: Promise<unknown>;
   cancel(): void;
 }
 
@@ -29,6 +31,7 @@ export function cssHandle(target: Element, anim: Animation): PlayHandle {
     get time() { return Number(anim.currentTime ?? 0) / 1000; },
     set time(v: number) { anim.currentTime = v * 1000; },
     get finished() { return anim.playState === 'finished'; },
+    done: anim.finished.then(() => undefined, () => undefined),
     cancel() { anim.cancel(); },
   };
 }

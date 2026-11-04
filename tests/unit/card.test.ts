@@ -1,14 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTiming, resolveKeyframes, playbackOf, stepsOf, validateMotionVersion } from '../../lab/lib/motion-models.js';
+import { resolveTiming, resolveKeyframes, playbackOf, stepsOf, validateMotionVersion, hasEntrance } from '../../lab/lib/motion-models.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
 import type { DtcgGroup, MotionVersion } from '../../lab/lib/types.js';
 import cardModule, { v1, v2, versions } from '../../components/card/motion.js';
 import { stateNames, hasHoldTriggers, layerNames, timingFor, cssTransitionPlan, motionStates, motionTransitionPlan } from '../../lab/lib/interaction.js';
+import { v2 as sidePanelV2 } from '../../components/side-panel/versions/v2.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { validateVersionMeta } from '../../lab/lib/version-meta.js';
-import { getTokenRefs, pairingWarnings } from '../../lab/lib/token-refs.js';
+import { getStepRefs, getTokenRefs, pairingWarnings } from '../../lab/lib/token-refs.js';
 
 const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
 
@@ -115,7 +116,7 @@ describe('Card tokens', () => {
   });
 
   it('staggers with delay tokens', () => {
-    expect(versions.map(v => v.stagger)).toEqual(['delay.70', undefined]);
+    expect(versions.map(v => v.stagger)).toEqual(['delay.70', 'delay.70']);
   });
 });
 
@@ -129,55 +130,89 @@ describe('Card status and lineage', () => {
   });
 });
 
-describe('v2 (Hover Lift: states, triggers and a layer)', () => {
+// The shipped v2 has no interaction layer; interaction layers stay covered by a fixture built from it.
+const withImage: MotionVersion = {
+  ...v2,
+  interaction: {
+    ...v2.interaction!,
+    layers: {
+      image: {
+        states: { hover: { transform: 'scale({scale.103})' }, pressed: { transform: 'scale({scale.103})' } },
+        transitions: { hover: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-standard' } },
+      },
+    },
+  },
+};
+
+describe('v2 (Hover Lift: v1\'s entrance, then states and triggers)', () => {
   const i = v2.interaction!;
 
-  it('validates, has no model of its own, and follows the pairing rules', () => {
+  it('validates, has an entrance as well as states, and follows the pairing rules', () => {
     expect(() => validateMotionVersion(v2)).not.toThrow();
-    expect(v2.model).toBeUndefined();
+    expect(hasEntrance(v2)).toBe(true);
+    expect(v2.model).toEqual(v1.model);
+    expect(v2.stagger).toBe('delay.70');
+    expect(v2.trigger).toBeUndefined();
     expect(pairingWarnings(v2, raw)).toEqual([]);
     expect(v2.forkedFrom).toBe('v1');
+  });
+
+  it('its steps are the entrance (the card, title and text) and carry no interaction', () => {
+    const steps = stepsOf(v2);
+    expect(steps.map(s => s.name)).toEqual([null, 'title', 'text']);
+    expect(steps.every(s => s.version.interaction === undefined)).toBe(true);
   });
 
   it('has three states, rest first, and hover and press as triggers on the card', () => {
     expect(stateNames(i)).toEqual(['rest', 'hover', 'pressed']);
     expect(i.triggers).toEqual([{ on: 'hover', state: 'hover' }, { on: 'press', state: 'pressed' }]);
     expect(hasHoldTriggers(i)).toBe(true);
+    expect(layerNames(i)).toEqual([]);
   });
 
-  it('the image is a layer with its own values and its own, slower timing into hover', () => {
-    expect(layerNames(i)).toEqual(['image']);
-    expect(timingFor(i, null, 'hover')).toMatchObject({ duration: 'duration.220' });
-    expect(timingFor(i, 'image', 'hover')).toMatchObject({ duration: 'duration.300' });
-    expect(timingFor(i, 'image', 'pressed')).toBe(i.transitions['pressed']);
-  });
-
-  it('CSS: hover lifts the card 4px and scales the image 103%; rest puts both back', () => {
-    const card = cssTransitionPlan(i, 'hover', raw);
-    expect(card.animate).toEqual({ transform: 'translateY(-4px)' });
-    expect(card.duration).toBe(220);
-    const image = cssTransitionPlan(i, 'hover', raw, { target: 'image' });
-    expect(image.animate).toEqual({ transform: 'scale(1.03)' });
-    expect(image.duration).toBe(300);
-    expect(cssTransitionPlan(i, 'rest', raw, { target: 'image' }).animate).toEqual({ transform: 'none' });
+  it('hover only moves up 4px; press adds the scale; rest is the quick way back', () => {
+    expect(cssTransitionPlan(i, 'hover', raw).animate).toEqual({ transform: 'translateY(-4px)' });
+    expect(cssTransitionPlan(i, 'hover', raw).duration).toBe(220);
     expect(cssTransitionPlan(i, 'pressed', raw).animate).toEqual({ transform: 'translateY(-4px) scale(0.98)' });
-  });
-
-  it('Motion: independent transforms, the same in every state, for the card and for the image', () => {
     expect(motionStates(i, raw)).toEqual({
       rest: { y: 0, scale: 1 }, hover: { y: -4, scale: 1 }, pressed: { y: -4, scale: 0.98 },
     });
-    expect(motionStates(i, raw, 'image')).toEqual({ rest: { scale: 1 }, hover: { scale: 1.03 }, pressed: { scale: 1.03 } });
   });
 
   it('Motion plays the exit with no bounce and the hover with the global bounce', () => {
     expect(motionTransitionPlan(i, 'rest', raw, { globalBounce: 'bounce.50' }).options.bounce).toBe(0);
     expect(motionTransitionPlan(i, 'hover', raw, { globalBounce: 'bounce.50' }).options.bounce).toBe(0.5);
-    expect(motionTransitionPlan(i, 'hover', raw, { target: 'image' }).options.visualDuration).toBe(0.3);
   });
 
-  it('names its tokens: the transitions, and the distance and scales its states use', () => {
+  it('names its tokens: the entrance, the transitions, and the distance and scale its states use', () => {
     const t = getTokenRefs(v2, raw).tokens;
-    expect(t).toEqual(expect.arrayContaining(['duration.220', 'duration.100', 'duration.140', 'duration.300', 'easing.productive-standard', 'easing.productive-exit', 'distance.4', 'scale.98', 'bounce.0']));
+    expect(t).toEqual(expect.arrayContaining(['duration.220', 'duration.100', 'duration.140', 'duration.300', 'easing.productive-entrance', 'easing.productive-standard', 'easing.productive-exit', 'distance.16', 'distance.4', 'scale.98', 'bounce.0']));
+    const groups = getStepRefs(v2, raw);
+    expect(groups.map(g => g.layer)).toEqual([null, 'title', 'text', 'states']);
+  });
+
+  it('pairing warnings cover the entrance and the states', () => {
+    const slowEntrance = { ...v2, model: { ...v2.model!, duration: 'duration.560' } } as MotionVersion;
+    const slowHover = { ...v2, interaction: { ...v2.interaction!, transitions: { ...v2.interaction!.transitions, hover: { model: 'tween', duration: 'duration.560', easing: 'easing.productive-standard' } } } } as MotionVersion;
+    expect(pairingWarnings(slowEntrance, raw).some(w => w.includes('productive-entrance') && w.includes('560ms'))).toBe(true);
+    expect(pairingWarnings(slowHover, raw).some(w => w.startsWith('into hover:') && w.includes('560ms'))).toBe(true);
+  });
+
+  it('only a version with a model has an entrance', () => {
+    expect(hasEntrance(sidePanelV2)).toBe(false);
+    expect(hasEntrance(v1)).toBe(true);
+  });
+
+  it('an interaction layer keeps its own values and timing (fixture)', () => {
+    const li = withImage.interaction!;
+    expect(validateMotionVersion(withImage)).toBeUndefined();
+    expect(layerNames(li)).toEqual(['image']);
+    expect(timingFor(li, 'image', 'hover')).toMatchObject({ duration: 'duration.300' });
+    expect(timingFor(li, 'image', 'pressed')).toBe(li.transitions['pressed']);
+    expect(cssTransitionPlan(li, 'hover', raw, { target: 'image' }).animate).toEqual({ transform: 'scale(1.03)' });
+    expect(cssTransitionPlan(li, 'hover', raw, { target: 'image' }).duration).toBe(300);
+    expect(cssTransitionPlan(li, 'rest', raw, { target: 'image' }).animate).toEqual({ transform: 'none' });
+    expect(motionStates(li, raw, 'image')).toEqual({ rest: { scale: 1 }, hover: { scale: 1.03 }, pressed: { scale: 1.03 } });
+    expect(motionTransitionPlan(li, 'hover', raw, { target: 'image' }).options.visualDuration).toBe(0.3);
   });
 });

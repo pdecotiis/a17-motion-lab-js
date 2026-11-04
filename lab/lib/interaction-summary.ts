@@ -1,6 +1,8 @@
 import type { Interaction, InteractionTrigger, MotionVersion, StateValues } from './types.js';
 import { cssTransitionPlan, interactionParts, layerNames, motionTransitionPlan, partValues, resolveState, stateNames, timingFor } from './interaction.js';
 import { transformParts } from './transform.js';
+import { hasEntrance, playbackOf, stepsOf } from './motion-models.js';
+import { motionArgsOf } from './motion-args.js';
 import { DEFAULT_BOUNCE } from './bounce.js';
 
 // An interaction version in plain words, for a designer: "When you hover over the card, it moves up 4px
@@ -95,6 +97,43 @@ function returnWords(i: Interaction, component: string, raw: Record<string, unkn
   return unique.length === 1 ? `goes back to ${i.initial} (${unique[0]})` : `goes back to ${i.initial}: ${parts.map(p => `${the(p ?? component)} (${timingWords(i, p, i.initial, raw, runtime, globalBounce)})`).join(', ')}`;
 }
 
+// What an entrance does, from its first frame to its last: "fades in and rises 16px (220ms, productive entrance)".
+function appearPhrases(first: Record<string, unknown>, last: Record<string, unknown>): string[] {
+  const out: string[] = [];
+  if (typeof first['opacity'] === 'number' && typeof last['opacity'] === 'number' && first['opacity'] !== last['opacity']) {
+    out.push(first['opacity'] < last['opacity'] ? 'fades in' : 'fades out');
+  }
+  const from = typeof first['transform'] === 'string' ? transformParts(first['transform']).props : {};
+  const to = typeof last['transform'] === 'string' ? transformParts(last['transform']).props : {};
+  const px = (v: number | string): string => (typeof v === 'number' ? `${num(Math.abs(v))}px` : String(v).replace(/^-/, ''));
+  for (const [k, v] of Object.entries(from)) {
+    if (String(to[k] ?? (k.startsWith('scale') ? 1 : 0)) === String(v)) continue;
+    const n = typeof v === 'number' ? v : parseFloat(String(v));
+    if (k === 'y') out.push(n > 0 ? `rises ${px(v)}` : `drops ${px(v)}`);
+    else if (k === 'x') out.push(n > 0 ? `slides in ${px(v)} from the right` : `slides in ${px(v)} from the left`);
+    else if (k === 'scale') out.push(n < 1 ? `grows from ${pct(n)}` : `shrinks from ${pct(n)}`);
+    else if (k === 'rotate') out.push(`turns ${num(Math.abs(n))}° into place`);
+  }
+  return out;
+}
+
+// The entrance of a version that also has states: each motion (the component, then each layer) in words.
+function appearLine(version: MotionVersion, raw: Record<string, unknown>, runtime: 'css' | 'motion', component: string, globalBounce: string): SummaryLine {
+  const parts = stepsOf(version).flatMap(({ name, version: step }) => {
+    const p = playbackOf(step, raw);
+    const first = p.keyframes[0] ?? {};
+    const last = p.keyframes[p.keyframes.length - 1] ?? {};
+    const phrases = appearPhrases(first as Record<string, unknown>, last as Record<string, unknown>);
+    if (phrases.length === 0) return [];
+    const timing = runtime === 'motion'
+      ? `${Math.round(p.pairedMs)}ms, bounce ${motionArgsOf(step, raw, { globalBounce }).options.bounce}`
+      : `${Math.round(p.pairedMs)}ms, ${p.easingToken.slice(p.easingToken.indexOf('.') + 1).replace(/-/g, ' ')}`;
+    const delay = p.delay ? `, after ${Math.round(p.delay)}ms` : '';
+    return [`${the(name ?? component)} ${phrases.join(' and ')} (${timing}${delay})`];
+  });
+  return { heading: 'Appears', text: `When it appears, ${listJoin(parts) || 'it shows with no movement'}. Hover, press and focus work once it has appeared.` };
+}
+
 const listJoin = (items: string[]): string => (items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);
 
 function triggerWords(t: InteractionTrigger, component: string): { heading: string; when: string } {
@@ -114,7 +153,7 @@ export function summarizeInteraction(
   const i = version.interaction;
   if (!i) return { lines: [], fromOutside: [], text: '' };
   const { component = 'component', globalBounce = DEFAULT_BOUNCE } = options;
-  const lines: SummaryLine[] = [];
+  const lines: SummaryLine[] = hasEntrance(version) ? [appearLine(version, raw, runtime, component, globalBounce)] : [];
   const led = new Set<string>();
 
   for (const t of i.triggers ?? []) {

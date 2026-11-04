@@ -4,7 +4,7 @@ import type {
 } from './lib/types.js';
 import { compileTokens, applyTokensToDom, tokenLabel } from './lib/token-compiler.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
-import { playbackOf, describePlayback, stepsOf } from './lib/motion-models.js';
+import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
 import { validatePreset } from './lib/presets.js';
 import { prefersReducedMotion } from './lib/reduced-motion.js';
@@ -358,25 +358,58 @@ function playInteractionEntrance(el: HTMLElement, version: MotionVersion): PlayH
 // Where an interaction version starts when the view opens: at rest, so it can be hovered or clicked, unless
 // it has nothing a person would hover (an open/close), when it plays its first move so there is something to see.
 function startInteraction(el: HTMLElement, version: MotionVersion): void {
-  if (version.interaction && hasHoldTriggers(version.interaction)) void playerFor(el, version).reset();
+  // A version that also appears plays its entrance, then rests with its states live.
+  if (hasEntrance(version)) animateElement(el, version);
+  else if (version.interaction && hasHoldTriggers(version.interaction)) void playerFor(el, version).reset();
   else playInteractionEntrance(el, version);
 }
 
-function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 0): PlayHandle {
-  if (version.interaction) return playInteractionEntrance(el, version);
+// The entrance of a version: its root motion and each layer's, cancelling what was playing on the element.
+// Returns every handle, the root's first.
+function playEntrance(el: HTMLElement, version: MotionVersion, staggerIndex: number): PlayHandle[] {
   el.getAnimations({ subtree: true }).forEach(a => a.cancel());
   activeAnimations.filter(h => el.contains(h.target)).forEach(h => h.cancel());
   activeAnimations = activeAnimations.filter(h => !h.finished && !el.contains(h.target));
 
   const [root, ...layers] = stepsOf(version);
-  const rootAnim = playStep(el, root!.version, staggerIndex);
-  activeAnimations.push(rootAnim);
+  const handles = [playStep(el, root!.version, staggerIndex)];
   for (const layer of layers) {
     for (const layerEl of el.querySelectorAll<HTMLElement>(`[data-motion="${layer.name}"]`)) {
-      activeAnimations.push(playStep(layerEl, layer.version, staggerIndex));
+      handles.push(playStep(layerEl, layer.version, staggerIndex));
     }
   }
-  return rootAnim;
+  activeAnimations.push(...handles);
+  return handles;
+}
+
+// A version with an entrance and states (appears, then hovers and presses): the states are locked while
+// the entrance plays; when it ends, the component is left at its resting state (where the entrance ended,
+// so nothing jumps) and the triggers go live. Replaying starts again from the entrance's first frame.
+const entranceRuns = new WeakMap<HTMLElement, number>();
+
+function playEntranceThenStates(el: HTMLElement, version: MotionVersion, staggerIndex: number): PlayHandle {
+  const run = (entranceRuns.get(el) ?? 0) + 1;
+  entranceRuns.set(el, run);
+  const player = playerFor(el, version);
+  player.setLocked(true);
+  void player.reset().then(() => {
+    if (entranceRuns.get(el) !== run) return;
+    const handles = playEntrance(el, version, staggerIndex);
+    void Promise.all(handles.map(h => h.done ?? Promise.resolve())).then(async () => {
+      if (entranceRuns.get(el) !== run) return;
+      // Under CSS the entrance's animations hold their last frame; let go of them so the states can move it.
+      if (runtime === 'css') el.getAnimations({ subtree: true }).forEach(a => a.cancel());
+      await player.reset();
+      if (entranceRuns.get(el) === run) player.setLocked(false);
+    });
+  });
+  return cssHandle(el, el.animate([{}], { duration: 0, fill: 'both' }));
+}
+
+function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 0): PlayHandle {
+  if (version.interaction && hasEntrance(version)) return playEntranceThenStates(el, version, staggerIndex);
+  if (version.interaction) return playInteractionEntrance(el, version);
+  return playEntrance(el, version, staggerIndex)[0]!;
 }
 
 // One motion on one element, played by the current runtime. The speed control sets the runtime's own
@@ -403,6 +436,7 @@ function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number)
       get time() { return controls.time; },
       set time(v: number) { controls.time = v; },
       get finished() { return controls.state === 'finished'; },
+      done: Promise.resolve(controls).then(() => undefined, () => undefined),
       cancel() { controls.cancel(); },
     };
   }
@@ -582,23 +616,34 @@ function renderComponentView(params: URLSearchParams): void {
   // What a developer needs that the lab can't show: when it plays, and what reduced-motion visitors get.
   const specMeta = document.getElementById('version-spec-meta')!;
   const triggerText = describeTrigger(version.trigger);
+  // What is playing, one line per motion: the entrance (the root, then each layer), then the transition into each state.
+  const playbackLines = (): string[] => {
+    const lines: string[] = [];
+    if (!version.interaction || hasEntrance(version)) {
+      for (const { name, version: step } of stepsOf(version)) {
+        const label = version.interaction ? `${name ? `${name} ` : ''}appear: ` : name ? `${name}: ` : '';
+        lines.push(label + (runtime === 'motion'
+          ? describeMotionArgs(motionArgsOf(step, raw, { globalBounce }))
+          : describePlayback(playbackOf(step, raw))));
+      }
+    }
+    if (version.interaction) {
+      const i = version.interaction;
+      for (const state of stateNames(i)) {
+        // The root, then each layer that has its own timing into this state.
+        for (const part of interactionParts(i)) {
+          if (part === null || i.layers?.[part]?.transitions?.[state]) lines.push(describeTransition(i, state, raw, runtime, { globalBounce, target: part }));
+        }
+      }
+    }
+    return lines;
+  };
   const specRows: [string, string, boolean][] = [
     ['Component status', STATUS_LABELS[getComponentStatus(mod ?? {})], false],
     ['Plays', triggerText ?? 'Trigger not specified', triggerText === null],
     ['Reduced motion', REDUCED_MOTION_LABELS[getReducedMotionPolicy(version)], false],
     // What is playing, one line per motion (the root, then each layer).
-    ['Playback', version.interaction
-      ? stateNames(version.interaction).flatMap(s => {
-          const i = version.interaction!;
-          // The root, then each layer that has its own timing into this state.
-          return interactionParts(i)
-            .filter(part => part === null || i.layers?.[part]?.transitions?.[s])
-            .map(part => describeTransition(i, s, raw, runtime, { globalBounce, target: part }));
-        }).join('\n')
-      : stepsOf(version).map(({ name, version: step }) =>
-      `${name ? `${name}: ` : ''}${runtime === 'motion'
-        ? describeMotionArgs(motionArgsOf(step, raw, { globalBounce }))
-        : describePlayback(playbackOf(step, raw))}`).join('\n'), false],
+    ['Playback', playbackLines().join('\n'), false],
   ];
   for (const [label, text, muted] of specRows) {
     const dt = document.createElement('dt');
