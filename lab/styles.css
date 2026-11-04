@@ -517,3 +517,22 @@ html, body {
 .lab-behaviour__list { display: grid; gap: 6px; margin: 0; }
 .lab-behaviour__list dt { color: var(--color-text-muted); font-weight: 600; }
 .lab-behaviour__list dd { margin: 0 0 2px; line-height: 1.4; }
+
+/* Presets view */
+.lab-presets__intro { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 16px; }
+.lab-presets__intro p { margin: 0; }
+.lab-presets__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.lab-preset { border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; display: grid; gap: 10px; }
+.lab-preset__head { display: flex; align-items: center; justify-content: space-between; }
+.lab-preset__name { margin: 0; font-size: 14px; font-weight: 600; }
+.lab-preset__stage { min-height: 140px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--color-surface, transparent); border-radius: 6px; padding: 16px; }
+.lab-preset__holder { max-width: 100%; }
+.lab-preset__values { margin: 0; }
+.lab-preset-eg { display: block; }
+.lab-preset-eg--eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
+.lab-preset-eg--title { font-size: 28px; font-weight: 600; line-height: 1.15; }
+.lab-preset-eg--text { font-size: 14px; line-height: 1.5; max-width: 260px; }
+.lab-preset-eg--card { display: grid; gap: 4px; width: 200px; padding: 16px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-bg, transparent); }
+.lab-preset-eg--card span { font-size: 13px; color: var(--color-text-muted); }
+.lab-preset-eg--media { width: 220px; height: 120px; border-radius: 8px; background: var(--color-border); }
+.lab-presets__intro .lab-btn, .lab-preset__head .lab-btn { width: auto; }

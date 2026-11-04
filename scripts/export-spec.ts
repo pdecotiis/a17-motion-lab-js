@@ -16,7 +16,9 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { compileTokens } from '../lab/lib/token-compiler.js';
 import { buildVersionExport } from '../lab/lib/spec.js';
-import { buildExportCode, EXPORT_FILES, EXPORT_FORMATS, type ExportFormat } from '../lab/lib/export-code.js';
+import { buildExportCode, buildPresetsGsap, buildPresetsMotion, EXPORT_FILES, EXPORT_FORMATS, PRESET_FILES, type ExportFormat } from '../lab/lib/export-code.js';
+import { buildPresetsCss, presetsUsed } from '../lab/lib/css-output.js';
+import { stepsOf } from '../lab/lib/motion-models.js';
 import { DEFAULT_BOUNCE } from '../lab/lib/motion-args.js';
 import { getComponentStatus } from '../lab/lib/version-meta.js';
 import type { ComponentModule, DtcgGroup } from '../lab/lib/types.js';
@@ -86,6 +88,12 @@ for (const v of chosen) {
   writeFileSync(join(dir, EXPORT_FILES.css), css);
   const extra = (formatArg === 'all' ? EXPORT_FORMATS : [formatArg as ExportFormat]).filter(f => f !== 'css');
   for (const f of extra) writeFileSync(join(dir, EXPORT_FILES[f]), buildExportCode(f, v, tokens.raw, { component, globalBounce, css }));
+  // A version that uses entrance presets gets the shared definitions next to it, one file per format.
+  if (presetsUsed(stepsOf(v)).length) {
+    writeFileSync(join(dir, PRESET_FILES.css), buildPresetsCss(tokens.raw));
+    if (extra.includes('gsap')) writeFileSync(join(dir, PRESET_FILES.gsap), buildPresetsGsap(tokens.raw));
+    if (extra.includes('motion')) writeFileSync(join(dir, PRESET_FILES.motion), buildPresetsMotion(tokens.raw, globalBounce));
+  }
   writeFileSync(join(dir, 'tokens.css'), tokensCss);
   writeFileSync(join(dir, 'spec.md'), markdown);
   console.log(`${component} ${v.id} (${componentStatus}) → ${dir}`);

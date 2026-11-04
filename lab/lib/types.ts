@@ -1,3 +1,5 @@
+import type { PresetStep } from './entrance-presets.js';
+
 // A tween names its primitives directly: a duration and an easing (token paths, or literal
 // values). It plays the easing curve.
 export type TweenModel = {
@@ -106,6 +108,9 @@ export interface MotionTrigger {
 // 'none': no animation, the element appears in its end state.
 export type ReducedMotionPolicy = 'fade' | 'none';
 
+// A layer is one motion (a tween or a spring and its keyframes) or a preset: see presets.ts.
+export type LayerStep = MotionStep | PresetStep;
+
 // One motion: a tween or a spring, and the keyframes a tween plays.
 export interface MotionStep {
   model: MotionModel;
@@ -126,7 +131,9 @@ export interface MotionVersion {
   // Motion for layers inside the component, beside the root's own (model, keyframes). The key is the
   // name of a layer, the value of its data-motion attribute (e.g. 'title'). Each layer names its own
   // duration, easing and delay, so text can move differently from the card.
-  layers?: Record<string, MotionStep>;
+  layers?: Record<string, LayerStep>;
+  // The entrance of the root element as a preset (see presets.ts), instead of a model and keyframes.
+  entrance?: PresetStep;
   // States and the transitions between them, and what triggers them (hover, press, focus, click).
   interaction?: Interaction;
   stagger?: string;

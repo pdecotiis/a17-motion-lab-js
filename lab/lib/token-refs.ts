@@ -111,7 +111,11 @@ function stepRefs(layer: string | null, version: EntranceVersion, raw: Record<st
 // Motion nothing uses an easing (every motion is a spring) and each uses a bounce: its own, else
 // `globalBounce`. Without a runtime, the version as authored (what exports).
 export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>, runtime?: Runtime, globalBounce?: string): StepRefs[] {
-  const steps = stepsOf(version).map(({ name, version: step }) => stepRefs(name, step, raw, name === null, runtime, globalBounce));
+  // A preset on an element is up to two motions (a fade and a move): each is a group, named "title fade", "title move".
+  const steps = stepsOf(version).map(({ name, track, version: step }, i) => {
+    const label = track && track !== 'all' ? `${name ?? 'root'} ${track}` : name;
+    return stepRefs(label, step, raw, i === 0, runtime, globalBounce);
+  });
   // A version with an entrance and states: the states' tokens are a group of their own, after the entrance's.
   if (version.interaction && hasEntrance(version)) {
     steps.push(stepRefs('states', { ...version, model: version.model! } as EntranceVersion, raw, false, runtime, globalBounce));

@@ -177,6 +177,23 @@ The token compiler (`lab/lib/token-compiler.ts`) reads `tokens/motion.json` and 
 - `stepsOf(version)` in `lab/lib/motion-models.ts` lists the root (name `null`) and then each layer, each as a version of its own, so timing, usage and CSS work on a layer exactly as on the root.
 - CSS export: a layer gets its own `.motion-<component>-<version>-<layer>` class and `@keyframes`; `spec.md` has a "Layer: <name>" section for each. Playback cancels and replays the layers with the root, and the speed control reaches them.
 
+### Entrance presets
+
+A preset is a named, standard entrance (a fade and a rise, plus a scale for card and media), **defined once** in `lab/lib/entrance-presets.ts` from the existing primitive tokens (it is **not** a token type, and not the saved Motion Map presets in `lab/lib/presets.ts`). The six: **eyebrow, title, text** (fade 300 `easing.productive-entrance`, rise 16px 560 `easing.expressive-entrance`), **card** (rise 24px, from `scale.95`), **media** (rise 24px, from `scale.98`), **ui** (fade 100 `productive-entrance`, rise 8px 140 `productive-standard`). No scramble, no other properties.
+
+```ts
+{ id: 'v3', label: 'Cards rise', entrance: { preset: 'card', delay: 'delay.70' },   // the root element
+  layers: {
+    title: { preset: 'title', delay: 'delay.70', stagger: 'delay.40' },            // each title line starts 40ms after the one before
+    text:  { preset: 'text',  delay: 'delay.120' },
+  }, lineage: '…' }
+```
+
+- **Element + preset + delay (+ stagger).** `entrance` is for the root (use it **instead of** `model`/`keyframes`); a layer is either a motion (`model` + `keyframes`) or a preset step. A preset step takes only `preset`, `delay` and `stagger` (delay tokens; `stagger` offsets each matching element, for repeating elements such as title lines or grid items, and is separate from the version's `stagger`, which offsets sibling components on a page). Existing versions are untouched: presets are opt-in.
+- **Two tracks, easy to make one.** A preset is up to two motions on the same element: the **fade** (opacity; a spring with `bounce.0` so under Motion opacity never overshoots; CSS plays its easing) and the **move** (a tween: rise and scale). `stepsOf` (`lab/lib/motion-models.ts`) expands a preset into entries with `track: 'fade' | 'move'` (or `'all'`), `preset` and `elementStagger`, so playback, Tokens used (groups named `title fade`, `title move`), pairing warnings, the summary and the exports all work from it. **To use one track:** set `SEPARATE_FADE = false` in `entrance-presets.ts` (every preset), or delete one preset's `fade` line (that preset): the fade then shares the move's duration and easing, in one tween with opacity and transform together.
+- **The Presets view** (`/?view=presets`, the nav's Presets button): each preset playing on a simple example (eyebrow, title, text, card, media, ui) with Replay, Replay all, and its token values (fade, move, scale). It plays through the same entrance code as a component, so the CSS / Motion switch applies.
+- **Exports: one shared definition per format, components use it by name.** CSS: `presets.css` (`@keyframes` per track and `.motion-preset-<name>`, delay from `--motion-delay`, `--motion-stagger` and `--motion-item`); the component's CSS only sets those variables on its own class (add both classes to the element). GSAP and Motion: `presets.gsap.js` / `presets.motion.js` with the `presets` table and `playPreset(target, name, { delay, stagger })` (Motion: springs, the move with the global bounce, the fade with none); the component's `play…(el)` calls `playPreset`. Under reduced motion presets play only the opacity fade (at most 150ms). `npm run spec` writes the shared files next to a version that uses presets (`presets.css`, plus the GSAP/Motion ones with `--format`); the Generated code panel shows the shared definition above the component's code. `spec.md` names the preset per element. A preset version that also has `interaction` works like any entrance plus states (the root's preset animation uses `animation-fill-mode: backwards` in the CSS).
+
 ## Testing rules
 
 **Every new component and version requires tests.** Use the templates:
@@ -267,6 +284,10 @@ A designer says "the hover state should lift it, a click opens that" and Claude 
 6. **Check it in the lab and read it back.** Open the version, hover, press and tab to it for real, try Interrupt, and read the Details panel's "What it does" aloud to the designer: if it doesn't say what they meant, the version is wrong. Try both runtimes (CSS and Motion); under Motion the timing is duration and bounce.
 7. **Tell them what a developer gets:** CSS hover, press and focus work with the stylesheet alone, and the GSAP and Motion files have an `attach…` function. Set `trigger`/`reducedMotion` only when the designer has said (an interaction version's own triggers are not the entrance `trigger`).
 8. **Not supported yet:** drag, physics springs and carrying speed through an interruption, Compare for interactions, and reading Figma variants as states. Say so plainly rather than approximating them.
+
+### Entrances with presets
+
+When a designer wants a standard entrance ("the eyebrow, title and text rise in like our usual"), use the **entrance presets** (eyebrow, title, text, card, media, ui; see "Entrance presets"): write element + preset + delay (and a stagger for repeating elements) instead of raw durations and easings. Show them the Presets view. Only write a custom motion (model and keyframes) when they want something a preset isn't; don't change a preset's values for one component (a preset is a system decision).
 
 ### Rules of thumb
 
