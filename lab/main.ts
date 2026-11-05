@@ -1038,7 +1038,13 @@ function renderPageView(params: URLSearchParams): void {
   const columns: PageColumn[] = [];
   pageObserver?.disconnect();
   pageObserver = new ResizeObserver(entries => {
-    for (const e of entries) (e.target as HTMLElement & { refit?: () => void }).refit?.();
+    for (const e of entries) {
+      const el = e.target as HTMLElement & { refit?: () => void; fitWidth?: number };
+      // Only a change of width changes the zoom. Refitting changes the column's height, so it waits for the
+      // next frame: doing it here would re-trigger this observer in the same frame (a "ResizeObserver loop" error).
+      if (e.contentRect.width === el.fitWidth) continue;
+      requestAnimationFrame(() => el.refit?.());
+    }
   });
 
   function addColumn(label: string | null, id: string | null, map: () => MotionMap, choice: () => string): PageColumn {
@@ -1050,7 +1056,7 @@ function renderPageView(params: URLSearchParams): void {
       heading.textContent = label;
       col.appendChild(heading);
     }
-    const viewport = document.createElement('div') as HTMLElement & { refit?: () => void };
+    const viewport = document.createElement('div') as HTMLElement & { refit?: () => void; fitWidth?: number };
     viewport.className = 'lab-page-viewport';
     const grid = document.createElement('div');
     // An imported page (it has a width) sits its sections flush, as the Figma frame does.
@@ -1061,9 +1067,12 @@ function renderPageView(params: URLSearchParams): void {
     stage.appendChild(col);
     // The page lays out at its own width and is zoomed down to fit its column, never up.
     viewport.refit = () => {
+      const width = viewport.clientWidth - 32;
+      viewport.fitWidth = width;
       grid.style.width = `${pageWidth}px`;
-      grid.style.zoom = String(Math.min(1, Math.max(0.05, (viewport.clientWidth - 32) / pageWidth)));
+      grid.style.zoom = String(Math.min(1, Math.max(0.05, width / pageWidth)));
     };
+    viewport.refit();
     pageObserver!.observe(viewport);
     const column: PageColumn = { grid, anims: new Map(), map, choice };
     columns.push(column);
