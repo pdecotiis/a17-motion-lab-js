@@ -192,6 +192,63 @@ export function buildVersionExport(
     '',
   ];
   const rootEl = elements.find(e => e.name === null)!;
+
+  // The classes an element needs, as the lines above say them: a preset's own class, plus the version's class
+  // when it carries the delay (always on the root).
+  const classesFor = (el: { name: string | null; entries: typeof entries }): string[] => {
+    const first = el.entries[0]!;
+    const cls = el.name ? `${name}-${el.name}` : name;
+    if (!first.preset) return [cls];
+    return [`motion-preset-${first.preset}`, ...(first.version.model.delay || first.elementStagger || el.name === null ? [cls] : [])];
+  };
+  // For a version whose trigger is in-view the CSS does nothing until its classes are added, so the spec gives the
+  // developer the observer that adds them, with the threshold and once/every-time the designer chose.
+  const scrollLines = (): string[] => {
+    const t = version.trigger;
+    if (!t || t.on !== 'in-view' || (version.interaction && !hasEntrance(version))) return [];
+    const threshold = t.threshold ?? 0;
+    const once = t.once ?? true;
+    const list = (cs: string[]): string => `[${cs.map(c => `'${c}'`).join(', ')}]`;
+    const playFn = `play${component.split('-').map(w => w[0]!.toUpperCase() + w.slice(1)).join('')}${version.id.toUpperCase()}`;
+    return [
+      '### When the section scrolls into view',
+      '',
+      `The classes only play when they are added, so add them as the section enters the screen (${threshold ? `${Math.round(threshold * 100)}% visible` : 'as soon as any of it shows'}, ${once ? 'first time only' : 'every time it enters again'}). A sketch to adapt, where \`.your-section\` is the element the motion runs on:`,
+      '',
+      '```js',
+      "const section = document.querySelector('.your-section');",
+      `const rootClasses = ${list(classesFor(rootEl))};`,
+      'const layerClasses = {',
+      ...elements.filter(e => e.name !== null).map(el => `  '${el.name}': ${list(classesFor(el))},`),
+      '};',
+      '',
+      'function setClasses(on) {',
+      "  const method = on ? 'add' : 'remove';",
+      '  section.classList[method](...rootClasses);',
+      '  for (const [layer, classes] of Object.entries(layerClasses)) {',
+      '    section.querySelectorAll(`[data-motion="${layer}"]`).forEach(el => el.classList[method](...classes));',
+      '  }',
+      '}',
+      '',
+      ...(once
+        ? [
+          'const observer = new IntersectionObserver(entries => {',
+          '  if (!entries.some(entry => entry.isIntersecting)) return;',
+          '  setClasses(true);',
+          '  observer.disconnect(); // first time only',
+          `}, { threshold: ${threshold} });`,
+        ]
+        : [
+          'const observer = new IntersectionObserver(entries => {',
+          '  for (const entry of entries) setClasses(entry.isIntersecting); // plays again each time it enters',
+          `}, { threshold: ${threshold} });`,
+        ]),
+      'observer.observe(section);',
+      '```',
+      '',
+      `On GSAP or Motion, call \`${playFn}(section)\` (from \`motion.gsap.js\` or \`motion.motion.js\`) instead of adding the classes.`,
+    ];
+  };
   const entranceBlock: string[] = [
     combined ? '## On appear: what animates' : '## What animates',
     '',
@@ -235,6 +292,7 @@ export function buildVersionExport(
       : `2. Add the class \`.${name}\` to the animated element when the trigger fires${layers.length ? ', and each layer\'s class (above) to its element' : ''}.`,
     ...(version.stagger ? [`3. Set \`--motion-index: 0, 1, 2…\` on each sibling to stagger them.`] : []),
     '',
+    ...scrollLines().flatMap((l, i, all) => (i === all.length - 1 ? [l, ''] : [l])),
     'The CSS is plain and stack-neutral. For a project on GSAP or Motion, run `npm run spec -- <component> <version> --format gsap` (or `motion`, or `all`) for the same motion as code: `motion.gsap.js` (easing only, GSAP has no springs) and `motion.motion.js` (every motion a spring, with the bounce tokens). Both are built from the same version file and tokens as this CSS.',
     '',
     '## Tokens',

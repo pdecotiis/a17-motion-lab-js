@@ -153,8 +153,11 @@ describe('the GSAP code runs in GSAP and matches the CSS timing', () => {
     return blocks.map(b => {
       const duration = parseFloat(/animation-duration: (?:var\([^,]+, )?(\d+(?:\.\d+)?)ms/.exec(b)![1]!);
       const d = /animation-delay: (.+);/.exec(b)?.[1] ?? '';
-      const delay = d.includes('calc') ? parseFloat(/calc\((?:(\d+(?:\.\d+)?)ms \+ )?/.exec(d)?.[1] ?? '0') : parseFloat(/(\d+(?:\.\d+)?)ms/.exec(d)?.[1] ?? '0');
-      const stagger = parseFloat(/\* (?:var\([^,]+, )?(\d+(?:\.\d+)?)ms/.exec(d)?.[1] ?? '0');
+      // A delay or stagger is a token variable with its literal as the fallback: var(--motion-delay-70, 70ms).
+      const ms = (s: string | undefined): number => parseFloat(/(\d+(?:\.\d+)?)ms/.exec(s ?? '')?.[1] ?? '0');
+      const calc = /^calc\((?:(.+?) \+ )?var\(--motion-index, 0\) \* (.+)\)$/.exec(d);
+      const delay = calc ? ms(calc[1]) : ms(d);
+      const stagger = calc ? ms(calc[2]) : 0;
       return { duration, delay, stagger };
     });
   };
