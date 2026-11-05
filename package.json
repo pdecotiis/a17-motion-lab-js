@@ -11,6 +11,7 @@
     "test:e2e": "playwright test",
     "test:e2e:fast": "playwright test --project=chromium",
     "figma:import": "vite-node scripts/figma-import/cli.ts --",
+    "figma:import-page": "vite-node scripts/figma-import/page-cli.ts --",
     "spec": "vite-node scripts/export-spec.ts --",
     "tokens:scale": "vite-node scripts/scale-tokens.ts --",
     "check": "npm run typecheck && npm run test && npm run build && npm run test:e2e",

@@ -274,23 +274,26 @@ html, body {
   border-color: var(--color-accent);
 }
 
-/* Page grid */
-.lab-page-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+/* Page view: one column per page version shown (two when comparing), each page zoomed to fit */
+.lab-page-layout { grid-template-columns: minmax(0, 1fr) 280px; }
+.lab-page-stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; min-width: 0; }
+.lab-page-stage--compare { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lab-page-col { min-width: 0; }
+.lab-page-col__label { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--color-text-muted); }
+.lab-page-viewport {
   padding: 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  overflow: hidden;
 }
-.lab-page-item { width: 100%; max-width: 400px; }
+/* The page lays out at its own width (set in the lab) and is zoomed to fit. */
+.lab-page-grid { display: flex; flex-direction: column; gap: 24px; }
+.lab-page-grid--flush { gap: 0; }
+.lab-page-item { width: 100%; }
 
 /* Motion map panel */
 .lab-motion-map-panel { display: flex; flex-direction: column; gap: 8px; }
-
-/* Preset list */
-.lab-preset-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 
 /* Text helpers */
 .lab-text-muted { margin: 0; font-size: 12px; color: var(--color-text-muted); }

@@ -161,17 +161,14 @@ export interface PageComponent {
 export interface PageConfig {
   id: string;
   title: string;
+  /** The width (px) the page lays out at, zoomed to fit the lab; absent = 400, a column of cards. */
+  width?: number;
   components: PageComponent[];
 }
 
+// Page slot (a component id on the page) → version id of that slot's component.
 export interface MotionMap {
   [componentId: string]: string;
-}
-
-export interface Preset {
-  id: string;
-  label: string;
-  motionMap: MotionMap;
 }
 
 export interface DtcgToken {

@@ -9,7 +9,6 @@
     "paths": {
       "@tokens/*": ["./tokens/*"],
       "@components/*": ["./components/*"],
-      "@motion-maps/*": ["./motion-maps/*"],
       "@lib/*": ["./lab/lib/*"]
     },
     "outDir": "dist",

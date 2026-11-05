@@ -1,12 +1,14 @@
 import tokensJson from '../tokens/motion.json';
 import type {
-  MotionVersion, PageConfig, MotionMap, ComponentModule, ComponentStatus, Preset, DtcgGroup,
+  MotionVersion, PageConfig, MotionMap, ComponentModule, ComponentStatus, DtcgGroup,
 } from './lib/types.js';
 import { compileTokens, applyTokensToDom, tokenLabel } from './lib/token-compiler.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
 import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
-import { validatePreset } from './lib/presets.js';
+import {
+  choiceToStagger, pageVersionsOf, resolveMotionMap, staggerToChoice, validatePageVersion, type PageVersion,
+} from './lib/page-versions.js';
 import { prefersReducedMotion } from './lib/reduced-motion.js';
 import { animate as motionAnimate } from 'motion';
 import { motionArgsOf, describeMotionArgs, DEFAULT_BOUNCE } from './lib/motion-args.js';
@@ -67,8 +69,9 @@ const pageModules = import.meta.glob<PageConfig>(
   { eager: true, import: 'default' }
 );
 
-const presetModules = import.meta.glob<Preset>(
-  '../motion-maps/*.json',
+// Saved page versions: pages/<page>/versions/v1.json, v2.json, …
+const pageVersionModules = import.meta.glob<unknown>(
+  '../pages/*/versions/*.json',
   { eager: true, import: 'default' }
 );
 
@@ -95,12 +98,6 @@ function getFramedMarkup(componentName: string): string {
 function getPageConfig(pageName: string): PageConfig | undefined {
   const key = `../pages/${pageName}/page.json`;
   return pageModules[key];
-}
-
-function getPresets(): Preset[] {
-  return Object.values(presetModules)
-    .map(p => { try { return validatePreset(p); } catch { return null; } })
-    .filter((p): p is Preset => p !== null);
 }
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
@@ -915,6 +912,32 @@ function renderFrameView(params: URLSearchParams): void {
 }
 
 // ── Page view ──────────────────────────────────────────────────────────────
+// /?view=page&page=<id>[&pv=<page version>][&compare=<page version>][&mm=…][&pageStagger=…]
+// A page is its components in order. A page version (pages/<id>/versions/vN.json) is a saved
+// combination: which version of each component plays in each slot, and the page stagger. What is
+// changed here (`mm`, `pageStagger`) stays unsaved until "Save as new version"; Compare plays two
+// saved versions side by side.
+
+// A page with no width of its own lays out as a column of cards.
+const PAGE_DEFAULT_WIDTH = 400;
+const PAGE_VERSION_ENDPOINT = '/__lab/page-version';
+
+// Refits each column's page when its width changes (the window, or Compare adding a column).
+let pageObserver: ResizeObserver | null = null;
+
+function getPageVersions(pageName: string, page: PageConfig): PageVersion[] {
+  const saved: PageVersion[] = [];
+  for (const [path, data] of Object.entries(pageVersionModules)) {
+    if (path.split('/')[2] !== pageName) continue;
+    try { saved.push(validatePageVersion(data)); } catch { /* a broken file is skipped; the unit test names it */ }
+  }
+  return pageVersionsOf(saved, page, getComponentModules());
+}
+
+const sameMap = (a: MotionMap, b: MotionMap): boolean => {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every(k => a[k] === b[k]);
+};
 
 function renderPageView(params: URLSearchParams): void {
   const pageName = params.get('page') ?? 'home';
@@ -928,21 +951,47 @@ function renderPageView(params: URLSearchParams): void {
     return;
   }
   const pageConfig: PageConfig = pageConfigMaybe;
+  const pageWidth = pageConfig.width ?? PAGE_DEFAULT_WIDTH;
+  const modules = getComponentModules();
 
-  let motionMap: MotionMap = getMotionMapFromUrl();
-  if (Object.keys(motionMap).length === 0) {
-    pageConfig.components.forEach(pc => {
-      motionMap[pc.id] = getDefaultVersion(pc.component).id;
-    });
-  }
+  const versions = getPageVersions(pageName, pageConfig);
+  const pv = params.get('pv');
+  const active = versions.find(v => v.id === pv) ?? versions[0]!;
+  const compareParam = params.get('compare');
+  const compareWith = versions.find(v => v.id === compareParam && v.id !== active.id);
 
-  // A page staggers with a delay token: its own choice (?pageStagger=none|120…), else the default.
-  let pageStagger = params.get('pageStagger') ?? PAGE_STAGGER_DEFAULT;
+  // What is on screen: the saved version's choices with any unsaved changes (?mm=) on top.
+  const savedMap = resolveMotionMap(active.motionMap, pageConfig, modules);
+  const motionMap: MotionMap = resolveMotionMap({ ...savedMap, ...getMotionMapFromUrl() }, pageConfig, modules);
+
+  // A page staggers with a delay token: the version's, else the default setting; ?pageStagger= overrides.
+  const savedStagger = staggerToChoice(active.stagger);
+  let pageStagger = params.get('pageStagger') ?? savedStagger;
+  const hasUnsaved = (): boolean => !sameMap(motionMap, savedMap) || pageStagger !== savedStagger;
 
   main.innerHTML = `
     <div class="lab-page-layout">
-      <div class="lab-page-grid" id="page-grid"></div>
+      <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}" id="page-stage"></div>
       <aside class="lab-sidebar">
+        <section class="lab-controls" aria-label="Page versions">
+          <h3 class="lab-controls__title">Page versions</h3>
+          <div class="lab-control-group">
+            <label class="lab-control-label" for="page-version-select">Version</label>
+            <select class="lab-select" id="page-version-select">
+              ${versions.map(v => `<option value="${v.id}">${v.id}: ${v.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="lab-control-group">
+            <label class="lab-control-label" for="page-compare-select">Compare with</label>
+            <select class="lab-select" id="page-compare-select">
+              <option value="">None</option>
+              ${versions.filter(v => v.id !== active.id).map(v => `<option value="${v.id}">${v.id}: ${v.label}</option>`).join('')}
+            </select>
+          </div>
+          <p class="lab-lineage" id="page-version-note"></p>
+          <button class="lab-btn" id="save-page-version-btn">Save as new version</button>
+          <p class="lab-text-muted lab-controls__hint" id="page-version-status"></p>
+        </section>
         <section class="lab-controls" aria-label="Motion map">
           <h3 class="lab-controls__title">Motion Map</h3>
           <div id="motion-map-panel" class="lab-motion-map-panel"></div>
@@ -959,41 +1008,103 @@ function renderPageView(params: URLSearchParams): void {
             </select>
           </div>
         </section>
-        <section class="lab-controls" aria-label="Presets">
-          <h3 class="lab-controls__title">Presets</h3>
-          <button class="lab-btn" id="save-preset-btn">Save preset</button>
-          <div id="preset-list" class="lab-preset-list"></div>
-        </section>
       </aside>
     </div>
   `;
 
-  const pageGrid = document.getElementById('page-grid')!;
+  const stage = document.getElementById('page-stage')!;
   const motionMapPanel = document.getElementById('motion-map-panel')!;
-  const componentAnims = new Map<string, PlayHandle>();
+
+  // One column per page version shown: the page, scaled to fit, with its components playing.
+  interface PageColumn { grid: HTMLElement; anims: Map<string, PlayHandle>; map: () => MotionMap; choice: () => string }
+  const columns: PageColumn[] = [];
+  pageObserver?.disconnect();
+  pageObserver = new ResizeObserver(entries => {
+    for (const e of entries) (e.target as HTMLElement & { refit?: () => void }).refit?.();
+  });
+
+  function addColumn(label: string | null, id: string | null, map: () => MotionMap, choice: () => string): PageColumn {
+    const col = document.createElement('section');
+    col.className = 'lab-page-col';
+    if (label !== null) {
+      const heading = document.createElement('h3');
+      heading.className = 'lab-page-col__label';
+      heading.textContent = label;
+      col.appendChild(heading);
+    }
+    const viewport = document.createElement('div') as HTMLElement & { refit?: () => void };
+    viewport.className = 'lab-page-viewport';
+    const grid = document.createElement('div');
+    // An imported page (it has a width) sits its sections flush, as the Figma frame does.
+    grid.className = `lab-page-grid${pageConfig.width ? ' lab-page-grid--flush' : ''}`;
+    if (id !== null) grid.id = id;
+    viewport.appendChild(grid);
+    col.appendChild(viewport);
+    stage.appendChild(col);
+    // The page lays out at its own width and is zoomed down to fit its column, never up.
+    viewport.refit = () => {
+      grid.style.width = `${pageWidth}px`;
+      grid.style.zoom = String(Math.min(1, Math.max(0.05, (viewport.clientWidth - 32) / pageWidth)));
+    };
+    pageObserver!.observe(viewport);
+    const column: PageColumn = { grid, anims: new Map(), map, choice };
+    columns.push(column);
+    return column;
+  }
 
   // The token the page staggers with now, or null for none.
-  const staggerToken = (): string | null => pageStaggerToken(pageStagger, delayTokens, defaultStagger);
+  const staggerTokenFor = (choice: string): string | null => pageStaggerToken(choice, delayTokens, defaultStagger);
 
-  function renderComponents(): void {
-    pageGrid.innerHTML = '';
+  function playColumn(column: PageColumn): void {
+    const map = column.map();
+    const token = staggerTokenFor(column.choice());
+    column.grid.innerHTML = '';
+    column.anims.clear();
     pageConfig.components.forEach((pc, i) => {
-      const markup = getMarkup(pc.component);
       const wrapper = document.createElement('div');
       wrapper.className = `lab-page-item lab-page-item--${pc.layout ?? 'full'}`;
       wrapper.dataset['componentId'] = pc.id;
-      wrapper.innerHTML = markup;
-      pageGrid.appendChild(wrapper);
+      wrapper.innerHTML = getMarkup(pc.component);
+      column.grid.appendChild(wrapper);
 
       const target =
         wrapper.querySelector<HTMLElement>('[data-motion-target]') ??
         (wrapper.firstElementChild as HTMLElement);
-      const vid = motionMap[pc.id] ?? getDefaultVersion(pc.component).id;
-      const ver = getVersion(pc.component, vid);
-      const token = staggerToken();
+      const ver = getVersion(pc.component, map[pc.id] ?? getDefaultVersion(pc.component).id);
       const staggered = token !== null && i > 0;
-      componentAnims.set(pc.id, animateElement(target, staggered ? { ...ver, stagger: token } : ver, staggered ? i : 0));
+      column.anims.set(pc.id, animateElement(target, staggered ? { ...ver, stagger: token } : ver, staggered ? i : 0));
     });
+  }
+
+  const unsavedLabel = (): string => (hasUnsaved() ? ' (unsaved changes)' : '');
+  const primary = addColumn(
+    compareWith ? `${active.id}: ${active.label}${unsavedLabel()}` : null,
+    'page-grid',
+    () => motionMap,
+    () => pageStagger,
+  );
+  if (compareWith) {
+    const compareMap = resolveMotionMap(compareWith.motionMap, pageConfig, modules);
+    const compareChoice = staggerToChoice(compareWith.stagger);
+    addColumn(`${compareWith.id}: ${compareWith.label}`, null, () => compareMap, () => compareChoice);
+  }
+
+  function updateNote(): void {
+    const note = document.getElementById('page-version-note')!;
+    if (hasUnsaved()) note.textContent = 'Unsaved changes. Save them as a new version to keep them.';
+    else if (active.forkedFrom) note.textContent = `Forked from ${active.forkedFrom}`;
+    else note.textContent = '';
+    const heading = stage.querySelector('.lab-page-col__label');
+    if (heading && compareWith) heading.textContent = `${active.id}: ${active.label}${unsavedLabel()}`;
+  }
+
+  // The URL keeps only what differs from the saved version.
+  function syncUrl(): void {
+    setMotionMapInUrl(sameMap(motionMap, savedMap) ? {} : motionMap);
+    const sp = new URLSearchParams(window.location.search);
+    if (pageStagger === savedStagger) sp.delete('pageStagger'); else sp.set('pageStagger', pageStagger);
+    window.history.replaceState(null, '', `?${sp.toString()}`);
+    updateNote();
   }
 
   function buildMotionMapPanel(): void {
@@ -1009,8 +1120,8 @@ function renderPageView(params: URLSearchParams): void {
       sel.dataset['componentId'] = pc.id;
 
       const pcMod = motionModules[`../components/${pc.component}/motion.ts`];
-      const versions: MotionVersion[] = pcMod?.versions ?? [];
-      versions.forEach(v => {
+      const componentVersions: MotionVersion[] = pcMod?.versions ?? [];
+      componentVersions.forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.id;
         opt.textContent = `${v.id}: ${v.label}`;
@@ -1019,14 +1130,13 @@ function renderPageView(params: URLSearchParams): void {
       });
       sel.addEventListener('change', () => {
         motionMap[pc.id] = sel.value;
-        setMotionMapInUrl(motionMap);
-        const wrapper = pageGrid.querySelector<HTMLElement>(`[data-component-id="${pc.id}"]`);
+        syncUrl();
+        const wrapper = primary.grid.querySelector<HTMLElement>(`[data-component-id="${pc.id}"]`);
         if (wrapper) {
           const target =
             wrapper.querySelector<HTMLElement>('[data-motion-target]') ??
             (wrapper.firstElementChild as HTMLElement);
-          const ver = getVersion(pc.component, sel.value);
-          componentAnims.set(pc.id, animateElement(target, ver));
+          primary.anims.set(pc.id, animateElement(target, getVersion(pc.component, sel.value)));
         }
       });
 
@@ -1038,47 +1148,76 @@ function renderPageView(params: URLSearchParams): void {
 
   const staggerSelect = document.getElementById('stagger-select') as HTMLSelectElement;
   staggerSelect.value = [PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, ...delayTokens.map(tokenLabel)].includes(pageStagger) ? pageStagger : PAGE_STAGGER_DEFAULT;
-  renderComponents();
+  columns.forEach(playColumn);
   buildMotionMapPanel();
+  updateNote();
 
-  document.getElementById('replay-all-btn')!.addEventListener('click', () => renderComponents());
+  document.getElementById('replay-all-btn')!.addEventListener('click', () => columns.forEach(playColumn));
 
   staggerSelect.addEventListener('change', () => {
     pageStagger = staggerSelect.value;
+    syncUrl();
+    playColumn(primary);
+  });
+
+  // Choosing a version or a comparison starts from that saved version: unsaved changes are dropped.
+  const versionSelect = document.getElementById('page-version-select') as HTMLSelectElement;
+  versionSelect.value = active.id;
+  versionSelect.addEventListener('change', () => {
     const sp = new URLSearchParams(window.location.search);
-    if (pageStagger === PAGE_STAGGER_DEFAULT) sp.delete('pageStagger'); else sp.set('pageStagger', pageStagger);
+    sp.set('pv', versionSelect.value);
+    sp.delete('mm');
+    sp.delete('pageStagger');
+    if (sp.get('compare') === versionSelect.value) sp.delete('compare');
     window.history.replaceState(null, '', `?${sp.toString()}`);
-    renderComponents();
+    renderPageView(sp);
+  });
+  const compareSelect = document.getElementById('page-compare-select') as HTMLSelectElement;
+  compareSelect.value = compareWith?.id ?? '';
+  compareSelect.addEventListener('change', () => {
+    const sp = new URLSearchParams(window.location.search);
+    if (compareSelect.value) sp.set('compare', compareSelect.value); else sp.delete('compare');
+    window.history.replaceState(null, '', `?${sp.toString()}`);
+    renderPageView(sp);
   });
 
-  document.getElementById('save-preset-btn')!.addEventListener('click', () => {
-    const label = prompt('Preset name:');
-    if (!label) return;
-    const preset = {
-      id: label.toLowerCase().replace(/\s+/g, '-'),
-      label,
-      motionMap: { ...motionMap },
-    };
-    const json = JSON.stringify(preset, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${preset.id}.json`;
-    a.click();
+  // Saving writes pages/<page>/versions/v<next>.json through the dev server; a built copy can't.
+  const saveBtn = document.getElementById('save-page-version-btn') as HTMLButtonElement;
+  const status = document.getElementById('page-version-status')!;
+  fetch(PAGE_VERSION_ENDPOINT).then(r => r.ok ? r.json() : null).catch(() => null).then((info: { available?: boolean } | null) => {
+    if (info?.available !== true) {
+      saveBtn.disabled = true;
+      status.textContent = 'Saving needs the dev server (npm run dev). Ask Claude to save it, or run the lab with npm run dev.';
+    }
   });
-
-  const presetList = document.getElementById('preset-list')!;
-  getPresets().forEach(preset => {
-    const btn = document.createElement('button');
-    btn.className = 'lab-btn lab-btn--sm';
-    btn.textContent = preset.label;
-    btn.addEventListener('click', () => {
-      motionMap = { ...preset.motionMap };
-      setMotionMapInUrl(motionMap);
-      buildMotionMapPanel();
-      renderComponents();
-    });
-    presetList.appendChild(btn);
+  saveBtn.addEventListener('click', async () => {
+    const label = prompt('Name this page version:');
+    if (!label || !label.trim()) return;
+    saveBtn.disabled = true;
+    status.textContent = 'Saving…';
+    try {
+      const res = await fetch(PAGE_VERSION_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page: pageName, label: label.trim(), motionMap, stagger: choiceToStagger(pageStagger), forkedFrom: active.id,
+        }),
+      });
+      const out = (await res.json()) as { id?: string; error?: string };
+      if (!res.ok || !out.id) throw new Error(out.error ?? `The server said ${res.status}`);
+      // Once the page reloads it opens the new version, with nothing unsaved.
+      const sp = new URLSearchParams(window.location.search);
+      sp.set('pv', out.id);
+      sp.delete('mm');
+      sp.delete('pageStagger');
+      window.history.replaceState(null, '', `?${sp.toString()}`);
+      status.textContent = `Saved as ${out.id}. Reloading…`;
+      // The dev server reloads the page when the file appears; this is for when it does not.
+      window.setTimeout(() => window.location.reload(), 1200);
+    } catch (e) {
+      status.textContent = `Could not save: ${(e as Error).message}`;
+      saveBtn.disabled = false;
+    }
   });
 }
 

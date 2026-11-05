@@ -26,12 +26,13 @@ The lab opens at http://localhost:5173.
 | `npm run test:e2e` | Playwright E2E tests (Chromium and WebKit) |
 | `npm run check` | typecheck + test + build + test:e2e. Must pass before work is done |
 | `npm run figma:import -- <manifest.json>` | Import a Figma frame as a component |
+| `npm run figma:import-page -- <manifest.json>` | Make a page from a Figma page frame whose sections are imported |
 
 ## What the lab does
 
 - **Library view:** every component as a scaled live preview. Hover (or focus) a card to play it, search by name, and filter by version status. Click a card to open the component.
 - **Component view:** play a motion version with speed and stagger, light/dark, and side-by-side compare. It shows the tokens each motion uses and where (the card and its text can use different ones). There are no controls: a motion change is a new version.
-- **Page view:** an ordered list of component instances (`pages/<id>/page.json`) for reviewing motion in context. A motion map shows every version, with its state kept in the URL so it can be shared, plus saved presets.
+- **Page view:** an ordered list of component instances (`pages/<id>/page.json`) for reviewing motion in context. A **page version** is a saved combination (which version of each component plays where, plus the stagger) in `pages/<id>/versions/`; switch between them, compare two side by side, and save the current one as a new version. Unsaved changes live in the URL, so they can be shared.
 - **Motion models:** tween and spring. The lab plays with CSS or Motion (motion.dev), chosen in the header, and never mixes them: CSS plays easing curves for every motion, Motion plays springs for every motion (a tween plays as a spring with the global bounce setting, shown under Motion only). Under CSS a version authored as a spring plays and exports its from/to values with its easing.
 - **Export:** the Generated code panel and `npm run spec` give a developer the same motion as CSS, GSAP (easing only) or Motion (springs), from the same version file and tokens. The runtime you preview with never changes what is exported.
 - **Settings:** the gear beside the theme toggle opens the global scale: pick a typographic scale (minor third, major third, perfect fourth, golden ratio, Fibonacci), preview what it would rename, and apply it. It derives the distance, duration, delay, opacity and scale tokens from one ratio, anchored on 4px. Applying needs the dev server (`npm run dev`) or `npm run tokens:scale -- --all <scale>`.
@@ -46,10 +47,9 @@ Versions change **motion only** (`opacity`, `transform`, `filter`, `clip-path`),
 ```
 lab/            The Vite app shell (index.html, main.ts, styles.css, lib/)
 components/     One folder per component: markup.html, styles.css, motion.ts, versions/
-pages/          page.json files for page-level review
+pages/          One folder per page: page.json, and versions/ with its page versions
 tokens/         motion.json (motion tokens) plus generated Figma variable files
-motion-maps/    Saved presets, one JSON file per preset
-scripts/        Figma importer
+scripts/        Figma importers (component and page), spec export, scale tools
 tests/          unit/ (Vitest) and e2e/ (Playwright)
 ```
 
