@@ -94,6 +94,22 @@ test.describe('Page versions', () => {
     expect(page.url()).not.toContain('compare');
   });
 
+  test('fitting a page to its column, and refitting on a resize, raises no page error', async ({ page }) => {
+    // Refitting changes the column's height; doing it inside the ResizeObserver callback raises
+    // "ResizeObserver loop completed with undelivered notifications" (seen in WebKit).
+    const errors: string[] = [];
+    page.on('pageerror', err => errors.push(err.message));
+    page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+    await page.setViewportSize({ width: 700, height: 900 });
+    await page.goto('/?view=page&page=home&compare=v2');
+    await page.waitForLoadState('networkidle');
+    await page.setViewportSize({ width: 1000, height: 900 });
+    await page.waitForTimeout(300);
+    await page.setViewportSize({ width: 600, height: 900 });
+    await page.waitForTimeout(300);
+    expect(errors).toEqual([]);
+  });
+
   test('the page is zoomed down to fit its column, never up', async ({ page }) => {
     await page.setViewportSize({ width: 700, height: 900 });
     await page.goto('/?view=page&page=home&compare=v2');
