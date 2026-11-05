@@ -78,8 +78,10 @@ To get the latest template changes in a project repo:
 
 ```bash
 git fetch template
-git merge template/main
+git merge -X no-renames template/main
 ```
+
+`-X no-renames` matters in a project that deleted the sample content (step 4): without it git can mistake a deleted folder for a rename and apply the template's changes to the wrong component. If the template changed a sample file you deleted (`components/card`, `components/side-panel`, `pages/home`), git reports a conflict or adds the new file back; keep them deleted (`git rm -f <file>`), then `git commit`. Run `npm run check` afterwards.
 
 If `tokens/figma-variables.json`, `tokens/visual.css` or `tokens/fonts.css` conflict, don't merge them by hand. Take either side, then re-run `npm run figma:import` for each imported component to regenerate them.
 
