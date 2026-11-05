@@ -196,7 +196,7 @@ A preset is a named, standard entrance (a fade and a rise, plus a scale for card
 
 ## Testing rules
 
-**Every new component and version requires tests.** Use the templates:
+**Every new component and version requires tests.** The basics are covered for every component and version in the repo without a test of its own: `tests/unit/all-versions.test.ts` (each version validates, has lineage, names only tokens that exist, follows the pairing rules) and `tests/e2e/all-versions.spec.ts` (each version plays in the lab with no console errors). A new version needs nothing more for those; add a test only for what is particular to it (a specific duration, a trigger, a layer). A new component also needs its own pair, from the templates:
 ```
 tests/unit/_template.test.ts   → copy to tests/unit/<component>.test.ts
 tests/e2e/_template.spec.ts    → copy to tests/e2e/<component>.spec.ts
