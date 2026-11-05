@@ -1,0 +1,15 @@
+{
+  "id": "v3",
+  "label": "Expressive",
+  "motionMap": {
+    "page-header": "v3",
+    "section-header": "v3",
+    "section-header-media": "v3",
+    "section-header-text-list": "v3",
+    "quote-slider": "v3",
+    "grid-container-mosaic": "v3",
+    "prompts-footer-section": "v3"
+  },
+  "stagger": "delay.120",
+  "forkedFrom": "v1"
+}

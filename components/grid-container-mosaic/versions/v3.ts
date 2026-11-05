@@ -1,0 +1,61 @@
+import type { MotionVersion } from '../../../lab/lib/types.js';
+
+// Expressive: a longer expressive entrance with a bigger rise (photos and cards also scale up), and a slower
+// cascade between the parts. Plays once, when the section scrolls into view.
+export const v3: MotionVersion = {
+  id: 'v3',
+  label: 'Expressive',
+  model: { model: 'tween', duration: 'duration.560', easing: 'easing.expressive-entrance' },
+  keyframes: [
+    { opacity: 0, offset: 0 },
+    { opacity: 1, offset: 1 },
+  ],
+  layers: {
+    'image-1': {
+      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'delay.40' },
+      keyframes: [
+        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
+      ],
+    },
+    'image-2': {
+      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'delay.120' },
+      keyframes: [
+        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
+      ],
+    },
+    'image-3': {
+      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.220' },
+      keyframes: [
+        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
+      ],
+    },
+    'image-4': {
+      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.300' },
+      keyframes: [
+        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
+      ],
+    },
+    'image-5': {
+      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.400' },
+      keyframes: [
+        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
+      ],
+    },
+    'image-6': {
+      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.560' },
+      keyframes: [
+        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
+      ],
+    },
+  },
+  trigger: { on: 'in-view', threshold: 0.2, once: true },
+  forkedFrom: 'v1',
+};
+
+export default v3;
