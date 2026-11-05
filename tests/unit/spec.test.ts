@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { buildVersionCss } from '../../lab/lib/css-output.js';
 import { buildVersionExport } from '../../lab/lib/spec.js';
+import { PRESET_NAMES } from '../../lab/lib/entrance-presets.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import { describeTrigger, getReducedMotionPolicy, forkVersion } from '../../lab/lib/version-meta.js';
 import { getEffectiveDuration, REDUCED_MOTION_FADE_MS } from '../../lab/lib/reduced-motion.js';
@@ -403,18 +404,21 @@ describe('the scroll snippet in the spec', () => {
   });
 
   it('names a preset element\'s own class and the version class that carries its delay', () => {
+    // Whatever presets the project defines: its first for the root and the first layer, its last for the second.
+    const first = PRESET_NAMES[0]!;
+    const last = PRESET_NAMES[PRESET_NAMES.length - 1]!;
     const preset: MotionVersion = {
       id: 'v2',
       label: 'Layered',
-      entrance: { preset: 'ui' },
-      layers: { eyebrow: { preset: 'eyebrow', delay: 'delay.40' }, text: { preset: 'text' } },
+      entrance: { preset: first },
+      layers: { eyebrow: { preset: first, delay: 'delay.40' }, text: { preset: last } },
       trigger: { on: 'in-view', threshold: 0.2, once: true },
       forkedFrom: 'v1',
     };
     const text = md(preset);
-    expect(text).toContain("const rootClasses = ['motion-preset-ui', 'motion-card-v2'];");
-    expect(text).toContain("'eyebrow': ['motion-preset-eyebrow', 'motion-card-v2-eyebrow'],");
-    expect(text).toContain("'text': ['motion-preset-text'],");
+    expect(text).toContain(`const rootClasses = ['motion-preset-${first}', 'motion-card-v2'];`);
+    expect(text).toContain(`'eyebrow': ['motion-preset-${first}', 'motion-card-v2-eyebrow'],`);
+    expect(text).toContain(`'text': ['motion-preset-${last}'],`);
   });
 });
 

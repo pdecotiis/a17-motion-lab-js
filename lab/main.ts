@@ -17,7 +17,7 @@ import { cssHandle, runtimeFromParam, RUNTIMES, type PlayHandle, type Runtime } 
 import { createInteractionPlayer, type InteractionPlayer } from './lib/interaction-player.js';
 import { describeTransition, hasHoldTriggers, interactionParts, stateNames } from './lib/interaction.js';
 import { summarizeInteraction } from './lib/interaction-summary.js';
-import { PRESET_NAMES, type PresetName } from './lib/entrance-presets.js';
+import { PRESET_NAMES, presetOf, type PresetName } from './lib/entrance-presets.js';
 import {
   COMPONENT_STATUSES, STATUS_LABELS, getComponentStatus, describeLineage, filterFromParams,
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
@@ -1602,7 +1602,9 @@ function renderTokensView(): void {
 // Each entrance preset (lab/lib/entrance-presets.ts) playing on a simple example.
 // They play through the same entrance code as any component, so the runtime switch applies.
 
-const PRESET_EXAMPLES: Record<PresetName, string> = {
+// An example element for each of the template's default presets; a project's own preset names get the generic one.
+const PRESET_EXAMPLE_FALLBACK = '<span class="lab-preset-eg lab-preset-eg--text">An element that uses this preset.</span>';
+const PRESET_EXAMPLES: Record<string, string> = {
   eyebrow: '<span class="lab-preset-eg lab-preset-eg--eyebrow">Eyebrow label</span>',
   title: '<span class="lab-preset-eg lab-preset-eg--title">A title for the page</span>',
   text: '<span class="lab-preset-eg lab-preset-eg--text">A line of body text that appears under the title, long enough to read as it settles.</span>',
@@ -1624,7 +1626,7 @@ function renderPresetsView(): void {
   intro.className = 'lab-presets__intro';
   const text = document.createElement('p');
   text.className = 'lab-text-muted';
-  text.textContent = 'Named, standard entrances built from the existing tokens. A component writes its entrance as an element, a preset and a delay.';
+  text.textContent = 'Named, standard entrances built from the existing tokens, defined in tokens/presets.json. A component writes its entrance as an element, a preset and a delay.';
   const replayAll = document.createElement('button');
   replayAll.className = 'lab-btn';
   replayAll.id = 'presets-replay-all';
@@ -1652,15 +1654,27 @@ function renderPresetsView(): void {
     replay.textContent = 'Replay';
     head.append(title, replay);
 
+    // The recipe, in tokens: what the preset is made of, and whether it is approved.
+    const p = presetOf(name);
+    const recipe = document.createElement('p');
+    recipe.className = 'lab-text-muted lab-preset__recipe';
+    recipe.textContent = [
+      `rise ${p.rise}${p.scale ? `, from ${p.scale}` : ''}`,
+      `move ${p.move.duration}, ${p.move.easing}`,
+      p.fade ? `fade ${p.fade.duration}, ${p.fade.easing}` : null,
+      p.status === 'system' ? 'system' : 'experimental',
+    ].filter(Boolean).join(' · ');
+    recipe.title = p.description ?? '';
+
     const stage = document.createElement('div');
     stage.className = 'lab-preset__stage';
     const holder = document.createElement('div');
     holder.className = 'lab-preset__holder';
     holder.dataset['motionTarget'] = '';
-    holder.innerHTML = PRESET_EXAMPLES[name];
+    holder.innerHTML = PRESET_EXAMPLES[name] ?? PRESET_EXAMPLE_FALLBACK;
     stage.appendChild(holder);
 
-    card.append(head, stage);
+    card.append(head, recipe, stage);
     grid.appendChild(card);
     targets.push({ name, target: holder });
     replay.addEventListener('click', () => animateElement(holder, presetVersion(name)));

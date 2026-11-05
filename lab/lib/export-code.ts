@@ -1,6 +1,6 @@
 import type { MotionVersion, EntranceVersion } from './types.js';
 import { hasEntrance, stepsOf, playbackOf, type StepEntry } from './motion-models.js';
-import { PRESET_NAMES, PRESETS, presetTracks } from './entrance-presets.js';
+import { PRESET_NAMES, presetOf, presetTracks } from './entrance-presets.js';
 import { buildPresetsCss, PRESETS_CSS_FILE, presetsUsed } from './css-output.js';
 import { motionArgsOf, DEFAULT_BOUNCE } from './motion-args.js';
 import { orderedKeyframes } from './css-output.js';
@@ -21,7 +21,8 @@ export const EXPORT_LABELS: Record<ExportFormat, string> = { css: 'CSS', gsap: '
 // The file each format is written to by `npm run spec`.
 export const EXPORT_FILES: Record<ExportFormat, string> = { css: 'motion.css', gsap: 'motion.gsap.js', motion: 'motion.motion.js' };
 
-// The shared preset definitions, one file per format (npm run spec writes them next to motion.*).
+// The shared preset definitions, one file per format. They belong to the project, not to a version: npm run spec
+// writes them once, to <out>/presets/, and a version's code imports them from there (`presetsPath`).
 export const PRESET_FILES: Record<ExportFormat, string> = { css: PRESETS_CSS_FILE, gsap: 'presets.gsap.js', motion: 'presets.motion.js' };
 
 export interface ExportCodeOptions {
@@ -30,6 +31,8 @@ export interface ExportCodeOptions {
   includePresets?: boolean;
   /** Motion only: the global bounce token for motions that name none. */
   globalBounce?: string;
+  /** Where the code imports the shared preset files from, with a trailing slash (default: the same folder). */
+  presetsPath?: string;
 }
 
 const pascal = (s: string): string => s.split(/[^a-zA-Z0-9]+/).filter(Boolean).map(w => w[0]!.toUpperCase() + w.slice(1)).join('');
@@ -352,8 +355,8 @@ function buildMotionInteraction(version: MotionVersion, raw: Record<string, unkn
 // ── Entrance presets (shared) ──────────────────────────────────────────────
 
 const px = (raw: Record<string, unknown>, token: string): number => parseFloat(String(raw[token]));
-const tokensOf = (name: keyof typeof PRESETS): string => {
-  const p = PRESETS[name];
+const tokensOf = (name: string): string => {
+  const p = presetOf(name);
   return [p.rise, p.scale, p.move.duration, p.move.easing, ...(p.fade ? [p.fade.duration, p.fade.easing] : [])].filter(Boolean).join(', ');
 };
 
@@ -366,7 +369,7 @@ export function buildPresetsGsap(raw: Record<string, unknown>): string {
     const tracks = presetTracks(name);
     const move = tracks.find(t => t.track !== 'fade')!;
     const fade = tracks.find(t => t.track === 'fade');
-    const p = PRESETS[name];
+    const p = presetOf(name);
     return `  ${name}: { rise: ${num(px(raw, p.rise))}, ${p.scale ? `scale: ${num(Number(raw[p.scale]))}, ` : ''}move: ${timing(move.model)}${fade ? `, fade: ${timing(fade.model)}` : ''} }, // ${tokensOf(name)}`;
   });
   return [
@@ -411,7 +414,7 @@ export function buildPresetsMotion(raw: Record<string, unknown>, globalBounce = 
     const tracks = presetTracks(name);
     const move = tracks.find(t => t.track !== 'fade')!;
     const fade = tracks.find(t => t.track === 'fade');
-    const p = PRESETS[name];
+    const p = presetOf(name);
     return `  ${name}: { rise: ${num(px(raw, p.rise))}, ${p.scale ? `scale: ${num(Number(raw[p.scale]))}, ` : ''}move: { duration: ${seconds(parseMs(move.model.duration, raw))} }${fade ? `, fade: { duration: ${seconds(parseMs(fade.model.duration, raw))} }` : ''} }, // ${tokensOf(name).split(', ').filter(t => !t.startsWith('easing.')).join(', ')}`;
   });
   return [
@@ -541,7 +544,7 @@ function gsapCode(version: MotionVersion, raw: Record<string, unknown>, options:
     'import { gsap } from "gsap";',
     'import { CustomEase } from "gsap/CustomEase";',
     '',
-    ...(presetLines.length ? ['import { playPreset } from "./presets.gsap.js";'] : []),
+    ...(presetLines.length ? [`import { playPreset } from "${options.presetsPath ?? './'}presets.gsap.js";`] : []),
     '',
     'gsap.registerPlugin(CustomEase);',
     ...[...ease.entries].map(([n, e]) => `CustomEase.create(${str(n)}, ${str(e.bezier)}); // ${e.comment}`),
@@ -618,7 +621,7 @@ function motionCode(version: MotionVersion, raw: Record<string, unknown>, option
     `// Bounce: a spring version's own bounce token, otherwise the global bounce setting (${globalBounce}).`,
     '',
     'import { animate } from "motion";',
-    ...(presetLines.length ? ['import { playPreset } from "./presets.motion.js";'] : []),
+    ...(presetLines.length ? [`import { playPreset } from "${options.presetsPath ?? './'}presets.motion.js";`] : []),
     '',
     `/** Play on \`el\`, the element marked data-motion-target.${version.stagger ? ' `index` staggers siblings: 0, 1, 2…' : ''} Returns the animation controls. */`,
     `export function ${fn}(el, { index = 0 } = {}) {`,

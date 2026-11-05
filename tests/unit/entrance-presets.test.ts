@@ -3,7 +3,7 @@ import { gsap } from 'gsap';
 import { CustomEase } from 'gsap/CustomEase';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
-import { SAMPLES_PRESENT } from '../samples.js';
+import { SAMPLES_PRESENT, TEMPLATE_PRESETS } from '../samples.js';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { PRESETS, PRESET_NAMES, SEPARATE_FADE, hasFadeTrack, presetTracks, type EntrancePreset } from '../../lab/lib/entrance-presets.js';
@@ -32,7 +32,7 @@ const demo: MotionVersion = {
   lineage: 'test',
 };
 
-describe('the presets table', () => {
+describe.skipIf(!TEMPLATE_PRESETS)('the presets table', () => {
   it('has the six presets, in order', () => {
     expect(PRESET_NAMES).toEqual(['eyebrow', 'title', 'text', 'card', 'media', 'ui']);
   });
@@ -41,20 +41,21 @@ describe('the presets table', () => {
     const fade = { duration: 'duration.300', easing: 'easing.productive-entrance' };
     const move = { duration: 'duration.560', easing: 'easing.expressive-entrance' };
     for (const name of ['eyebrow', 'title', 'text'] as const) {
-      expect(PRESETS[name], name).toEqual({ rise: 'distance.16', move, fade });
+      expect(PRESETS[name], name).toEqual({ rise: 'distance.16', move, fade, status: 'experimental' });
     }
-    expect(PRESETS.card).toEqual({ rise: 'distance.24', scale: 'scale.95', move, fade });
-    expect(PRESETS.media).toEqual({ rise: 'distance.24', scale: 'scale.98', move, fade });
+    expect(PRESETS.card).toEqual({ rise: 'distance.24', scale: 'scale.95', move, fade, status: 'experimental' });
+    expect(PRESETS.media).toEqual({ rise: 'distance.24', scale: 'scale.98', move, fade, status: 'experimental' });
     expect(PRESETS.ui).toEqual({
       rise: 'distance.8',
       move: { duration: 'duration.140', easing: 'easing.productive-standard' },
       fade: { duration: 'duration.100', easing: 'easing.productive-entrance' },
+      status: 'experimental',
     });
   });
 
   it('only references tokens that exist (no new token type)', () => {
     for (const name of PRESET_NAMES) {
-      const p = PRESETS[name];
+      const p = PRESETS[name]!;
       const refs = [p.rise, p.scale, p.move.duration, p.move.easing, p.fade?.duration, p.fade?.easing].filter(Boolean) as string[];
       for (const r of refs) expect(r in raw, `${name}: ${r}`).toBe(true);
     }
@@ -77,7 +78,7 @@ describe('the presets table', () => {
   });
 });
 
-describe('presetTracks', () => {
+describe.skipIf(!TEMPLATE_PRESETS)('presetTracks', () => {
   it('two tracks: a fade (a spring with no bounce) and a move (a tween with the transform)', () => {
     expect(SEPARATE_FADE).toBe(true);
     const [fade, move] = presetTracks('title');
@@ -105,11 +106,11 @@ describe('presetTracks', () => {
 
   it('one track ("all") when a preset has no fade timing: opacity and transform together, the move\'s timing', () => {
     // SEPARATE_FADE = false does the same for every preset; a preset without `fade` does it for that one.
-    const synthetic: EntrancePreset = { rise: 'distance.8', move: PRESETS.ui.move };
+    const synthetic: EntrancePreset = { rise: 'distance.8', move: PRESETS['ui']!.move };
     expect(hasFadeTrack(synthetic)).toBe(false);
-    expect(hasFadeTrack(PRESETS.title)).toBe(true);
+    expect(hasFadeTrack(PRESETS['title']!)).toBe(true);
     // The track builder reads the table, so check the one-track shape on a table entry with its fade removed.
-    const saved = PRESETS.eyebrow;
+    const saved = PRESETS['eyebrow']!;
     (PRESETS as Record<string, EntrancePreset>)['eyebrow'] = { rise: saved.rise, move: saved.move };
     try {
       const tracks = presetTracks('eyebrow');
@@ -126,7 +127,7 @@ describe('presetTracks', () => {
   });
 });
 
-describe('a preset in a version', () => {
+describe.skipIf(!TEMPLATE_PRESETS)('a preset in a version', () => {
   it('hasEntrance is true for an entrance preset, and isPresetStep tells the layers apart', () => {
     expect(hasEntrance(demo)).toBe(true);
     expect(isPresetStep(demo.layers!['title']!)).toBe(true);
@@ -174,7 +175,7 @@ describe('a preset in a version', () => {
   });
 });
 
-describe('tokens used and pairing for a preset version', () => {
+describe.skipIf(!TEMPLATE_PRESETS)('tokens used and pairing for a preset version', () => {
   it('each track is a group, named "<element> fade" and "<element> move" (the root is "root")', () => {
     const labels = getStepRefs(demo, raw).map(s => s.layer);
     expect(labels).toEqual(['root fade', 'root move', 'title fade', 'title move', 'text fade', 'text move']);
@@ -195,7 +196,7 @@ describe('tokens used and pairing for a preset version', () => {
   });
 });
 
-describe('presets.css and the component CSS', () => {
+describe.skipIf(!TEMPLATE_PRESETS)('presets.css and the component CSS', () => {
   const css = buildPresetsCss(raw);
 
   it('one @keyframes per track and a .motion-preset-<name> class that runs them together', () => {
@@ -249,7 +250,7 @@ describe('presets.css and the component CSS', () => {
   });
 });
 
-describe('presets.gsap.js and presets.motion.js', () => {
+describe.skipIf(!TEMPLATE_PRESETS)('presets.gsap.js and presets.motion.js', () => {
   const gsapShared = buildPresetsGsap(raw);
   const motionShared = buildPresetsMotion(raw, 'bounce.25');
 
@@ -341,7 +342,7 @@ describe('presets.gsap.js and presets.motion.js', () => {
   });
 });
 
-describe('spec.md for a preset version', () => {
+describe.skipIf(!TEMPLATE_PRESETS)('spec.md for a preset version', () => {
   const { markdown, css } = buildVersionExport('card', demo, [demo], tokens);
 
   it('names the preset for each element, with its fade and move tracks', () => {
@@ -359,7 +360,7 @@ describe('spec.md for a preset version', () => {
   });
 });
 
-describe.skipIf(!SAMPLES_PRESENT)('npm run spec with presets', () => {
+describe.skipIf(!SAMPLES_PRESENT || !TEMPLATE_PRESETS)('npm run spec with presets', () => {
   const root = resolve(import.meta.dirname, '../..');
   const out = mkdtempSync(join(tmpdir(), 'motion-lab-presets-'));
   afterAll(() => rmSync(out, { recursive: true, force: true }));

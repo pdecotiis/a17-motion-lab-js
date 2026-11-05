@@ -1,7 +1,7 @@
 import type { Interaction, MotionVersion, EntranceVersion, SpringProperty } from './types.js';
 import { resolveRefs, tokenVarName } from './token-compiler.js';
 import { hasEntrance, stepsOf, type StepEntry } from './motion-models.js';
-import { PRESET_NAMES, presetTracks, PRESETS, type PresetName } from './entrance-presets.js';
+import { PRESET_NAMES, presetOf, presetTracks, type PresetName } from './entrance-presets.js';
 import { interactionParts, partProps, partValues, stateNames, timingFor } from './interaction.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { describeTrigger, getReducedMotionPolicy } from './version-meta.js';
@@ -207,7 +207,7 @@ export function buildPresetsCss(raw: Record<string, unknown>, names: readonly Pr
   for (const name of names) {
     const tracks = presetTracks(name);
     const cls = `motion-preset-${name}`;
-    const p = PRESETS[name];
+    const p = presetOf(name);
     const names2: string[] = [];
     const durations: string[] = [];
     const easings: string[] = [];
