@@ -1,0 +1,59 @@
+{
+  "name": "quote-slider",
+  "layerName": "quote slider",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23198-96562",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23198:96562"
+  },
+  "importedAt": "2026-11-05",
+  "frame": {
+    "width": 1136,
+    "height": 544
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/accent/1",
+    "background/default",
+    "background/secondary",
+    "font-size/14",
+    "font-size/16",
+    "font-size/28",
+    "grid/xl/col-8",
+    "grid/xl/gutter",
+    "layout/columns",
+    "layout/container",
+    "layout/gutter",
+    "layout/margin",
+    "quote/family",
+    "quote/weight",
+    "radius/full",
+    "radius/xl",
+    "size/16",
+    "size/48",
+    "size/8",
+    "space/1",
+    "space/12",
+    "space/2",
+    "space/5",
+    "space/6",
+    "space/8",
+    "text/default",
+    "text/on-accent-secondary/1",
+    "text/on-accent/1",
+    "text/secondary-alpha",
+    "ui-sans/family",
+    "ui-sans/weight"
+  ],
+  "assets": [
+    "chevron-left.svg",
+    "chevron-right.svg"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "The slider's slot holds two quote cards wider than the content column, so the second card runs off the edge; the lab clips it. How the slider moves (drag, buttons) is not in the file.",
+    "The quote cards have no avatar image in this frame, though the author row has room for one.",
+    "Text layers have no meaningful names (quote, name and role are bare text nodes).",
+    "The quote text uses a hanging opening quote mark through a text indent expressed as a multiple of px, which does not translate to CSS directly; it is approximated with a text-indent of -0.45em."
+  ]
+}

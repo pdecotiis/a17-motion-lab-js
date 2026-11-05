@@ -1,0 +1,39 @@
+{
+  "name": "grid-container-mosaic",
+  "layerName": "grid container/mosaic",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23198-96563",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23198:96563"
+  },
+  "importedAt": "2026-11-05",
+  "frame": {
+    "width": 1136,
+    "height": 872
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/default",
+    "grid/xl/columns",
+    "grid/xl/container",
+    "grid/xl/gutter",
+    "grid/xl/margin",
+    "radius/xl",
+    "space/12"
+  ],
+  "assets": [
+    "photo-1.png",
+    "photo-2.png",
+    "photo-3.png",
+    "photo-4.png",
+    "photo-5.png",
+    "photo-6.png",
+    "texture.png"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "Six images in three columns; the images are all named \"image\" and the columns \"column\".",
+    "Three of the photos are landscape images cropped into portrait boxes by an offset and width in the file, not by a crop setting.",
+    "Each image has a tiled texture fill under the photo (opacity 75%), which the photo hides."
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "id": "who-we-are",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23198-96553",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23198:96553"
+  },
+  "importedAt": "2026-11-05",
+  "frame": {
+    "width": 1440,
+    "height": 5136
+  },
+  "sections": [
+    {
+      "id": "page-header",
+      "component": "page-header",
+      "figmaName": "page header"
+    },
+    {
+      "id": "section-header-media",
+      "component": "section-header-media",
+      "figmaName": "section header"
+    },
+    {
+      "id": "quote-slider",
+      "component": "quote-slider",
+      "figmaName": "quote slider"
+    },
+    {
+      "id": "grid-container-mosaic",
+      "component": "grid-container-mosaic",
+      "figmaName": "grid container/mosaic"
+    },
+    {
+      "id": "section-header",
+      "component": "section-header",
+      "figmaName": "section header"
+    },
+    {
+      "id": "section-header-text-list",
+      "component": "section-header-text-list",
+      "figmaName": "section header"
+    },
+    {
+      "id": "prompts-footer-section",
+      "component": "prompts-footer-section",
+      "figmaName": "grid container/uniform"
+    }
+  ],
+  "notImported": [
+    {
+      "name": "menu",
+      "reason": "off-canvas menu (the frame is the open state), not part of the page flow; an interaction of its own"
+    },
+    {
+      "name": "header",
+      "reason": "global header, page chrome"
+    },
+    {
+      "name": "footer",
+      "reason": "global footer, page chrome"
+    }
+  ],
+  "issues": [
+    "The page frame is a breakpoint and menu state (\"xl · open\") that wraps an off-canvas menu and a 1136px content column.",
+    "The three \"section header\" instances are one Figma component in three shapes, so they are three lab components (section-header, section-header-media, section-header-text-list).",
+    "The frame's last section is named \"grid container/uniform\" but is a single \"prompts footer section\" card, imported as prompts-footer-section."
+  ]
+}

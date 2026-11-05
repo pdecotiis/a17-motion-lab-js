@@ -1,0 +1,57 @@
+{
+  "name": "prompts-footer-section",
+  "layerName": "grid container/uniform",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23198-96566",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23198:96566"
+  },
+  "importedAt": "2026-11-05",
+  "frame": {
+    "width": 1136,
+    "height": 488
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/accent",
+    "background/default",
+    "background/inverse",
+    "font-size/14",
+    "font-size/28",
+    "grid/xl/col-12",
+    "grid/xl/col-4",
+    "grid/xl/columns",
+    "grid/xl/container",
+    "grid/xl/gutter",
+    "grid/xl/margin",
+    "heading/family",
+    "heading/weight",
+    "label/family",
+    "label/weight",
+    "radius/lg",
+    "size/16",
+    "size/24",
+    "size/40",
+    "size/8",
+    "space/12",
+    "space/3",
+    "space/6",
+    "text/default",
+    "text/inverse",
+    "text/inverse-secondary-alpha",
+    "ui-sans/family",
+    "ui-sans/weight"
+  ],
+  "assets": [
+    "arrow-dark.svg",
+    "arrow-light.svg"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "The frame is a \"grid container/uniform\" wrapper around a single \"prompts footer section\", so the component is named after the child.",
+    "The highlighted prompt's button uses a fixed yellow (#ffb11f) instead of a variable.",
+    "The card's radius (24px) and padding (8px) are not bound to variables.",
+    "The code Figma generates shows the top padding as 80px (space/12 in another mode) while the frame renders it at 160px; the 160px the frame shows is used.",
+    "Text layers have no meaningful names (eyebrow label, title and prompt texts are bare text nodes)."
+  ]
+}

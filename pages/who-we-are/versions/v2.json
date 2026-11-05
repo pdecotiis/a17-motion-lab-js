@@ -1,0 +1,15 @@
+{
+  "id": "v2",
+  "label": "Slower stagger",
+  "motionMap": {
+    "page-header": "v1",
+    "section-header-media": "v1",
+    "quote-slider": "v1",
+    "grid-container-mosaic": "v1",
+    "section-header": "v1",
+    "section-header-text-list": "v1",
+    "prompts-footer-section": "v1"
+  },
+  "stagger": "delay.120",
+  "forkedFrom": "v1"
+}

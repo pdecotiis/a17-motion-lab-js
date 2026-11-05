@@ -1,0 +1,45 @@
+{
+  "name": "section-header",
+  "layerName": "section header",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23198-96564",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23198:96564"
+  },
+  "importedAt": "2026-11-05",
+  "frame": {
+    "width": 1136,
+    "height": 379
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/accent",
+    "background/default",
+    "body/family",
+    "body/weight",
+    "font-size/14",
+    "font-size/16",
+    "font-size/32",
+    "grid/xl/col-7",
+    "heading/family",
+    "heading/weight",
+    "label/family",
+    "label/weight",
+    "layout/columns",
+    "layout/container",
+    "layout/gutter",
+    "layout/margin",
+    "space/11",
+    "space/3",
+    "space/6",
+    "text/default",
+    "text/secondary"
+  ],
+  "assets": [],
+  "fontFallbacks": [],
+  "issues": [
+    "\"section header\" is one Figma component used three times on the page in three shapes (title and description; title, text and a photo; title, four titled text blocks and a photo). Each shape is imported as its own lab component: section-header, section-header-media, section-header-text-list.",
+    "Text layers have no meaningful names (eyebrow label, title and description are bare text nodes).",
+    "Figma variable values depend on the frame's variable mode (space/7 and space/12 read differently in some frames), so only the default-mode values are imported."
+  ]
+}

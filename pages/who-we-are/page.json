@@ -1,0 +1,35 @@
+{
+  "id": "who-we-are",
+  "title": "Who we are",
+  "width": 1136,
+  "components": [
+    {
+      "id": "page-header",
+      "component": "page-header"
+    },
+    {
+      "id": "section-header-media",
+      "component": "section-header-media"
+    },
+    {
+      "id": "quote-slider",
+      "component": "quote-slider"
+    },
+    {
+      "id": "grid-container-mosaic",
+      "component": "grid-container-mosaic"
+    },
+    {
+      "id": "section-header",
+      "component": "section-header"
+    },
+    {
+      "id": "section-header-text-list",
+      "component": "section-header-text-list"
+    },
+    {
+      "id": "prompts-footer-section",
+      "component": "prompts-footer-section"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "v1",
+  "label": "Default",
+  "motionMap": {
+    "page-header": "v1",
+    "section-header-media": "v1",
+    "quote-slider": "v1",
+    "grid-container-mosaic": "v1",
+    "section-header": "v1",
+    "section-header-text-list": "v1",
+    "prompts-footer-section": "v1"
+  }
+}

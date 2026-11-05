@@ -1,0 +1,110 @@
+.quote-slider {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: var(--layout-container);
+  padding-top: var(--space-12);
+  overflow: clip;
+  background: var(--background-default);
+  box-sizing: border-box;
+  font-feature-settings: "lnum" 1, "pnum" 1;
+}
+
+/* The second card runs off the right edge: it is a slider, the root clips it. */
+.quote-slider__slot {
+  display: flex;
+  align-items: center;
+  gap: var(--grid-xl-gutter);
+  width: 100%;
+  padding: 0 var(--layout-margin);
+  background: var(--background-default);
+  box-sizing: border-box;
+}
+
+.quote-slider__card {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: var(--space-8);
+  width: var(--grid-xl-col-8);
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  border-radius: var(--radius-xl);
+  box-sizing: border-box;
+}
+
+.quote-slider__card--accent { background: var(--background-accent-1); }
+.quote-slider__card--neutral { background: var(--background-secondary); }
+
+.quote-slider__quote {
+  margin: 0;
+  width: 100%;
+  font-family: var(--quote-family);
+  font-weight: var(--quote-weight);
+  font-size: var(--font-size-28);
+  line-height: 1.3;
+  /* the opening quote mark hangs outside the text block */
+  text-indent: -0.45em;
+}
+
+.quote-slider__card--accent .quote-slider__quote { color: var(--text-on-accent-1); }
+.quote-slider__card--neutral .quote-slider__quote { color: var(--text-default); }
+
+.quote-slider__author {
+  display: flex;
+  align-items: center;
+  gap: var(--size-16);
+  height: 48px;
+}
+
+.quote-slider__author-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-family: var(--ui-sans-family);
+  font-weight: var(--ui-sans-weight);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.quote-slider__name,
+.quote-slider__role { margin: 0; }
+
+.quote-slider__name { font-size: var(--font-size-16); }
+.quote-slider__role { font-size: var(--font-size-14); }
+
+.quote-slider__card--accent .quote-slider__name { color: var(--text-on-accent-1); }
+.quote-slider__card--accent .quote-slider__role { color: var(--text-on-accent-secondary-1); }
+.quote-slider__card--neutral .quote-slider__name { color: var(--text-default); }
+.quote-slider__card--neutral .quote-slider__role { color: var(--text-secondary-alpha); }
+
+.quote-slider__pagination {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--space-5) var(--layout-margin) 0;
+  background: var(--background-default);
+  box-sizing: border-box;
+}
+
+.quote-slider__buttons {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.quote-slider__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-48);
+  height: var(--size-48);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--background-secondary);
+  cursor: pointer;
+}
+
+.quote-slider__button--disabled { opacity: 0.3; cursor: default; }
+
+.quote-slider__button img { display: block; }

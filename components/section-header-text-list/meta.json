@@ -1,0 +1,58 @@
+{
+  "name": "section-header-text-list",
+  "layerName": "section header",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23198-96565",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23198:96565"
+  },
+  "importedAt": "2026-11-05",
+  "frame": {
+    "width": 1136,
+    "height": 883
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/accent",
+    "background/default",
+    "body/family",
+    "body/weight",
+    "body/weight-strong",
+    "caption/family",
+    "caption/weight",
+    "font-size/12",
+    "font-size/14",
+    "font-size/16",
+    "font-size/32",
+    "grid/xl/col-4",
+    "grid/xl/col-7",
+    "heading/family",
+    "heading/weight",
+    "label/family",
+    "label/weight",
+    "layout/columns",
+    "layout/container",
+    "layout/gutter",
+    "layout/margin",
+    "radius/xl",
+    "size/12",
+    "size/24",
+    "space/11",
+    "space/3",
+    "space/6",
+    "space/7",
+    "text/default",
+    "text/secondary"
+  ],
+  "assets": [
+    "photo.png",
+    "texture.png"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "Shape of the \"section header\" component with a title, four titled text blocks and a photo; see section-header for the other two shapes.",
+    "The text blocks use a bold weight (body/weight-strong); there is no TWK Everett Bold file in /fonts, so bold falls back to the browser's synthetic bold.",
+    "Text layers have no meaningful names (eyebrow label, title, block titles and bodies, caption are bare text nodes).",
+    "The photo has a tiled texture fill under it (opacity 75%), which the photo hides."
+  ]
+}
