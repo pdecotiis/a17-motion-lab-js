@@ -8,3 +8,4 @@ npm-debug.log
 /fonts/
 tests/visual-output/
 /export/
+tsconfig.no-samples.json
