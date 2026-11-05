@@ -162,30 +162,48 @@ export function buildVersionExport(
   const trigger = describeTrigger(version.trigger);
   const status = componentStatus;
   const combined = version.interaction !== undefined && hasEntrance(version);
+  // One block per element: the component's root, then each layer (a data-motion element). A preset is two
+  // tracks (fade and move) on the same element, described together.
+  const entries = stepsOf(version);
+  const elements = [...new Set(entries.map(e => e.name))].map(n => ({ name: n, entries: entries.filter(e => e.name === n) }));
+  const presetLinesFor = (el: { name: string | null; entries: typeof entries }): string[] => {
+    const first = el.entries[0]!;
+    const cls = el.name ? `${name}-${el.name}` : name;
+    const gap = first.elementStagger ? describeValue(first.elementStagger, raw, '0ms') : undefined;
+    return [
+      `The **${first.preset}** preset (shared: \`presets.css\`, \`presets.gsap.js\`, \`presets.motion.js\`). Add \`.motion-preset-${first.preset}\`${first.version.model.delay || gap || el.name === null ? ` and \`.${cls}\` (it sets the delay${gap ? ' and the stagger' : ''})` : ''} to the element${el.name ? ` marked \`data-motion="${el.name}"\`` : ''}.`,
+      ...(gap ? [`Each matching element starts ${gap} after the one before: set \`--motion-item\` to 0, 1, 2… on them (CSS); the code does it itself.`] : []),
+      '',
+      ...el.entries.flatMap(e => [
+        `### ${e.track === 'fade' ? 'Fade' : e.track === 'move' ? 'Move' : 'Fade and move'}`,
+        '',
+        ...animatedLines(e.version, raw),
+        ...motionLines({ ...e.version, stagger: undefined }, raw),
+        '',
+      ]),
+    ];
+  };
+  const plainLines = (el: { name: string | null; entries: typeof entries }, timingHeading: string): string[] => [
+    ...(el.name === null ? [] : ['### What animates', '']),
+    ...animatedLines(el.entries[0]!.version, raw),
+    '',
+    ...(el.name === null ? [timingHeading, ''] : ['### Timing', '']),
+    ...motionLines(el.name === null ? el.entries[0]!.version : { ...el.entries[0]!.version, stagger: undefined }, raw),
+    '',
+  ];
+  const rootEl = elements.find(e => e.name === null)!;
   const entranceBlock: string[] = [
     combined ? '## On appear: what animates' : '## What animates',
     '',
     ...(layers.length ? ['The component\'s root element (the one marked `data-motion-target`):', ''] : []),
-    ...animatedLines(stepsOf(version)[0]!.version, raw),
-    '',
-    combined ? '## On appear: timing' : '## Timing',
-    '',
-    ...motionLines(stepsOf(version)[0]!.version, raw),
-    '',
+    ...(rootEl.entries[0]!.preset
+      ? presetLinesFor(rootEl)
+      : [...animatedLines(rootEl.entries[0]!.version, raw), '', combined ? '## On appear: timing' : '## Timing', '', ...motionLines(rootEl.entries[0]!.version, raw), '']),
     // Each layer is a motion of its own: it names its own duration, easing and delay.
-    ...layers.flatMap(({ name: layer, version: step }) => [
-      `## Layer: ${layer}`,
+    ...elements.filter(e => e.name !== null).flatMap(el => [
+      `## Layer: ${el.name}`,
       '',
-      `Add \`.${name}-${layer}\` to the element marked \`data-motion="${layer}"\`.`,
-      '',
-      '### What animates',
-      '',
-      ...animatedLines(step, raw),
-      '',
-      '### Timing',
-      '',
-      ...motionLines({ ...step, stagger: undefined }, raw),
-      '',
+      ...(el.entries[0]!.preset ? presetLinesFor(el) : [`Add \`.${name}-${el.name}\` to the element marked \`data-motion="${el.name}"\`.`, '', ...plainLines(el, '')]),
     ]),
     ...(combined ? ['The entrance plays first. Hover, press and focus (below) only take over when it has finished: in the CSS a hover during the entrance takes effect when it ends; in the GSAP and Motion files call `attach…(el)` once the entrance has finished.', ''] : []),
   ];

@@ -61,8 +61,9 @@ test.describe('Component view', () => {
     expect(inside).toBe(3);
   });
 
-  test('compare select is present', async ({ page }) => {
-    await expect(page.locator('#compare-select')).toBeVisible();
+  test('compare select exists but is hidden (SHOW_COMPARE is off)', async ({ page }) => {
+    await expect(page.locator('#compare-select')).toHaveCount(1);
+    await expect(page.locator('#compare-select')).toBeHidden();
   });
 });
 
@@ -128,15 +129,12 @@ test.describe('Sidebar accordions', () => {
     await expect(accordions(page).locator('> summary')).toHaveText(['Version', 'Details', 'Tokens Used', 'Version history', 'Generated code']);
   });
 
-  test('Version, Details and Tokens Used are open by default; Version history and Generated code are closed', async ({ page }) => {
+  test('only Version is open by default; Details, Tokens Used, Version history and Generated code are closed', async ({ page }) => {
     await expect(accordions(page).nth(0)).toHaveAttribute('open', '');
-    await expect(accordions(page).nth(1)).toHaveAttribute('open', '');
-    await expect(accordions(page).nth(2)).toHaveAttribute('open', '');
-    await expect(accordions(page).nth(3)).not.toHaveAttribute('open', '');
-    await expect(accordions(page).nth(4)).not.toHaveAttribute('open', '');
+    for (const i of [1, 2, 3, 4]) await expect(accordions(page).nth(i)).not.toHaveAttribute('open', '');
     await expect(page.locator('#version-tabs')).toBeVisible();
-    await expect(page.locator('#version-spec-meta')).toBeVisible();
-    await expect(page.locator('#tokens-used-list')).toBeVisible();
+    await expect(page.locator('#version-spec-meta')).toBeHidden();
+    await expect(page.locator('#tokens-used-list')).toBeHidden();
     await expect(page.locator('#version-history')).toBeHidden();
     await expect(page.locator('#css-pre')).toBeHidden();
   });
@@ -153,13 +151,15 @@ test.describe('Sidebar accordions', () => {
     await expect(page.locator('#css-pre')).toContainText('@keyframes motion-card-v1');
 
     await summary(page, 'Tokens Used').click();
+    await expect(page.locator('#tokens-used-list')).toBeVisible();
+    await summary(page, 'Tokens Used').click();
     await expect(page.locator('#tokens-used-list')).toBeHidden();
   });
 
-  test('Details holds what it does, then Component status, Plays, Reduced motion and Playback', async ({ page }) => {
+  test('Details holds Component status, Plays, Reduced motion and Playback (the plain-language What it does is switched off)', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v2');
     const details = page.locator('#details-panel');
-    await expect(details.locator('#version-behaviour')).toContainText('When you hover over the card');
+    await expect(details.locator('#version-behaviour')).toBeHidden();
     await expect(details.locator('#version-spec-meta dt')).toHaveText(['Component status', 'Plays', 'Reduced motion', 'Playback']);
     // The Version panel no longer holds them
     await expect(page.locator('.lab-sidebar > details').first().locator('#version-spec-meta')).toHaveCount(0);
@@ -171,11 +171,11 @@ test.describe('Sidebar accordions', () => {
     await expect(page.locator('#css-pre')).toBeVisible();
   });
 
-  test('Compare with stays a plain panel, always showing its select, after the accordions', async ({ page }) => {
+  test('the Compare with panel is switched off (SHOW_COMPARE in lab/main.ts): built but hidden, after the accordions', async ({ page }) => {
     await expect(page.locator('.lab-sidebar > details')).toHaveCount(5);
     await expect(page.locator('.lab-sidebar > section')).toHaveCount(1);
-    await expect(page.locator('.lab-sidebar > section')).toContainText('Compare with');
-    await expect(page.locator('#compare-select')).toBeVisible();
+    await expect(page.locator('.lab-sidebar > section')).toBeHidden();
+    await expect(page.locator('#compare-select')).toBeHidden();
     const last = await page.locator('.lab-sidebar > *').last().evaluate(el => el.tagName);
     expect(last).toBe('SECTION');
   });

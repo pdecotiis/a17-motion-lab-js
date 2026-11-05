@@ -1,4 +1,5 @@
-import type { MotionVersion, EntranceVersion, MotionModel, TweenModel, SpringModel, SpringProperty } from './types.js';
+import type { MotionVersion, EntranceVersion, MotionModel, TweenModel, SpringModel, SpringProperty, LayerStep } from './types.js';
+import { isPresetName, presetTracks, type PresetName, type PresetStep, type PresetTrackName } from './entrance-presets.js';
 import { getEffectiveKeyframes, REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { resolveRefs } from './token-compiler.js';
 import { resolveBounce } from './bounce.js';
@@ -84,20 +85,45 @@ export function modelOf(version: MotionVersion): MotionModel {
  * An interaction version with no `model` has no entrance.
  */
 export function hasEntrance(version: MotionVersion): boolean {
-  return version.model !== undefined;
+  return version.model !== undefined || version.entrance !== undefined;
 }
 
-export function stepsOf(version: MotionVersion): { name: string | null; version: EntranceVersion }[] {
-  const { layers, interaction, ...rest } = version;
+export function isPresetStep(step: LayerStep): step is PresetStep {
+  return 'preset' in step;
+}
+
+/** One motion of an entrance. A preset is up to two (its fade and its move) on the same element. */
+export interface StepEntry {
+  /** The data-motion name of the element, or null for the component root. */
+  name: string | null;
+  version: EntranceVersion;
+  /** Set when the motion is part of a preset (see entrance-presets.ts): which track of it. */
+  track?: PresetTrackName;
+  preset?: PresetName;
+  /** A delay token: each matching element starts this much after the one before. */
+  elementStagger?: string;
+}
+
+function presetEntries(name: string | null, step: PresetStep, root: MotionVersion): StepEntry[] {
+  return presetTracks(step.preset, step.delay).map(t => ({
+    name,
+    track: t.track,
+    preset: step.preset,
+    ...(step.stagger ? { elementStagger: step.stagger } : {}),
+    version: { ...root, model: t.model, ...(t.keyframes ? { keyframes: t.keyframes as Keyframe[] } : {}) },
+  }));
+}
+
+export function stepsOf(version: MotionVersion): StepEntry[] {
+  const { layers, interaction, entrance, ...rest } = version;
   // A version with an entrance and states keeps them apart: its steps are the entrance's (root and layers).
   // An interaction-only version's root step carries the interaction, which is where its timing comes from.
   const root = version.model !== undefined || interaction === undefined ? rest : { ...rest, interaction };
   return [
-    { name: null, version: { ...root, model: modelOf(version) } },
-    ...Object.entries(layers ?? {}).map(([name, step]) => ({
-      name,
-      version: { ...root, model: step.model, keyframes: step.keyframes },
-    })),
+    ...(entrance ? presetEntries(null, entrance, root) : [{ name: null, version: { ...root, model: modelOf(version) } }]),
+    ...Object.entries(layers ?? {}).flatMap(([name, step]): StepEntry[] => (isPresetStep(step)
+      ? presetEntries(name, step, root)
+      : [{ name, version: { ...root, model: step.model, keyframes: step.keyframes } }])),
   ];
 }
 
@@ -184,8 +210,18 @@ export function describePlayback(p: Playback): string {
 
 export { resolveBounce };
 
+function validatePresetStep(id: string, step: PresetStep, where: string): void {
+  if (!isPresetName(step.preset)) throw new Error(`MotionVersion "${id}" ${where} names an unknown preset "${String(step.preset)}"`);
+  for (const key of Object.keys(step)) {
+    if (!['preset', 'delay', 'stagger'].includes(key)) throw new Error(`MotionVersion "${id}" ${where} has disallowed property "${key}": a preset takes only preset, delay and stagger`);
+  }
+  for (const key of ['delay', 'stagger'] as const) {
+    if (step[key] !== undefined && typeof step[key] !== 'string') throw new Error(`MotionVersion "${id}" ${where} ${key} must be a delay token or a time such as "70ms"`);
+  }
+}
+
 export function validateMotionVersion(version: MotionVersion): void {
-  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'interaction', 'reviewNotes', 'forkedFrom', 'lineage']);
+  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'entrance', 'interaction', 'reviewNotes', 'forkedFrom', 'lineage']);
   for (const key of Object.keys(version)) {
     if (!allowed.has(key)) {
       throw new Error(`MotionVersion "${version.id}" has disallowed property: "${key}"`);
@@ -214,9 +250,16 @@ export function validateMotionVersion(version: MotionVersion): void {
 
   validateInteraction(version);
 
+  if (version.entrance !== undefined) {
+    if (version.model !== undefined || version.keyframes !== undefined) {
+      throw new Error(`MotionVersion "${version.id}" has an entrance preset and a model: use one or the other`);
+    }
+    validatePresetStep(version.id, version.entrance, 'entrance');
+  }
+
   const model0 = version.model;
   if (model0 === undefined) {
-    if (!version.interaction) throw new Error(`MotionVersion "${version.id}" needs a model, or an interaction`);
+    if (!version.interaction && !version.entrance) throw new Error(`MotionVersion "${version.id}" needs a model, an entrance preset, or an interaction`);
   } else if (model0.model === 'tween') {
     const { duration, easing } = model0;
     if (typeof duration !== 'string' || typeof easing !== 'string') {
@@ -250,6 +293,10 @@ export function validateMotionVersion(version: MotionVersion): void {
   for (const [name, step] of Object.entries(version.layers ?? {})) {
     if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) {
       throw new Error(`MotionVersion "${version.id}" layer name "${name}" must be lowercase letters, numbers and hyphens, as in data-motion="${name}"`);
+    }
+    if (isPresetStep(step)) {
+      validatePresetStep(version.id, step, `layer "${name}"`);
+      continue;
     }
     try {
       validateMotionVersion({ id: version.id, label: version.label, model: step.model, keyframes: step.keyframes });

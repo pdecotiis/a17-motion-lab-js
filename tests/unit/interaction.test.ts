@@ -92,7 +92,7 @@ describe('a version with an interaction needs no model', () => {
     const own = { ...v2, model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' } } as MotionVersion;
     expect(modelOf(own)).toMatchObject({ duration: 'duration.300' });
     const none = { id: 'x', label: 'x' } as MotionVersion;
-    expect(() => validateMotionVersion(none)).toThrow('needs a model, or an interaction');
+    expect(() => validateMotionVersion(none)).toThrow('needs a model, an entrance preset, or an interaction');
     expect(() => modelOf(none)).toThrow('has no model and no interaction');
   });
 });

@@ -14,6 +14,7 @@ import { cssHandle, runtimeFromParam, RUNTIMES, type PlayHandle, type Runtime } 
 import { createInteractionPlayer, type InteractionPlayer } from './lib/interaction-player.js';
 import { describeTransition, hasHoldTriggers, interactionParts, stateNames } from './lib/interaction.js';
 import { summarizeInteraction } from './lib/interaction-summary.js';
+import { PRESET_NAMES, type PresetName } from './lib/entrance-presets.js';
 import {
   COMPONENT_STATUSES, STATUS_LABELS, getComponentStatus, describeLineage, filterFromParams,
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
@@ -371,12 +372,13 @@ function playEntrance(el: HTMLElement, version: MotionVersion, staggerIndex: num
   activeAnimations.filter(h => el.contains(h.target)).forEach(h => h.cancel());
   activeAnimations = activeAnimations.filter(h => !h.finished && !el.contains(h.target));
 
-  const [root, ...layers] = stepsOf(version);
-  const handles = [playStep(el, root!.version, staggerIndex)];
-  for (const layer of layers) {
-    for (const layerEl of el.querySelectorAll<HTMLElement>(`[data-motion="${layer.name}"]`)) {
-      handles.push(playStep(layerEl, layer.version, staggerIndex));
-    }
+  // Each motion on its element: the root, then each layer's elements. A preset is up to two motions on the
+  // same element (its fade and its move); a layer with a stagger starts each of its elements a little after the one before.
+  const handles: PlayHandle[] = [];
+  for (const entry of stepsOf(version)) {
+    const els = entry.name === null ? [el] : [...el.querySelectorAll<HTMLElement>(`[data-motion="${entry.name}"]`)];
+    const gap = entry.elementStagger ? parseMsLocal(String(entry.elementStagger in raw ? raw[entry.elementStagger] : entry.elementStagger)) : 0;
+    els.forEach((target, i) => handles.push(playStep(target, entry.version, staggerIndex, gap * i)));
   }
   activeAnimations.push(...handles);
   return handles;
@@ -414,14 +416,16 @@ function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 
 
 // One motion on one element, played by the current runtime. The speed control sets the runtime's own
 // speed, so durations and delays here are at normal speed.
-function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number): PlayHandle {
+function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number, extraDelayMs = 0): PlayHandle {
   const isReduced = prefersReducedMotion();
   // A stagger is a delay token (delay.70) or a literal (80ms).
   const staggerMs = version.stagger ? parseFloat(String(version.stagger in raw ? raw[version.stagger] : version.stagger)) : 0;
-  const staggerDelay = staggerMs * staggerIndex;
+  const staggerDelay = staggerMs * staggerIndex + extraDelayMs;
 
   // reducedMotion: 'none' means no animation at all: the element shows its end state.
-  if (isReduced && getReducedMotionPolicy(version) === 'none') {
+  // A motion with no opacity change (a preset's move track) has nothing to fade: it does not play, so it
+  // cannot cover another motion's fade on the same element.
+  if (isReduced && (getReducedMotionPolicy(version) === 'none' || !playbackOf(version, raw).keyframes.some(k => 'opacity' in k))) {
     return cssHandle(el, el.animate([{}], { duration: 0, fill: 'both' }));
   }
 
@@ -509,6 +513,12 @@ function buildStatusFilterControls(filter: ComponentFilter, onChange: (next: Com
 
 // ── Component view ─────────────────────────────────────────────────────────
 
+// The Compare with panel (side by side with another version): built, switched off for now.
+const SHOW_COMPARE = false;
+
+// The plain-language "What it does" list in the Details panel.
+const SHOW_WHAT_IT_DOES = false;
+
 // How long into a transition the "Interrupt" button cuts it short.
 const INTERRUPT_MS = 150;
 
@@ -537,7 +547,7 @@ function renderComponentView(params: URLSearchParams): void {
         </div>
       </div>
       <aside class="lab-sidebar">
-        <!-- Accordions: Version, Details and Tokens Used open, the rest closed. Compare stays a plain panel. -->
+        <!-- Accordions: only Version is open by default. Compare is built but hidden (SHOW_COMPARE). -->
         <details class="lab-controls lab-accordion" open>
           <summary class="lab-controls__title">Version</summary>
           <div class="lab-accordion__body">
@@ -547,14 +557,14 @@ function renderComponentView(params: URLSearchParams): void {
             <div class="lab-states" id="interaction-controls" hidden></div>
           </div>
         </details>
-        <details class="lab-controls lab-accordion" open id="details-panel">
+        <details class="lab-controls lab-accordion" id="details-panel">
           <summary class="lab-controls__title">Details</summary>
           <div class="lab-accordion__body">
             <div class="lab-behaviour" id="version-behaviour" hidden></div>
             <dl class="lab-spec-meta" id="version-spec-meta"></dl>
           </div>
         </details>
-        <details class="lab-controls lab-accordion" open>
+        <details class="lab-controls lab-accordion">
           <summary class="lab-controls__title">Tokens Used</summary>
           <div class="lab-accordion__body">
             <div id="tokens-used-list"></div>
@@ -579,7 +589,7 @@ function renderComponentView(params: URLSearchParams): void {
             <button class="lab-btn lab-btn--sm" id="copy-css-btn">Copy CSS</button>
           </div>
         </details>
-        <section class="lab-controls" aria-label="Compare">
+        <section class="lab-controls" aria-label="Compare"${SHOW_COMPARE ? '' : ' hidden'}>
           <h3 class="lab-controls__title">Compare with</h3>
           <select class="lab-select" id="compare-select">
             <option value="">None</option>
@@ -620,8 +630,10 @@ function renderComponentView(params: URLSearchParams): void {
   const playbackLines = (): string[] => {
     const lines: string[] = [];
     if (!version.interaction || hasEntrance(version)) {
-      for (const { name, version: step } of stepsOf(version)) {
-        const label = version.interaction ? `${name ? `${name} ` : ''}appear: ` : name ? `${name}: ` : '';
+      for (const { name, track, version: step } of stepsOf(version)) {
+        // "title fade", "title move": a preset on an element is a fade and a move.
+        const who = [name, track && track !== 'all' ? track : null].filter(Boolean).join(' ');
+        const label = version.interaction ? `${who ? `${who} ` : ''}appear: ` : who ? `${who}: ` : '';
         lines.push(label + (runtime === 'motion'
           ? describeMotionArgs(motionArgsOf(step, raw, { globalBounce }))
           : describePlayback(playbackOf(step, raw))));
@@ -653,9 +665,10 @@ function renderComponentView(params: URLSearchParams): void {
     if (muted) dd.className = 'lab-spec-meta__unset';
     specMeta.append(dt, dd);
   }
-  // What an interaction version does, in plain words.
+  // What an interaction version does, in plain words. Off for now (too busy in the Details panel): the
+  // summary logic (lab/lib/interaction-summary.ts) and this block stay; set SHOW_WHAT_IT_DOES to bring it back.
   const behaviour = document.getElementById('version-behaviour')!;
-  if (version.interaction) {
+  if (SHOW_WHAT_IT_DOES && version.interaction) {
     const summary = summarizeInteraction(version, raw, runtime, { component: componentName, globalBounce });
     const title = document.createElement('h3');
     title.className = 'lab-behaviour__title';
@@ -790,7 +803,9 @@ function renderComponentView(params: URLSearchParams): void {
       const title = document.createElement('div');
       title.className = 'lab-tokens-layer';
       title.textContent = step.layer ?? 'root';
-      title.title = step.layer ? `The element marked data-motion="${step.layer}"` : 'The component root (data-motion-target)';
+      title.title = !step.layer ? 'The component root (data-motion-target)'
+        : step.layer.includes(' ') ? `${step.layer}: one track of an entrance preset`
+        : `The element marked data-motion="${step.layer}"`;
       tokensList.appendChild(title);
     }
     for (const use of step.uses) {
@@ -846,7 +861,7 @@ function renderComponentView(params: URLSearchParams): void {
   const renderExport = (): void => {
     const format = exportFormat.value as ExportFormat;
     cssPre.textContent = buildExportCode(format, version, raw, {
-      component: componentName, globalBounce, css: buildVersionCss(version, raw, { component: componentName }),
+      component: componentName, globalBounce, includePresets: true, css: buildVersionCss(version, raw, { component: componentName, includePresets: true }),
     });
     copyBtn.textContent = `Copy ${EXPORT_LABELS[format]}`;
   };
@@ -1312,6 +1327,81 @@ function renderTokensView(): void {
   main.appendChild(wrapper);
 }
 
+// ── Presets view ───────────────────────────────────────────────────────────
+// /?view=presets
+// Each entrance preset (lab/lib/entrance-presets.ts) playing on a simple example.
+// They play through the same entrance code as any component, so the runtime switch applies.
+
+const PRESET_EXAMPLES: Record<PresetName, string> = {
+  eyebrow: '<span class="lab-preset-eg lab-preset-eg--eyebrow">Eyebrow label</span>',
+  title: '<span class="lab-preset-eg lab-preset-eg--title">A title for the page</span>',
+  text: '<span class="lab-preset-eg lab-preset-eg--text">A line of body text that appears under the title, long enough to read as it settles.</span>',
+  card: '<div class="lab-preset-eg lab-preset-eg--card"><strong>Card title</strong><span>Supporting text inside the card.</span></div>',
+  media: '<div class="lab-preset-eg lab-preset-eg--media" role="img" aria-label="Media placeholder"></div>',
+  ui: '<button class="lab-btn lab-preset-eg--ui" type="button">Button</button>',
+};
+
+function presetVersion(name: PresetName): MotionVersion {
+  return { id: `preset-${name}`, label: name, entrance: { preset: name }, lineage: 'entrance preset' };
+}
+
+function renderPresetsView(): void {
+  const main = document.getElementById('main-content')!;
+  main.innerHTML = '';
+  main.className = 'lab-main lab-main--presets';
+
+  const intro = document.createElement('div');
+  intro.className = 'lab-presets__intro';
+  const text = document.createElement('p');
+  text.className = 'lab-text-muted';
+  text.textContent = 'Named, standard entrances built from the existing tokens. A component writes its entrance as an element, a preset and a delay.';
+  const replayAll = document.createElement('button');
+  replayAll.className = 'lab-btn';
+  replayAll.id = 'presets-replay-all';
+  replayAll.textContent = 'Replay all';
+  intro.append(text, replayAll);
+
+  const grid = document.createElement('div');
+  grid.className = 'lab-presets__grid';
+  grid.id = 'presets-grid';
+
+  const targets: { name: PresetName; target: HTMLElement }[] = [];
+  for (const name of PRESET_NAMES) {
+    const card = document.createElement('section');
+    card.className = 'lab-preset';
+    card.dataset['preset'] = name;
+
+    const head = document.createElement('div');
+    head.className = 'lab-preset__head';
+    const title = document.createElement('h3');
+    title.className = 'lab-preset__name';
+    title.textContent = name;
+    const replay = document.createElement('button');
+    replay.className = 'lab-btn lab-btn--sm';
+    replay.dataset['replay'] = name;
+    replay.textContent = 'Replay';
+    head.append(title, replay);
+
+    const stage = document.createElement('div');
+    stage.className = 'lab-preset__stage';
+    const holder = document.createElement('div');
+    holder.className = 'lab-preset__holder';
+    holder.dataset['motionTarget'] = '';
+    holder.innerHTML = PRESET_EXAMPLES[name];
+    stage.appendChild(holder);
+
+    card.append(head, stage);
+    grid.appendChild(card);
+    targets.push({ name, target: holder });
+    replay.addEventListener('click', () => animateElement(holder, presetVersion(name)));
+  }
+
+  main.append(intro, grid);
+  const playAll = (): void => targets.forEach(({ name, target }) => animateElement(target, presetVersion(name)));
+  replayAll.addEventListener('click', playAll);
+  playAll();
+}
+
 // ── Library view ───────────────────────────────────────────────────────────
 // /?view=library[&status=…][&archived=1][&q=…]
 // Every component as a scaled live preview. A card plays its version on hover or
@@ -1462,6 +1552,8 @@ function route(): void {
     renderPageView(params);
   } else if (view === 'tokens') {
     renderTokensView();
+  } else if (view === 'presets') {
+    renderPresetsView();
   } else if (view === 'library') {
     renderLibraryView(params);
   } else {

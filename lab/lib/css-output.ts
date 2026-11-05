@@ -1,6 +1,7 @@
 import type { Interaction, MotionVersion, EntranceVersion, SpringProperty } from './types.js';
 import { resolveRefs, tokenVarName } from './token-compiler.js';
-import { hasEntrance, stepsOf } from './motion-models.js';
+import { hasEntrance, stepsOf, type StepEntry } from './motion-models.js';
+import { PRESET_NAMES, presetTracks, PRESETS, type PresetName } from './entrance-presets.js';
 import { interactionParts, partProps, partValues, stateNames, timingFor } from './interaction.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { describeTrigger, getReducedMotionPolicy } from './version-meta.js';
@@ -13,6 +14,9 @@ import { describeTrigger, getReducedMotionPolicy } from './version-meta.js';
 export interface CssOptions {
   // Used in the class and @keyframes names: .motion-<component>-<version>.
   component?: string;
+  // Put the shared preset definitions (presets.css) above the component's CSS: the Generated code panel does,
+  // the spec writes them to a file of their own.
+  includePresets?: boolean;
 }
 
 function parseMs(value: string): number {
@@ -183,6 +187,89 @@ function stepCss(version: EntranceVersion, raw: Record<string, unknown>, name: s
   return out;
 }
 
+// ── Entrance presets ───────────────────────────────────────────────────────
+
+export const PRESETS_CSS_FILE = 'presets.css';
+
+// Shared by every component that uses a preset: one @keyframes per track and a .motion-preset-<name> class that
+// runs them together. The delay (and a stagger between repeating elements) come from custom properties the
+// component sets: --motion-delay, --motion-stagger and, per element, --motion-item (0, 1, 2…).
+export function buildPresetsCss(raw: Record<string, unknown>, names: readonly PresetName[] = PRESET_NAMES): string {
+  const out: string[] = [
+    '/* Entrance presets: named, standard entrances (see the Presets view in Motion Lab). Shared by every component that uses one. */',
+    '/* Add .motion-preset-<name> to the element, and set --motion-delay, --motion-stagger and --motion-item (0, 1, 2… per element) when it needs them. */',
+  ];
+  const v = (token: string, fallback: string): string => `var(${tokenVarName(token)}, ${fallback})`;
+  const lit = (token: string): string => literalValue(token, raw, token);
+  for (const name of names) {
+    const tracks = presetTracks(name);
+    const cls = `motion-preset-${name}`;
+    const p = PRESETS[name];
+    const names2: string[] = [];
+    const durations: string[] = [];
+    const easings: string[] = [];
+    out.push('');
+    for (const t of tracks) {
+      const kf = `${cls}-${t.track}`;
+      const frames = (t.model.model === 'spring' ? [{ at: 'from', decls: ['opacity: 0;'] }, { at: 'to', decls: ['opacity: 1;'] }] : tweenFrames(t.keyframes as Keyframe[], raw));
+      out.push(...keyframesBlock(kf, frames));
+      names2.push(kf);
+      durations.push(v(t.model.duration, lit(t.model.duration)));
+      easings.push(v(t.model.easing, lit(t.model.easing)));
+    }
+    const fadeModel = (tracks.find(t => t.track === 'fade') ?? tracks[0]!).model;
+    if (!tracks.some(t => t.track === 'fade')) out.push(...keyframesBlock(`${cls}-fade`, [{ at: 'from', decls: ['opacity: 0;'] }, { at: 'to', decls: ['opacity: 1;'] }]));
+    out.push(
+      ...block(`.${cls}`, [
+        `animation-name: ${names2.join(', ')};`,
+        `animation-duration: ${durations.join(', ')};`,
+        `animation-timing-function: ${easings.join(', ')};`,
+        'animation-delay: calc(var(--motion-delay, 0ms) + var(--motion-item, 0) * var(--motion-stagger, 0ms));',
+        'animation-fill-mode: both;',
+      ]),
+      '',
+      `/* ${name}: rise ${lit(p.rise)}${p.scale ? `, from scale ${lit(p.scale)}` : ''} (${p.move.duration}, ${p.move.easing})${tracks.length > 1 ? `, fade (${p.fade!.duration}, ${p.fade!.easing})` : ''} */`,
+      '@media (prefers-reduced-motion: reduce) {',
+      ...block(`.${cls}`, [
+        `animation-name: ${cls}-fade;`,
+        `animation-duration: ${Math.round(Math.min(parseMs(literalValue(fadeModel.duration, raw, '150ms')), REDUCED_MOTION_FADE_MS))}ms;`,
+        `animation-timing-function: ${v(fadeModel.easing, lit(fadeModel.easing))};`,
+      ], '  '),
+      '}',
+    );
+  }
+  return out.join('\n') + '\n';
+}
+
+// The presets a version uses, in the order it uses them.
+export function presetsUsed(entries: StepEntry[]): PresetName[] {
+  return [...new Set(entries.flatMap(e => (e.preset ? [e.preset] : [])))];
+}
+
+// A preset on an element: the component's own class sets the delay and stagger the preset reads.
+function presetClassCss(entries: StepEntry[], raw: Record<string, unknown>, base: string, pageStagger: string | undefined, combined: boolean): string[] {
+  const out: string[] = [];
+  const seen = new Set<string | null>();
+  for (const entry of entries) {
+    if (!entry.preset || seen.has(entry.name)) continue;
+    seen.add(entry.name);
+    const cls = entry.name ? `${base}-${entry.name}` : base;
+    const delay = literalValue(entry.version.model.delay, raw, '0ms');
+    const hasDelay = delay !== '0ms' && delay !== '0s' && delay !== '0';
+    const lines: string[] = [];
+    const delayToken = entry.version.model.delay;
+    const delayCss = hasDelay ? cssValue(delayToken, raw, delay) : '0ms';
+    if (entry.name === null && pageStagger) lines.push('/* Stagger siblings: set --motion-index to 0, 1, 2… on each. */', `--motion-delay: calc(${delayCss} + var(--motion-index, 0) * ${pageStagger});`);
+    else if (hasDelay) lines.push(`--motion-delay: ${delayCss};`);
+    if (entry.elementStagger) lines.push('/* Set --motion-item to 0, 1, 2… on each repeating element. */', `--motion-stagger: ${cssValue(entry.elementStagger, raw, entry.elementStagger)};`);
+    out.push('', `/* ${entry.name ? `Layer ${entry.name}` : 'The component'}: the ${entry.preset} preset. Add .motion-preset-${entry.preset}${lines.length || (combined && entry.name === null) ? ` and .${cls}` : ''} to the element${entry.name ? ` marked data-motion="${entry.name}"` : ''}. */`);
+    if (lines.length) out.push(...block(`.${cls}`, lines));
+    // With states after the entrance, the entrance must not hold its last frame over them.
+    if (combined && entry.name === null) out.push(...block(`.motion-preset-${entry.preset}.${cls}`, ['animation-fill-mode: backwards;']));
+  }
+  return out;
+}
+
 // The selectors on the component's root that put it in a state because of a hover, press or focus. Hover,
 // press and focus triggers are CSS pseudo-classes; a click has none, so it sets data-state (below). A trigger
 // on an inner element (`target`) is `:has()` on the root.
@@ -299,10 +386,14 @@ export function buildVersionCss(
     return out.join('\n');
   }
 
-  for (const { name, version: step } of stepsOf(version)) {
+  const entries = stepsOf(version);
+  for (const { name, version: step, preset } of entries) {
+    if (preset) continue; // a preset is the shared definition plus a class (below)
     if (name) out.push('', `/* Layer ${name}: add .${base}-${name} to the element marked data-motion="${name}" when the trigger fires. */`);
     out.push(...stepCss(step, raw, name ? `${base}-${name}` : base, stagger, combined ? 'backwards' : 'both'));
   }
+  out.push(...presetClassCss(entries, raw, base, stagger, combined));
+  if (options.includePresets && presetsUsed(entries).length) out.unshift(buildPresetsCss(raw, presetsUsed(entries)), `/* ── ${component} ${version.id} ── */`, '');
   if (combined) out.push('', ...interactionCss(version, raw, base));
   return out.join('\n');
 }
