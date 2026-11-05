@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { SAMPLES_PRESENT, SAMPLES_NEEDED } from '../samples.js';
 
 // Settings: the gear beside the theme toggle opens a dialog with the things you change rarely. Today
 // that is the Global scale: how the distance, duration, delay, opacity and scale tokens get their
@@ -56,6 +57,7 @@ test.describe('Settings', () => {
   });
 
   test('previews a scale against the current tokens, and says how to apply it', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     await openSettings(page);
     await expect(page.locator('#scale-current')).toHaveText('The tokens follow no scale: Custom, their values were set by hand.');
     await expect(page.locator('#scale-preview-select option')).toHaveText([

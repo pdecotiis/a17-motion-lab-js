@@ -212,6 +212,13 @@ tests/e2e/_template.spec.ts    → copy to tests/e2e/<component>.spec.ts
 - Component renders visibly at `/?view=component&component=<name>`
 - Each version plays without console errors
 
+### Sample content and project repos
+
+The template ships sample content so its own feature tests have something to run on: the `card` and `side-panel` components and the `home` page (`tests/samples.ts` lists them). **A project repo holds client content only, so it deletes these three** (`components/card`, `components/side-panel`, `pages/home`). Everything that needs them then skips itself, so a project's `npm run check` tests the project's own components and pages, and the template's feature tests stay in the template:
+- `SAMPLES_PRESENT` is true only when all three exist. `vitest.config.ts` leaves out `SAMPLE_UNIT_FILES` and `playwright.config.ts` ignores `SAMPLE_E2E_FILES` when it is false; tests that need a sample in a file that is otherwise independent start with `test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED)` (`describe.skipIf` / `it.skipIf` in unit tests).
+- **When you write a test for a template feature that uses a sample** (opens `component=card` or `page=home`, or imports from `components/card/`), list its file in `tests/samples.ts` or guard it as above: `tests/unit/samples.test.ts` fails for one that does neither. A test that needs *some* component should open the lab's default (`/?view=component`, `/?view=page`: the first component and page when the samples are gone) so it runs in a project too.
+- The lab itself does not need the samples: with no `card` or `home` it opens the first component and the first page.
+
 ## Figma import
 
 Components can be imported from a Figma frame instead of hand-built. The Figma MCP (design context, variables, screenshot, assets) is driven by the agent; the deterministic, file-writing half lives in `scripts/figma-import/lib.ts`. The agent writes a manifest JSON and runs `npm run figma:import -- <manifest.json>` (see the header of `scripts/figma-import/cli.ts` for the manifest shape).

@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 import { CustomEase } from 'gsap/CustomEase';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { SAMPLES_PRESENT } from '../samples.js';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { PRESETS, PRESET_NAMES, SEPARATE_FADE, hasFadeTrack, presetTracks, type EntrancePreset } from '../../lab/lib/entrance-presets.js';
@@ -358,7 +359,7 @@ describe('spec.md for a preset version', () => {
   });
 });
 
-describe('npm run spec with presets', () => {
+describe.skipIf(!SAMPLES_PRESENT)('npm run spec with presets', () => {
   const root = resolve(import.meta.dirname, '../..');
   const out = mkdtempSync(join(tmpdir(), 'motion-lab-presets-'));
   afterAll(() => rmSync(out, { recursive: true, force: true }));
