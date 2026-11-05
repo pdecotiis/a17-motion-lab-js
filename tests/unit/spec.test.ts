@@ -304,8 +304,8 @@ describe('layers', () => {
   });
 
   it('a layer is offset by its own delay and by the version\'s stagger', () => {
-    expect(css).toContain('animation-delay: calc(70ms + var(--motion-index, 0) * var(--motion-delay-70, 70ms));');
-    expect(css).toContain('animation-delay: calc(120ms + var(--motion-index, 0) * var(--motion-delay-70, 70ms));');
+    expect(css).toContain('animation-delay: calc(var(--motion-delay-70, 70ms) + var(--motion-index, 0) * var(--motion-delay-70, 70ms));');
+    expect(css).toContain('animation-delay: calc(var(--motion-delay-120, 120ms) + var(--motion-index, 0) * var(--motion-delay-70, 70ms));');
   });
 
   it('every layer has its own reduced-motion block', () => {
@@ -361,5 +361,77 @@ describe('layers', () => {
       expect(plain).not.toContain('- **root**');
       expect(plain).toContain('- `duration.220` (duration)');
     });
+  });
+});
+
+describe('the scroll snippet in the spec', () => {
+  const layered = (trigger?: MotionVersion['trigger']): MotionVersion => tween({
+    trigger,
+    layers: {
+      title: { model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }] },
+    },
+  });
+  const md = (v: MotionVersion) => buildVersionExport('card', v, [v], tokens).markdown;
+
+  it('gives the observer for an in-view trigger, with the threshold, the root class and each layer\'s class', () => {
+    const text = md(layered({ on: 'in-view', threshold: 0.2, once: true }));
+    expect(text).toContain('### When the section scrolls into view');
+    expect(text).toContain('20% visible, first time only');
+    expect(text).toContain("const rootClasses = ['motion-card-v1'];");
+    expect(text).toContain("'title': ['motion-card-v1-title'],");
+    expect(text).toContain('{ threshold: 0.2 }');
+    expect(text).toContain('observer.disconnect(); // first time only');
+    expect(text).toContain('call `playCardV1(section)`');
+  });
+
+  it('plays again each time it enters when the trigger says every time', () => {
+    const text = md(layered({ on: 'in-view', threshold: 0.5, once: false }));
+    expect(text).toContain('every time it enters again');
+    expect(text).toContain('setClasses(entry.isIntersecting)');
+    expect(text).not.toContain('observer.disconnect()');
+  });
+
+  it('says "as soon as any of it shows" and observes at threshold 0 when the version names no threshold', () => {
+    const text = md(layered({ on: 'in-view' }));
+    expect(text).toContain('as soon as any of it shows, first time only');
+    expect(text).toContain('{ threshold: 0 }');
+  });
+
+  it('adds nothing for a trigger that is not in-view, or none', () => {
+    expect(md(layered({ on: 'load' }))).not.toContain('scrolls into view');
+    expect(md(layered())).not.toContain('IntersectionObserver');
+  });
+
+  it('names a preset element\'s own class and the version class that carries its delay', () => {
+    const preset: MotionVersion = {
+      id: 'v2',
+      label: 'Layered',
+      entrance: { preset: 'ui' },
+      layers: { eyebrow: { preset: 'eyebrow', delay: 'delay.40' }, text: { preset: 'text' } },
+      trigger: { on: 'in-view', threshold: 0.2, once: true },
+      forkedFrom: 'v1',
+    };
+    const text = md(preset);
+    expect(text).toContain("const rootClasses = ['motion-preset-ui', 'motion-card-v2'];");
+    expect(text).toContain("'eyebrow': ['motion-preset-eyebrow', 'motion-card-v2-eyebrow'],");
+    expect(text).toContain("'text': ['motion-preset-text'],");
+  });
+});
+
+describe('delay tokens in the CSS', () => {
+  it('a delay token is written as its variable with the literal as the fallback, so changing the token changes the delay', () => {
+    const v = tween({
+      layers: { title: { model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }] } },
+    });
+    const css = buildVersionCss(v, raw, { component: 'card' });
+    expect(css).toContain('animation-delay: var(--motion-delay-70, 70ms);');
+    expect(css).not.toContain('animation-delay: 70ms;');
+  });
+
+  it('a literal delay stays a literal, and a duration token used as a delay is a variable too', () => {
+    const lit = tween({ model: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-entrance', delay: '90ms' } });
+    expect(buildVersionCss(lit, raw, { component: 'card' })).toContain('animation-delay: 90ms;');
+    const byDuration = tween({ model: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-entrance', delay: 'duration.300' } });
+    expect(buildVersionCss(byDuration, raw, { component: 'card' })).toContain('animation-delay: var(--motion-duration-300, 300ms);');
   });
 });

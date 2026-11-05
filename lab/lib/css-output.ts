@@ -104,17 +104,19 @@ function springFrames(props: SpringProperty[]): { at: string; decls: string[] }[
 }
 
 // Lines for the animation-delay declaration: the version's delay plus, when it staggers,
-// an index the developer sets on each sibling (--motion-index: 0, 1, 2, …).
-function delayLines(delay: string, stagger: string | undefined): string[] {
+// an index the developer sets on each sibling (--motion-index: 0, 1, 2, …). `delay` is the literal value
+// (to tell whether there is one); `delayCss` is what is written: a delay token stays var(--motion-delay-40, 40ms),
+// so changing the token changes the delay, like every other token in the file.
+function delayLines(delay: string, delayCss: string, stagger: string | undefined): string[] {
   const hasDelay = delay !== '0ms' && delay !== '0s' && delay !== '0';
   if (stagger) {
-    const base = hasDelay ? `${delay} + ` : '';
+    const base = hasDelay ? `${delayCss} + ` : '';
     return [
       '/* Stagger: set --motion-index to 0, 1, 2… on each sibling. */',
       `animation-delay: calc(${base}var(--motion-index, 0) * ${stagger});`,
     ];
   }
-  return hasDelay ? [`animation-delay: ${delay};`] : [];
+  return hasDelay ? [`animation-delay: ${delayCss};`] : [];
 }
 
 function block(selector: string, lines: string[], indent = ''): string[] {
@@ -134,6 +136,7 @@ function stepCss(version: EntranceVersion, raw: Record<string, unknown>, name: s
   const duration = cssValue(model.duration, raw, '300ms');
   const easing = cssValue(model.easing, raw, 'ease');
   const delay = literalValue(model.delay, raw, '0ms');
+  const delayCss = cssValue(model.delay, raw, '0ms');
 
   out.push('');
   if (model.model === 'spring') out.push(`/* authored as a spring of ${model.easing}; CSS plays its easing, only a spring runtime (Motion) bounces */`);
@@ -143,7 +146,7 @@ function stepCss(version: EntranceVersion, raw: Record<string, unknown>, name: s
       `animation-name: ${name};`,
       `animation-duration: ${duration};`,
       `animation-timing-function: ${easing};`,
-      ...delayLines(delay, stagger),
+      ...delayLines(delay, delayCss, stagger),
       `animation-fill-mode: ${fill};`,
     ]),
   );
@@ -318,7 +321,7 @@ function interactionCss(version: MotionVersion, raw: Record<string, unknown>, ba
         `transition-timing-function: ${cssValue(t.easing, raw, 'ease')};`,
       );
       const delay = literalValue(t.delay, raw, '0ms');
-      if (delay !== '0ms' && delay !== '0s' && delay !== '0') decl.push(`transition-delay: ${delay};`);
+      if (delay !== '0ms' && delay !== '0s' && delay !== '0') decl.push(`transition-delay: ${cssValue(t.delay, raw, delay)};`);
       const spring = t.model === 'spring' ? ': authored as a spring; CSS plays its easing, only a spring runtime (Motion) bounces' : '';
       if (lines.length) lines.push('');
       lines.push(`${indent}/* ${part ?? 'the component'}: ${note}${spring} */`, ...block(rootSelectors.map(r => r + partSuffix(part)).join(',\n' + indent), decl, indent));
