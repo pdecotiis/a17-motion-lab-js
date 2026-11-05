@@ -39,6 +39,7 @@ export const SAMPLE_E2E_FILES = [
   'tests/e2e/component-view.spec.ts',
   'tests/e2e/engine-tokens.spec.ts',
   'tests/e2e/interactions.spec.ts',
+  'tests/e2e/page-scroll.spec.ts',
   'tests/e2e/page-versions.spec.ts',
   'tests/e2e/page-view.spec.ts',
   'tests/e2e/side-panel.spec.ts',

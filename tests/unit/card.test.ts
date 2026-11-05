@@ -116,7 +116,7 @@ describe('Card tokens', () => {
   });
 
   it('staggers with delay tokens', () => {
-    expect(versions.map(v => v.stagger)).toEqual(['delay.70', 'delay.70']);
+    expect(versions.map(v => v.stagger)).toEqual(['delay.70', 'delay.70', 'delay.70']);
   });
 });
 
@@ -125,8 +125,18 @@ describe('Card status and lineage', () => {
     expect(() => validateVersionMeta(versions, cardModule.status)).not.toThrow();
   });
 
-  it('keeps the last two versions, numbered without gaps', () => {
-    expect(versions.map(v => v.id)).toEqual(['v1', 'v2']);
+  it('keeps its versions numbered without gaps', () => {
+    expect(versions.map(v => v.id)).toEqual(['v1', 'v2', 'v3']);
+  });
+
+  it('v3 is v1\'s motion played when the card scrolls into view, and says so', () => {
+    const { trigger, label, forkedFrom, lineage, ...rest } = versions[2]!;
+    expect(trigger).toEqual({ on: 'in-view', threshold: 0.2, once: true });
+    expect(forkedFrom).toBe('v1');
+    expect(lineage).toBeUndefined();
+    const { id: _i, label: _l, lineage: _g, ...v1Motion } = v1;
+    expect(rest).toMatchObject({ ...v1Motion, id: 'v3' });
+    expect(label).toContain('Scroll');
   });
 });
 
