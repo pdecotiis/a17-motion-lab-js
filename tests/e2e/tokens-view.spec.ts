@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { SAMPLES_PRESENT, SAMPLES_NEEDED } from '../samples.js';
 
 test.describe('Tokens view', () => {
   test.beforeEach(async ({ page }) => {
@@ -41,6 +42,7 @@ test.describe('Tokens view', () => {
   });
 
   test('notes, status, value, usage and old names are in the tooltip', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     const tip = (key: string) => page.locator('.lab-token-row', { hasText: key }).first().getAttribute('title');
     const used = await tip('duration.220');
     expect(used).toContain('Status: system');
@@ -94,6 +96,7 @@ test.describe('Tokens view', () => {
   });
 
   test('Bounce shows only under Motion: three tokens, each with a spring curve from Motion', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     await page.goto('/?view=tokens');
     await expect(page.locator('.lab-tokens-subtab', { hasText: 'Bounce' })).toHaveCount(0);
     await page.click('#runtime-motion');

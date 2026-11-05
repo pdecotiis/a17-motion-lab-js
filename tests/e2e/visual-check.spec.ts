@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { SAMPLES_PRESENT, SAMPLES_NEEDED } from '../samples.js';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -24,6 +25,7 @@ async function captureBaseline(page: import('@playwright/test').Page): Promise<s
 
 test.describe('Visual check helper', () => {
   test('frame view renders the component without lab chrome', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     await page.goto('/?view=frame&component=card');
     await expect(page.locator('[data-motion-target]').first()).toBeVisible();
     await expect(page.locator('.lab-header')).toBeHidden();
@@ -37,6 +39,7 @@ test.describe('Visual check helper', () => {
   });
 
   test('a different baseline exceeds the diff threshold', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     const dir = mkdtempSync(join(tmpdir(), 'ml-baseline-'));
     const blank = new PNG({ width: SIZE.width, height: SIZE.height });
     blank.data.fill(0); // fully transparent black never matches the rendered page

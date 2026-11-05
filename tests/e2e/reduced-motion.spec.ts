@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { SAMPLES_PRESENT, SAMPLES_NEEDED } from '../samples.js';
 
 test.describe('prefers-reduced-motion', () => {
   test('shows reduced motion notice when emulated', async ({ page }) => {
@@ -28,18 +29,21 @@ test.describe('prefers-reduced-motion', () => {
     });
 
   test('a tween plays a short opacity-only fade', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?view=frame&component=card&version=v1');
     expect(await playedAnimation(page)).toEqual({ duration: 150, properties: ['opacity'] });
   });
 
   test('a tween plays in full when reduced motion is not requested', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto('/?view=frame&component=card&version=v1');
     expect(await playedAnimation(page)).toEqual({ duration: 220, properties: ['opacity', 'transform'] });
   });
 
   test('a layer plays the same short opacity-only fade as the root', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?view=frame&component=card&version=v1');
     const title = await page.evaluate(() => {

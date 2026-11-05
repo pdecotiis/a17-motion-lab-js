@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { SAMPLES_PRESENT } from '../samples.js';
 
 // `npm run spec` as a developer runs it: --format picks the code written beside motion.css.
 const root = resolve(import.meta.dirname, '../..');
@@ -12,7 +13,7 @@ afterAll(() => rmSync(out, { recursive: true, force: true }));
 const run = (...args: string[]) =>
   spawnSync('npx', ['vite-node', 'scripts/export-spec.ts', '--', ...args, '--out', out], { cwd: root, encoding: 'utf8' });
 
-describe('npm run spec --format', () => {
+describe.skipIf(!SAMPLES_PRESENT)('npm run spec --format', () => {
   it('writes only motion.css, tokens.css and spec.md by default', () => {
     execFileSync('npx', ['vite-node', 'scripts/export-spec.ts', '--', 'card', 'v1', '--out', out], { cwd: root });
     const dir = join(out, 'card', 'v1');
@@ -52,7 +53,7 @@ describe('npm run spec --format', () => {
   });
 });
 
-describe('npm run spec with no version', () => {
+describe.skipIf(!SAMPLES_PRESENT)('npm run spec with no version', () => {
   it('refuses a component that is not approved, and says how to export one anyway', () => {
     const r = run('card');
     expect(r.status).toBe(1);

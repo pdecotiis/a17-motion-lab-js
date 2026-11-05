@@ -100,6 +100,24 @@ function getPageConfig(pageName: string): PageConfig | undefined {
   return pageModules[key];
 }
 
+// What a view opens when the link names none. The template's samples (`card`, `home`) when they are
+// there; a project that removed them opens its own first component and page.
+function defaultComponentName(): string {
+  const names = Object.keys(motionModules)
+    .map(p => /\/components\/([^/]+)\/motion\.ts$/.exec(p)?.[1])
+    .filter((n): n is string => Boolean(n))
+    .sort();
+  return names.includes('card') ? 'card' : names[0] ?? 'card';
+}
+
+function defaultPageName(): string {
+  const names = Object.keys(pageModules)
+    .map(p => /\/pages\/([^/]+)\/page\.json$/.exec(p)?.[1])
+    .filter((n): n is string => Boolean(n))
+    .sort();
+  return names.includes('home') ? 'home' : names[0] ?? 'home';
+}
+
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
 const { cssVars, raw, meta } = compileTokens(tokensJson as unknown as DtcgGroup);
@@ -520,7 +538,7 @@ const SHOW_WHAT_IT_DOES = false;
 const INTERRUPT_MS = 150;
 
 function renderComponentView(params: URLSearchParams): void {
-  const componentName = params.get('component') ?? 'card';
+  const componentName = params.get('component') ?? defaultComponentName();
   const versionId = params.get('version') ?? 'v1';
   const version = getVersion(componentName, versionId);
 
@@ -897,7 +915,7 @@ function renderComponentView(params: URLSearchParams): void {
 // /?view=frame&component=<name>&version=<id>
 
 function renderFrameView(params: URLSearchParams): void {
-  const componentName = params.get('component') ?? 'card';
+  const componentName = params.get('component') ?? defaultComponentName();
   const versionId = params.get('version') ?? getDefaultVersion(componentName).id;
   document.body.classList.add('lab-frame-mode');
 
@@ -940,7 +958,7 @@ const sameMap = (a: MotionMap, b: MotionMap): boolean => {
 };
 
 function renderPageView(params: URLSearchParams): void {
-  const pageName = params.get('page') ?? 'home';
+  const pageName = params.get('page') ?? defaultPageName();
   const main = document.getElementById('main-content')!;
   main.innerHTML = '';
   main.className = 'lab-main lab-main--page';

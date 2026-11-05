@@ -71,7 +71,8 @@ To start a project:
    git remote add template git@github.com:pdecotiis/a17-motion-lab.git
    ```
 3. Add the client's fonts to `/fonts` (gitignored). Faces with no matching file fall back to a system font.
-4. Import components from Figma and start exploring.
+4. Delete the template's sample content, which a project doesn't keep: `components/card`, `components/side-panel` and `pages/home`. The tests that need them skip themselves (see `tests/samples.ts`), and the lab opens your first component and page.
+5. Import components from Figma and start exploring.
 
 To get the latest template changes in a project repo:
 

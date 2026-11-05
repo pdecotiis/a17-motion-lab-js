@@ -9,7 +9,7 @@ test.describe('App loads without errors', () => {
     const errors: string[] = [];
     page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
     page.on('pageerror', err => errors.push(err.message));
-    await page.goto('/?view=component&component=card');
+    await page.goto('/?view=component');
     await page.waitForLoadState('networkidle');
     expect(errors).toHaveLength(0);
   });
@@ -18,7 +18,7 @@ test.describe('App loads without errors', () => {
     const errors: string[] = [];
     page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
     page.on('pageerror', err => errors.push(err.message));
-    await page.goto('/?view=page&page=home');
+    await page.goto('/?view=page');
     await page.waitForLoadState('networkidle');
     expect(errors).toHaveLength(0);
   });
