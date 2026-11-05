@@ -1,7 +1,8 @@
 import tokensJson from '../tokens/motion.json';
 import type {
-  MotionVersion, PageConfig, MotionMap, ComponentModule, ComponentStatus, DtcgGroup,
+  MotionVersion, PageComponent, PageConfig, MotionMap, ComponentModule, ComponentStatus, DtcgGroup,
 } from './lib/types.js';
+import { scrollTriggerOf, staggerIndex } from './lib/scroll-trigger.js';
 import { compileTokens, applyTokensToDom, tokenLabel } from './lib/token-compiler.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
 import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
@@ -943,6 +944,20 @@ const PAGE_VERSION_ENDPOINT = '/__lab/page-version';
 // Refits each column's page when its width changes (the window, or Compare adding a column).
 let pageObserver: ResizeObserver | null = null;
 
+// The width a vertical scrollbar takes inside a scrolling box (0 where scrollbars overlay the content), so the
+// preview window is exactly as wide as the page plus its padding, with no sideways scroll of its own.
+let measuredScrollbar: number | null = null;
+function scrollbarWidth(): number {
+  if (measuredScrollbar === null) {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;top:-9999px;width:100px;height:100px;overflow:scroll';
+    document.body.appendChild(probe);
+    measuredScrollbar = probe.offsetWidth - probe.clientWidth;
+    probe.remove();
+  }
+  return measuredScrollbar;
+}
+
 function getPageVersions(pageName: string, page: PageConfig): PageVersion[] {
   const saved: PageVersion[] = [];
   for (const [path, data] of Object.entries(pageVersionModules)) {
@@ -1022,6 +1037,7 @@ function renderPageView(params: URLSearchParams): void {
           <h3 class="lab-controls__title">Motion Map</h3>
           <div id="motion-map-panel" class="lab-motion-map-panel"></div>
           <button class="lab-btn" id="replay-all-btn">Replay All</button>
+          <p class="lab-text-muted lab-controls__hint">The page is a fixed-height window: scroll it. A section whose version plays on scroll waits until it enters the window; Replay All scrolls back to the top.</p>
         </section>
         <section class="lab-controls" aria-label="Stagger">
           <h3 class="lab-controls__title">Stagger</h3>
@@ -1041,8 +1057,17 @@ function renderPageView(params: URLSearchParams): void {
   const stage = document.getElementById('page-stage')!;
   const motionMapPanel = document.getElementById('motion-map-panel')!;
 
-  // One column per page version shown: the page with its components playing.
-  interface PageColumn { grid: HTMLElement; anims: Map<string, PlayHandle>; map: () => MotionMap; choice: () => string }
+  // One column per page version shown: the page, in a fixed-height window you scroll (like a browser window),
+  // with its components playing. A section whose version has an in-view trigger waits until it scrolls in.
+  interface PageSlot { wrapper: HTMLElement; observer: IntersectionObserver | null }
+  interface PageColumn {
+    grid: HTMLElement;
+    viewport: HTMLElement;
+    anims: Map<string, PlayHandle>;
+    slots: Map<string, PageSlot>;
+    map: () => MotionMap;
+    choice: () => string;
+  }
   const columns: PageColumn[] = [];
   pageObserver?.disconnect();
   pageObserver = new ResizeObserver(entries => {
@@ -1092,10 +1117,12 @@ function renderPageView(params: URLSearchParams): void {
       };
       viewport.refit();
       pageObserver!.observe(viewport);
-    } else if (scaleLabel) {
-      scaleLabel.textContent = '100%';
+    } else {
+      // The window is the page's width plus its padding and border (and a scrollbar, where one takes room).
+      viewport.style.width = `${pageWidth + 34 + scrollbarWidth()}px`;
+      if (scaleLabel) scaleLabel.textContent = '100%';
     }
-    const column: PageColumn = { grid, anims: new Map(), map, choice };
+    const column: PageColumn = { grid, viewport, anims: new Map(), slots: new Map(), map, choice };
     columns.push(column);
     return column;
   }
@@ -1103,25 +1130,63 @@ function renderPageView(params: URLSearchParams): void {
   // The token the page staggers with now, or null for none.
   const staggerTokenFor = (choice: string): string | null => pageStaggerToken(choice, delayTokens, defaultStagger);
 
-  function playColumn(column: PageColumn): void {
-    const map = column.map();
-    const token = staggerTokenFor(column.choice());
-    column.grid.innerHTML = '';
-    column.anims.clear();
-    pageConfig.components.forEach((pc, i) => {
-      const wrapper = document.createElement('div');
-      wrapper.className = `lab-page-item lab-page-item--${pc.layout ?? 'full'}`;
-      wrapper.dataset['componentId'] = pc.id;
-      wrapper.innerHTML = getMarkup(pc.component);
-      column.grid.appendChild(wrapper);
+  // One section of the page: its markup, and its motion. A version that plays on load starts now; one with an
+  // in-view trigger waits (hidden) until the section enters the window, then plays, once or every time as its
+  // trigger says. `opening` is true while the page is opening: the sections already in view then start together,
+  // staggered by their place in the page, and one that scrolls in later plays on its own.
+  function mountSection(column: PageColumn, pc: PageComponent, index: number, opening: boolean, replace?: HTMLElement): void {
+    column.slots.get(pc.id)?.observer?.disconnect();
+    const wrapper = document.createElement('div');
+    wrapper.className = `lab-page-item lab-page-item--${pc.layout ?? 'full'}`;
+    wrapper.dataset['componentId'] = pc.id;
+    wrapper.innerHTML = getMarkup(pc.component);
+    if (replace) replace.replaceWith(wrapper); else column.grid.appendChild(wrapper);
 
-      const target =
-        wrapper.querySelector<HTMLElement>('[data-motion-target]') ??
-        (wrapper.firstElementChild as HTMLElement);
-      const ver = getVersion(pc.component, map[pc.id] ?? getDefaultVersion(pc.component).id);
-      const staggered = token !== null && i > 0;
-      column.anims.set(pc.id, animateElement(target, staggered ? { ...ver, stagger: token } : ver, staggered ? i : 0));
-    });
+    const target =
+      wrapper.querySelector<HTMLElement>('[data-motion-target]') ??
+      (wrapper.firstElementChild as HTMLElement);
+    const ver = getVersion(pc.component, column.map()[pc.id] ?? getDefaultVersion(pc.component).id);
+    const token = staggerTokenFor(column.choice());
+    const play = (staggerAt: number): void => {
+      const staggered = token !== null && staggerAt > 0;
+      column.anims.set(pc.id, animateElement(target, staggered ? { ...ver, stagger: token } : ver, staggered ? staggerAt : 0));
+    };
+
+    const slot: PageSlot = { wrapper, observer: null };
+    column.slots.set(pc.id, slot);
+    const trigger = scrollTriggerOf(ver);
+    if (!trigger) { play(index); return; }
+
+    wrapper.classList.add('lab-page-item--waiting');
+    let firstNotice = true;
+    let played = false;
+    const observer = new IntersectionObserver(entries => {
+      const entry = entries[entries.length - 1]!;
+      // The first notice comes right after observing: it says what is in view as the page opens.
+      const atOpening = opening && firstNotice;
+      firstNotice = false;
+      if (entry.isIntersecting && entry.intersectionRatio >= Math.min(trigger.threshold, 1)) {
+        if (played && trigger.once) return;
+        played = true;
+        wrapper.classList.remove('lab-page-item--waiting');
+        play(staggerIndex(index, atOpening));
+        if (trigger.once) observer.disconnect();
+      } else if (!trigger.once && played) {
+        wrapper.classList.add('lab-page-item--waiting'); // out of view: wait for the next time it enters
+      }
+    }, { root: column.viewport, threshold: trigger.threshold });
+    observer.observe(wrapper);
+    slot.observer = observer;
+  }
+
+  // Starts the page over: scrolled back to the top, every section back to where it waits or plays.
+  function playColumn(column: PageColumn): void {
+    column.slots.forEach(s => s.observer?.disconnect());
+    column.slots.clear();
+    column.anims.clear();
+    column.grid.innerHTML = '';
+    pageConfig.components.forEach((pc, i) => mountSection(column, pc, i, true));
+    column.viewport.scrollTop = 0;
   }
 
   const unsavedLabel = (): string => (hasUnsaved() ? ' (unsaved changes)' : '');
@@ -1155,14 +1220,27 @@ function renderPageView(params: URLSearchParams): void {
     updateNote();
   }
 
+  // Each slot's label says when its version plays: "· plays on scroll" for an in-view trigger.
+  const slotLabels = new Map<string, HTMLElement>();
+  function updateScrollLabels(): void {
+    for (const pc of pageConfig.components) {
+      const label = slotLabels.get(pc.id);
+      if (!label) continue;
+      const ver = getVersion(pc.component, motionMap[pc.id] ?? getDefaultVersion(pc.component).id);
+      label.textContent = pc.id + (scrollTriggerOf(ver) ? ' · plays on scroll' : '');
+    }
+  }
+
   function buildMotionMapPanel(): void {
     motionMapPanel.innerHTML = '';
+    slotLabels.clear();
     pageConfig.components.forEach(pc => {
       const group = document.createElement('div');
       group.className = 'lab-control-group';
       const label = document.createElement('label');
       label.className = 'lab-control-label';
       label.textContent = pc.id;
+      slotLabels.set(pc.id, label);
       const sel = document.createElement('select');
       sel.className = 'lab-select';
       sel.dataset['componentId'] = pc.id;
@@ -1179,13 +1257,10 @@ function renderPageView(params: URLSearchParams): void {
       sel.addEventListener('change', () => {
         motionMap[pc.id] = sel.value;
         syncUrl();
-        const wrapper = primary.grid.querySelector<HTMLElement>(`[data-component-id="${pc.id}"]`);
-        if (wrapper) {
-          const target =
-            wrapper.querySelector<HTMLElement>('[data-motion-target]') ??
-            (wrapper.firstElementChild as HTMLElement);
-          primary.anims.set(pc.id, animateElement(target, getVersion(pc.component, sel.value)));
-        }
+        // Only this section starts over, as the page now is (not part of the page's opening).
+        const wrapper = primary.slots.get(pc.id)?.wrapper;
+        if (wrapper) mountSection(primary, pc, pageConfig.components.indexOf(pc), false, wrapper);
+        updateScrollLabels();
       });
 
       group.appendChild(label);
@@ -1198,6 +1273,7 @@ function renderPageView(params: URLSearchParams): void {
   staggerSelect.value = [PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, ...delayTokens.map(tokenLabel)].includes(pageStagger) ? pageStagger : PAGE_STAGGER_DEFAULT;
   columns.forEach(playColumn);
   buildMotionMapPanel();
+  updateScrollLabels();
   updateNote();
 
   document.getElementById('replay-all-btn')!.addEventListener('click', () => columns.forEach(playColumn));

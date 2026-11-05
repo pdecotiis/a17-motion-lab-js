@@ -70,7 +70,7 @@ test.describe('Component view', () => {
 test.describe('Component status and lineage', () => {
   test('versions carry no status: no badges on the tabs or in the history, and no status filter', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
-    await expect(page.locator('.lab-version-tab')).toHaveCount(2);
+    await expect(page.locator('.lab-version-tab')).toHaveCount(3);
     await expect(page.locator('.lab-sidebar .lab-status-badge')).toHaveCount(0);
     await expect(page.locator('#status-filter')).toHaveCount(0);
     await expect(page.locator('#show-archived')).toHaveCount(0);
@@ -80,7 +80,7 @@ test.describe('Component status and lineage', () => {
     await page.goto('/?view=component&component=card&version=v2');
     await expect(page.locator('#version-spec-meta dt:has-text("Component status") + dd')).toHaveText('In progress');
     await expect(page.locator('#version-lineage')).toHaveText('Forked from v1: Fade Up, Text Follows');
-    await expect(page.locator('#version-history li')).toHaveCount(2);
+    await expect(page.locator('#version-history li')).toHaveCount(3);
     await page.goto('/?view=component&component=card&version=v1');
     await expect(page.locator('#version-lineage')).toHaveText('Kept from the earlier explorations (older versions removed)');
   });
@@ -142,7 +142,7 @@ test.describe('Sidebar accordions', () => {
   test('clicking a title opens and closes its panel', async ({ page }) => {
     await summary(page, 'Version history').click();
     await expect(page.locator('#version-history')).toBeVisible();
-    await expect(page.locator('#version-history li')).toHaveCount(2);
+    await expect(page.locator('#version-history li')).toHaveCount(3);
     await summary(page, 'Version history').click();
     await expect(page.locator('#version-history')).toBeHidden();
 

@@ -16,7 +16,7 @@ test.describe('Page versions', () => {
   test('lists the page\'s versions, v1 first, and starts on v1', async ({ page }) => {
     await page.goto('/?view=page&page=home');
     await expect(page.locator('#page-version-select option')).toHaveText([
-      'v1: Default', 'v2: Second card lifts, slower stagger',
+      'v1: Default', 'v2: Second card lifts, slower stagger', 'v3: Plays on scroll',
     ]);
     await expect(page.locator('#page-version-select')).toHaveValue('v1');
     await expect(page.locator('#page-version-note')).toHaveText('');
@@ -88,7 +88,7 @@ test.describe('Page versions', () => {
 
   test('Compare offers the other versions and drops a comparison that becomes the open version', async ({ page }) => {
     await page.goto('/?view=page&page=home&compare=v2');
-    await expect(page.locator('#page-compare-select option')).toHaveText(['None', 'v2: Second card lifts, slower stagger']);
+    await expect(page.locator('#page-compare-select option')).toHaveText(['None', 'v2: Second card lifts, slower stagger', 'v3: Plays on scroll']);
     await page.selectOption('#page-version-select', 'v2');
     await expect(page.locator('.lab-page-col')).toHaveCount(1);
     expect(page.url()).not.toContain('compare');
