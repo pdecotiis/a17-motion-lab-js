@@ -75,7 +75,7 @@ test.describe('Page versions', () => {
     await page.selectOption('#page-compare-select', 'v2');
     await expect(page).toHaveURL(/compare=v2/);
     await expect(page.locator('.lab-page-col')).toHaveCount(2);
-    await expect(page.locator('.lab-page-col__label')).toHaveText(['v1: Default', 'v2: Second card lifts, slower stagger']);
+    await expect(page.locator('.lab-page-col__name')).toHaveText(['v1: Default', 'v2: Second card lifts, slower stagger']);
     await expect(page.locator('.lab-page-col .card')).toHaveCount(6);
     expect(await delays(page, 0)).toEqual([0, 70, 140]);
     expect(await delays(page, 1)).toEqual([0, 120, 240]);
@@ -110,15 +110,57 @@ test.describe('Page versions', () => {
     expect(errors).toEqual([]);
   });
 
-  test('the page is zoomed down to fit its column, never up', async ({ page }) => {
+  test('one page is shown at its own size, never scaled, and scrolls sideways when the window is narrower', async ({ page }) => {
+    // `home` has no width of its own, so it lays out at the default 400px; an imported page sets its Figma width.
+    for (const width of [500, 1600]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/?view=page&page=home');
+      const grid = page.locator('.lab-page-grid');
+      expect(await grid.evaluate(el => (el as HTMLElement).style.zoom)).toBe('');
+      expect((await grid.boundingBox())!.width).toBe(400);
+      const stage = page.locator('#page-stage');
+      expect(await stage.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(width === 500);
+    }
+    await expect(page.locator('.lab-page-col__scale')).toHaveCount(0);
+    await expect(page.locator('#page-actual-size')).toHaveCount(0);
+  });
+
+  test('Compare fits the two pages to the window, says the scale, and never scales up', async ({ page }) => {
     await page.setViewportSize({ width: 700, height: 900 });
     await page.goto('/?view=page&page=home&compare=v2');
     const zooms = await page.locator('.lab-page-grid').evaluateAll(els => els.map(el => Number((el as HTMLElement).style.zoom)));
     expect(zooms).toHaveLength(2);
     for (const z of zooms) { expect(z).toBeGreaterThan(0); expect(z).toBeLessThan(1); }
+    const labels = await page.locator('.lab-page-col__scale').allTextContents();
+    expect(labels).toEqual(zooms.map(z => `${Math.round(z * 100)}%`));
     await page.setViewportSize({ width: 1600, height: 900 });
-    await page.goto('/?view=page&page=home');
-    expect(await page.locator('.lab-page-grid').evaluate(el => Number((el as HTMLElement).style.zoom))).toBe(1);
+    await page.goto('/?view=page&page=home&compare=v2');
+    expect(await page.locator('.lab-page-grid').evaluateAll(els => els.map(el => (el as HTMLElement).style.zoom))).toEqual(['1', '1']);
+    await expect(page.locator('.lab-page-col__scale')).toHaveText(['100%', '100%']);
+  });
+
+  test('"Actual size" shows both compared pages at their own size and scrolls sideways', async ({ page }) => {
+    await page.setViewportSize({ width: 700, height: 900 });
+    await page.goto('/?view=page&page=home&compare=v2');
+    await expect(page.locator('#page-actual-size')).not.toBeChecked();
+    await page.check('#page-actual-size');
+    await expect(page).toHaveURL(/size=actual/);
+    for (const g of await page.locator('.lab-page-grid').all()) {
+      expect(await g.evaluate(el => (el as HTMLElement).style.zoom)).toBe('');
+      expect((await g.boundingBox())!.width).toBe(400);
+    }
+    await expect(page.locator('.lab-page-col__scale')).toHaveText(['100%', '100%']);
+    expect(await page.locator('#page-stage').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
+    await page.uncheck('#page-actual-size');
+    expect(page.url()).not.toContain('size=');
+    for (const z of await page.locator('.lab-page-grid').evaluateAll(els => els.map(el => Number((el as HTMLElement).style.zoom)))) expect(z).toBeLessThan(1);
+  });
+
+  test('the Actual size choice is dropped with the comparison', async ({ page }) => {
+    await page.goto('/?view=page&page=home&compare=v2&size=actual');
+    await expect(page.locator('#page-actual-size')).toBeChecked();
+    await page.selectOption('#page-compare-select', '');
+    expect(page.url()).not.toContain('size=');
   });
 });
 
