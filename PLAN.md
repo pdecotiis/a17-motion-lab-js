@@ -56,6 +56,8 @@ Motion Lab is a reusable template for iterating on motion for components importe
 - Effort to start is a standing product concern. Every new feature should be weighed by whether it makes it easier or harder for a designer to pick the tool up and start working.
 - The developer hand-off is stack-neutral CSS first. Library adapters (GSAP, Motion) are added only when a client's stack needs one.
 - A version with no `trigger` is "not specified", never defaulted. The spec and CSS say so and tell the developer to ask. Imports never set a trigger.
+- **Pages are components assembled, never whole-page copies.** A page version is a saved combination of component versions plus the stagger (see Next steps), so one component is explored once however many pages use it, and what a developer receives is still the approved component.
+- **Source adapters, not modes.** Figma and (later) Storybook or a live URL are ways of producing a component; the lab, versions, pages and exports do not change with the source. A component records its source in `meta.json`.
 
 ## Current state
 
@@ -64,6 +66,22 @@ The template has interactions (states, triggers, entrance plus states in one ver
 Paused (decided 2026-11-05): component-level presets (an elements list in Details with a try-a-preset preview, so a designer assigns "title" to an element without the Presets page), a worked example version using presets, and a plain-language "Appears" line for entrance versions.
 
 ## Next steps
+
+Motion Lab has two workflows, decided 2026-11-05. **Ideation** is early in a project: Figma is the source, there is no code yet, and a designer explores motion on a page and its components. **Refinement** is later, once the core system is built: the build is the source, components come from it (Storybook or a live URL), and designers refine motion against what ships. One model serves both: a component is markup, CSS and versions, a page is a list of components, and only where the markup comes from (and what v1 is) differs. Build ideation first, then refinement.
+
+**Ideation (now)**
+
+1. **Page from Figma.** A Figma page frame becomes components plus a page: Claude reads the frame, imports one component per section (repeated instances are one component), and writes `pages/<id>/page.json` listing them in order, with a first page version that plays every component's default version. Mostly workflow plus a small page-writing script; the Figma component import is unchanged.
+2. **Page versions.** A page version is a named combination saved with its page (`pages/<id>/versions/<version>.json`): which component version plays in each slot (`motionMap`) and the page stagger. It replaces today's motion-map "preset", which has no page and doesn't save the stagger. The Page view lists a page's versions, switches between them and compares two side by side; the panel is renamed "Page versions" so it never clashes with the entrance presets. Page versions point at component versions (nothing is copied), and approval stays at the component level.
+
+**Refinement (later)**
+
+3. **Codebase adapter.** Import a component from the build into the same component format: Storybook first (its `index.json` is the component list; stories give isolated rendering and states, the Jane Street one is behind HTTP auth, so credentials come from environment variables and are never committed), then a live URL. The agent extracts, a script writes, like the Figma import. Findings so far: that Storybook is React with CSS Modules (hashed class names) and Radix primitives (`data-state`, `data-slot`); a component's states often need an interaction first (a dialog only exists once opened); the story already has its own transitions that would fight a lab version.
+4. **Layer mapping that survives re-import**, so a component started in Figma can switch to the build and keep its versions (selector to `data-motion` name, re-applied on every import).
+5. **Existing motion as v1.** Read the build's transitions and keyframes into a v1 mapped to the nearest tokens, so designers refine what ships.
+6. **Export back to the real selectors** (a patch a developer applies), instead of generated class names.
+
+**Earlier list** (unchanged, numbers are referred to elsewhere):
 
 1. Import 2–3 more components in the pilot project repo.
 2. Slash commands: `/lab import`, `/lab version`, save/review, `/lab export`.

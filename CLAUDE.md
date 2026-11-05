@@ -14,14 +14,13 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 **Tokens used**: what each motion of the open version uses, and **where in the motion** each token sits: its duration, easing and delay, a stagger that is a token, and the tokens its keyframes name (`0% transform`). A version with layers gets a group for the root and one per layer, so you can see the card's tokens apart from its text's. **It follows the runtime**: under Motion nothing plays an easing (every motion is a spring), so no easing token is listed and there are no pairing warnings; duration, delay, stagger and keyframe tokens still are, plus the **bounce token** each motion plays with (its own, else the global setting; a plain-number bounce is flagged as hard-coded). Under CSS it lists everything. Pairing warnings show under it. `getStepRefs(version, raw, runtime?)` (per motion), `getTokenRefs` (the whole version, as authored: what exports) and `pairingWarnings(version, raw, runtime?)` (per motion), `getTokenRefs` (the whole version) and `pairingWarnings` are in `lab/lib/token-refs.ts`; the Tokens view uses the same index for each token's "used by".
 **Tokens view**: `/?view=tokens`. Tabs for duration, easing, distance, scale, opacity and delay (with the **default stagger** setting above its table), plus **bounce under Motion only** (the **global bounce setting** above the table, and three rows with a spring curve drawn from Motion's own spring generator, `springCurve` in `lab/lib/curve.ts`); tokens run smallest to largest (easings in system order: productive standard, entrance, exit, then expressive, then linear). **A row is just the token name and a preview** (a curve for easings, a bar for durations and distances); notes, status, value, usage and old names are in the row's tooltip.  The curve maths is in `lab/lib/curve.ts`.
 **Pages**: `page.json` defines an ordered list of component instances for page-level motion review. **Page stagger uses delay tokens, never a free number** (`lab/lib/stagger.ts`): the page view's Stagger panel is a select of `Default (delay.70)`, `None` and each delay token (a page's own choice is `?pageStagger=none|120…`, absent = the default). The **default stagger** is a setting like the global bounce: a select on the **Tokens view's Delay tab**, delay tokens only, default `delay.70`, persisted in the URL (`?stagger=120`, a token label; anything else, such as an old millisecond link, falls back to `delay.70`) and the tab. Component *k* of the page starts *k* × the stagger token after the first; the Tokens view tooltip says which delay token is the default page stagger.
-**Motion maps**: URL-encoded state (shareable) + saved JSON presets.
+**Page versions**: a page version is a named combination for one page: which version of each component plays in each slot (`motionMap`, keyed by the page's component ids) and the page stagger (`stagger`: `none` or a delay token; absent = the default setting). It lives with its page, `pages/<page>/versions/v1.json`, `v2.json`, … (next free integer, like component versions; `forkedFrom` optional), and **points at component versions, copying nothing**: improving a component version improves every page version that uses it, and approval stays at the component level. A page with no saved version plays an implicit "Default" (every component's default version). The Page view's **Page versions** panel picks the version (`?pv=v2`), **Compare with** plays two saved versions side by side (`?compare=v3`; each column is the page zoomed to fit, with its own stagger), and what is changed on screen (`?mm=…`, `?pageStagger=…`) is **unsaved** until **Save as new version**, which writes the next file through the dev server's `/__lab/page-version` (`scripts/page-version-plugin.ts`, same safeguards as the scale endpoint: dev only, same origin, one new file, never replaces one; a built copy disables the button, and Claude can call `savePageVersion` in `scripts/page-version-save.ts`). Choosing a version drops unsaved changes. A page's optional `width` (px) is the width it lays out at, zoomed down to fit (default 400, a column of cards; an imported page sets its content width and its sections sit flush). The logic is pure in `lab/lib/page-versions.ts` (`validatePageVersion`, `resolveMotionMap`, `checkPageVersions`, `pageVersionsOf`); `tests/unit/pages.test.ts` checks every page and its saved versions against the components. This replaces the old `motion-maps/` presets (a preset had no page and did not save the stagger); the **entrance presets** (the Presets view) are unrelated. The URL still carries state for sharing: `?mm=` is a base64 motion map.
 
 ```
 /lab/              Vite app shell (index.html, main.ts, styles.css, lib/)
 /components/       One folder per component (markup.html, styles.css, motion.ts, versions/)
-/pages/            page.json files
+/pages/            One folder per page (page.json, meta.json when imported, versions/ of page versions)
 /tokens/           DTCG motion tokens (motion.json)
-/motion-maps/      Saved presets (JSON)
 /tests/unit/       Vitest unit tests
 /tests/e2e/        Playwright E2E tests
 ```
@@ -32,7 +31,8 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 - **Motion versions**: `v1`, `v2`, `v3` — sequential integers, never skip
 - **Token paths**: dot notation, group first, no `motion` root, value-named except easing (e.g. `duration.300`, `easing.productive-standard`, `distance.16`)
 - **Page IDs**: match folder name (e.g. `pages/home/page.json` has `"id": "home"`)
-- **Preset IDs**: `kebab-case` matching the filename
+- **Page versions**: `v1`, `v2`, `v3` — sequential integers, never skip, the file is `pages/<page>/versions/<id>.json`
+- **Page slots** (component ids on a page): the component name when used once, `<component>-1`, `<component>-2` when repeated
 
 ## How to add a new component
 
@@ -229,6 +229,19 @@ Components can be imported from a Figma frame instead of hand-built. The Figma M
 - **Scaled frames**: if the linked frame is a scaled instance, `designWidth` records the native width. The lab lays the component out at `designWidth` and zooms to `frame.width`.
 - **Issues**: record Figma file problems for designers (no auto layout, unnamed layers, variant strings as layer names, values not bound to variables) in `meta.json` `issues`.
 
+### Page import (a Figma page frame becomes components plus a page)
+
+For ideation, a designer links a whole page frame. Components stay the unit of motion (and of approval); the page is the list of them in order, and page versions (see Architecture) combine their versions. Do the file-writing with `npm run figma:import-page -- <manifest.json>` (`scripts/figma-import/page.ts`; the manifest shape is in `page-cli.ts`).
+
+1. **Read the frame.** `get_metadata` on the page frame: it is usually a wrapper (a breakpoint or state, e.g. `xl · open`) holding a column of section instances plus chrome. Look at the screenshot; get the design context of each section.
+2. **Sections vs chrome.** Sections sit in the page flow and are imported. Chrome (an off-canvas menu, the global header, the footer, floating buttons) is listed in `notImported` with the reason, not imported on a first pass: they are usually interactions of their own, imported when the designer asks. Ask when unsure.
+3. **One component per distinct section, identified by what it is, not its layer name.** Figma instance names are shared by variants (three `section header` instances of different heights may be one component with different content, or different variants). Compare structure: the same structure repeated is one lab component in several slots (`section-header-1`, `-2`); a different structure (with a photo, without one) is a separate lab component named for what differs (`section-header-image`), never numbered. A section that is an instance of something already imported (match `meta.json` `layerName`, the Figma component and the size) reuses that component instead of importing again. Content inside a section (the quote cards in a quote slider) belongs to that component; there are no nested components on a page.
+4. **Import each new component first** with the component import rules above (fix-up passes, baseline). Each is laid out at the content column width (the page's `width`, e.g. the 1136px column inside a 1440px frame).
+5. **Write the manifest and run the page import.** It writes `pages/<id>/page.json` (slots in order, `width`), `pages/<id>/meta.json` (Figma link, frame, sections with their Figma names, what was not imported, issues) and, first import only, page version `v1` (every component's default version). It refuses a section whose component is not imported yet, and names them.
+6. **Check it in the Page view** against the Figma screenshot: order, and that sections sit flush the way the frame does.
+7. **Re-import** rewrites `page.json` and `meta.json` and never touches saved page versions; it reports any saved version that no longer fits (a slot that went away). Fix those by editing the version, not by deleting it silently.
+8. Record page-level Figma problems in `meta.json` `issues` (sections not named, variants told apart only by layer name, chrome inside the page frame).
+
 ### Fidelity target
 
 The component's static end state (after all animations finish) must match the Figma screenshot within **5%** of pixels (`MAX_DIFF_RATIO` in `tests/e2e/visual.ts`, pixelmatch threshold 0.1). Fix the markup/styles to close a gap rather than raising the threshold.
@@ -301,6 +314,7 @@ When a designer wants a standard entrance ("the eyebrow, title and text rise in 
 | Command              | Action                                          |
 |----------------------|-------------------------------------------------|
 | `npm run figma:import -- <manifest.json>` | Import a Figma frame as a component |
+| `npm run figma:import-page -- <manifest.json>` | Write a page (and its first page version) from a Figma page frame whose sections are already imported |
 | `npm run spec -- <component> [version] [--format gsap\|motion\|all]` | Export motion.css, tokens.css and spec.md (plus GSAP or Motion code) for a developer |
 | `npm run tokens:scale -- <kind> <scale>` or `-- --all <scale>` | Regenerate distance, duration, delay, opacity and/or scale from a scale (`--dry-run` to preview) |
 | `npm run dev`        | Start Vite dev server (http://localhost:5173)   |
