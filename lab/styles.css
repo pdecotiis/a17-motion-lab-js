@@ -274,20 +274,24 @@ html, body {
   border-color: var(--color-accent);
 }
 
-/* Page view: one column per page version shown (two when comparing), each page zoomed to fit */
+/* Page view: one column per page version shown (two when comparing).
+   A page is shown at its own size and the stage scrolls sideways when the window is narrower; in Compare
+   (--fit) the two pages share the width and are zoomed down to fit, unless "Actual size" is on. */
 .lab-page-layout { grid-template-columns: minmax(0, 1fr) 280px; }
-.lab-page-stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; min-width: 0; }
-.lab-page-stage--compare { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.lab-page-col { min-width: 0; }
+.lab-page-stage { display: flex; align-items: flex-start; gap: 16px; min-width: 0; overflow-x: auto; padding-bottom: 8px; }
+.lab-page-col { flex: 0 0 auto; }
 .lab-page-col__label { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--color-text-muted); }
+.lab-page-col__scale { margin-left: 8px; font-weight: 400; }
 .lab-page-viewport {
+  width: max-content;
   padding: 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  overflow: hidden;
 }
-/* The page lays out at its own width (set in the lab) and is zoomed to fit. */
+.lab-page-stage--fit .lab-page-col { flex: 1 1 0; min-width: 0; }
+.lab-page-stage--fit .lab-page-viewport { width: auto; overflow: hidden; }
+/* The page lays out at its own width (set in the lab). */
 .lab-page-grid { display: flex; flex-direction: column; gap: 24px; }
 .lab-page-grid--flush { gap: 0; }
 .lab-page-item { width: 100%; }

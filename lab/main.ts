@@ -987,9 +987,16 @@ function renderPageView(params: URLSearchParams): void {
   let pageStagger = params.get('pageStagger') ?? savedStagger;
   const hasUnsaved = (): boolean => !sameMap(motionMap, savedMap) || pageStagger !== savedStagger;
 
+  // One page is shown at its exact size, the size of the Figma frame: motion is judged at the size it ships,
+  // and the lab is not responsive (a narrower window scrolls sideways). Compare puts two pages side by side,
+  // which only fits scaled down, so it fits them to the window and says the scale; "Actual size" goes back
+  // to exact size and scrolls.
+  const actualSize = params.get('size') === 'actual';
+  const fit = Boolean(compareWith) && !actualSize;
+
   main.innerHTML = `
     <div class="lab-page-layout">
-      <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}" id="page-stage"></div>
+      <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
       <aside class="lab-sidebar">
         <section class="lab-controls" aria-label="Page versions">
           <h3 class="lab-controls__title">Page versions</h3>
@@ -1006,6 +1013,7 @@ function renderPageView(params: URLSearchParams): void {
               ${versions.filter(v => v.id !== active.id).map(v => `<option value="${v.id}">${v.id}: ${v.label}</option>`).join('')}
             </select>
           </div>
+          ${compareWith ? `<label class="lab-check"><input type="checkbox" id="page-actual-size"${actualSize ? ' checked' : ''}> Actual size (scroll sideways)</label>` : ''}
           <p class="lab-lineage" id="page-version-note"></p>
           <button class="lab-btn" id="save-page-version-btn">Save as new version</button>
           <p class="lab-text-muted lab-controls__hint" id="page-version-status"></p>
@@ -1033,7 +1041,7 @@ function renderPageView(params: URLSearchParams): void {
   const stage = document.getElementById('page-stage')!;
   const motionMapPanel = document.getElementById('motion-map-panel')!;
 
-  // One column per page version shown: the page, scaled to fit, with its components playing.
+  // One column per page version shown: the page with its components playing.
   interface PageColumn { grid: HTMLElement; anims: Map<string, PlayHandle>; map: () => MotionMap; choice: () => string }
   const columns: PageColumn[] = [];
   pageObserver?.disconnect();
@@ -1050,10 +1058,16 @@ function renderPageView(params: URLSearchParams): void {
   function addColumn(label: string | null, id: string | null, map: () => MotionMap, choice: () => string): PageColumn {
     const col = document.createElement('section');
     col.className = 'lab-page-col';
+    let scaleLabel: HTMLElement | null = null;
     if (label !== null) {
       const heading = document.createElement('h3');
       heading.className = 'lab-page-col__label';
-      heading.textContent = label;
+      const name = document.createElement('span');
+      name.className = 'lab-page-col__name';
+      name.textContent = label;
+      scaleLabel = document.createElement('span');
+      scaleLabel.className = 'lab-page-col__scale';
+      heading.append(name, scaleLabel);
       col.appendChild(heading);
     }
     const viewport = document.createElement('div') as HTMLElement & { refit?: () => void; fitWidth?: number };
@@ -1065,15 +1079,22 @@ function renderPageView(params: URLSearchParams): void {
     viewport.appendChild(grid);
     col.appendChild(viewport);
     stage.appendChild(col);
-    // The page lays out at its own width and is zoomed down to fit its column, never up.
-    viewport.refit = () => {
-      const width = viewport.clientWidth - 32;
-      viewport.fitWidth = width;
-      grid.style.width = `${pageWidth}px`;
-      grid.style.zoom = String(Math.min(1, Math.max(0.05, width / pageWidth)));
-    };
-    viewport.refit();
-    pageObserver!.observe(viewport);
+    // The page lays out at its own width. Alone (or at "Actual size") it stays that size; in Compare it is
+    // zoomed down to fit its column, never up, and the column says by how much.
+    grid.style.width = `${pageWidth}px`;
+    if (fit) {
+      viewport.refit = () => {
+        const width = viewport.clientWidth - 32;
+        viewport.fitWidth = width;
+        const zoom = Math.min(1, Math.max(0.05, width / pageWidth));
+        grid.style.zoom = String(zoom);
+        if (scaleLabel) scaleLabel.textContent = `${Math.round(zoom * 100)}%`;
+      };
+      viewport.refit();
+      pageObserver!.observe(viewport);
+    } else if (scaleLabel) {
+      scaleLabel.textContent = '100%';
+    }
     const column: PageColumn = { grid, anims: new Map(), map, choice };
     columns.push(column);
     return column;
@@ -1121,8 +1142,8 @@ function renderPageView(params: URLSearchParams): void {
     if (hasUnsaved()) note.textContent = 'Unsaved changes. Save them as a new version to keep them.';
     else if (active.forkedFrom) note.textContent = `Forked from ${active.forkedFrom}`;
     else note.textContent = '';
-    const heading = stage.querySelector('.lab-page-col__label');
-    if (heading && compareWith) heading.textContent = `${active.id}: ${active.label}${unsavedLabel()}`;
+    const name = stage.querySelector('.lab-page-col__name');
+    if (name && compareWith) name.textContent = `${active.id}: ${active.label}${unsavedLabel()}`;
   }
 
   // The URL keeps only what differs from the saved version.
@@ -1203,7 +1224,14 @@ function renderPageView(params: URLSearchParams): void {
   compareSelect.value = compareWith?.id ?? '';
   compareSelect.addEventListener('change', () => {
     const sp = new URLSearchParams(window.location.search);
-    if (compareSelect.value) sp.set('compare', compareSelect.value); else sp.delete('compare');
+    if (compareSelect.value) sp.set('compare', compareSelect.value); else { sp.delete('compare'); sp.delete('size'); }
+    window.history.replaceState(null, '', `?${sp.toString()}`);
+    renderPageView(sp);
+  });
+  // Compare only: fit the two pages to the window (scaled, the scale shown) or show both at actual size.
+  document.getElementById('page-actual-size')?.addEventListener('change', event => {
+    const sp = new URLSearchParams(window.location.search);
+    if ((event.target as HTMLInputElement).checked) sp.set('size', 'actual'); else sp.delete('size');
     window.history.replaceState(null, '', `?${sp.toString()}`);
     renderPageView(sp);
   });
