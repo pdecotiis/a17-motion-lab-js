@@ -315,15 +315,33 @@ speedControl.addEventListener('change', () => {
 
 // ── Nav ────────────────────────────────────────────────────────────────────
 
-const navBtns = document.querySelectorAll<HTMLButtonElement>('.lab-nav__btn');
-navBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const view = btn.dataset['view']!;
-    const params = new URLSearchParams(window.location.search);
-    params.set('view', view);
-    window.location.search = params.toString();
-  });
+// The nav items are real links (so a new tab, copy link and the keyboard all work); a plain click switches the view in
+// place instead of reloading the page: the URL changes with history.pushState and route() draws the new view.
+const navBtns = document.querySelectorAll<HTMLAnchorElement>('.lab-nav__btn');
+
+// What the view on screen has to let go of before the next one is drawn (observers watching its elements).
+let viewCleanups: (() => void)[] = [];
+function onViewLeave(cleanup: () => void): void { viewCleanups.push(cleanup); }
+
+function navigate(href: string): void {
+  const url = new URL(href, window.location.href);
+  if (url.origin !== window.location.origin) { window.location.href = url.href; return; }
+  const next = `${url.pathname}${url.search}`;
+  if (next !== `${window.location.pathname}${window.location.search}`) window.history.pushState(null, '', next);
+  route();
+  document.getElementById('main-content')?.scrollTo(0, 0);
+}
+
+// Any link that goes to another view of the lab (an href that starts with "?") is followed in place; a click with a
+// modifier key, a middle click or a link that opens elsewhere keeps its browser behaviour.
+document.addEventListener('click', event => {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const link = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[href^="?"]');
+  if (!link || (link.target && link.target !== '_self') || link.hasAttribute('download')) return;
+  event.preventDefault();
+  navigate(link.getAttribute('href')!);
 });
+window.addEventListener('popstate', () => route());
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -1275,6 +1293,7 @@ function renderPageView(params: URLSearchParams): void {
     }, { root: column.viewport, threshold: trigger.threshold });
     observer.observe(wrapper);
     slot.observer = observer;
+    onViewLeave(() => observer.disconnect());
   }
 
   // Starts the page over: scrolled back to the top, every section back to where it waits or plays.
@@ -1992,9 +2011,17 @@ function route(): void {
   const view = params.get('view') ?? 'library';
   const navView = view === 'component' ? 'library' : view;
 
+  // Let go of the view on screen: what it observed, and the motions still playing on its elements.
+  viewCleanups.forEach(cleanup => cleanup());
+  viewCleanups = [];
+  pageObserver?.disconnect();
+  libraryObserver?.disconnect();
+  activeAnimations.forEach(handle => handle.cancel());
+  activeAnimations = [];
+
   navBtns.forEach(btn => {
     const isActive = btn.dataset['view'] === navView;
-    btn.setAttribute('aria-pressed', String(isActive));
+    if (isActive) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current');
     btn.classList.toggle('lab-nav__btn--active', isActive);
   });
 

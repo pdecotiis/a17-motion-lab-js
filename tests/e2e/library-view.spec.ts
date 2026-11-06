@@ -16,7 +16,7 @@ test.describe('Library view', () => {
 
   test('Library tab is active', async ({ page }) => {
     await page.goto('/?view=library');
-    await expect(page.locator('.lab-nav__btn[data-view="library"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.lab-nav__btn[data-view="library"]')).toHaveAttribute('aria-current', 'page');
   });
 
   test('clicking a card opens it in the component view', async ({ page }) => {

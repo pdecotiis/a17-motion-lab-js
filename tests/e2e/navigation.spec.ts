@@ -12,7 +12,7 @@ test.describe('Navigation', () => {
   test('the Library is home: opening the lab with no view shows it', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('#library-grid')).toBeVisible();
-    await expect(page.locator('.lab-nav__btn[data-view="library"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.lab-nav__btn[data-view="library"]')).toHaveAttribute('aria-current', 'page');
   });
 
   test('the logo goes home to the Library', async ({ page }) => {
@@ -26,8 +26,8 @@ test.describe('Navigation', () => {
     await page.goto('/?view=library');
     await page.locator('.lab-library-card').first().click();
     await expect(page).toHaveURL(/view=component/);
-    await expect(page.locator('.lab-nav__btn[data-view="library"]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.lab-nav__btn[aria-pressed="true"]')).toHaveCount(1);
+    await expect(page.locator('.lab-nav__btn[data-view="library"]')).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('.lab-nav__btn[aria-current="page"]')).toHaveCount(1);
   });
 
   test.describe('the breadcrumb', () => {
@@ -89,8 +89,8 @@ test.describe('Header controls look like the kit\'s buttons', () => {
   test('nav items are 40px with 8px corners; the current one is near-black with light text', async ({ page }) => {
     await page.goto('/?view=tokens');
     // (the colours ease in for 120ms, so poll)
-    await expect.poll(() => style(page, '.lab-nav__btn[aria-pressed="true"]')).toMatchObject({ height: 40, radius: '8px', background: 'rgb(23, 23, 23)', color: 'rgb(245, 245, 245)' });
-    const other = await style(page, '.lab-nav__btn[aria-pressed="false"]');
+    await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ height: 40, radius: '8px', background: 'rgb(23, 23, 23)', color: 'rgb(245, 245, 245)' });
+    const other = await style(page, '.lab-nav__btn:not([aria-current="page"])');
     expect(other.height).toBe(40);
     expect(other.background).toBe('rgba(0, 0, 0, 0)');
   });
@@ -117,7 +117,80 @@ test.describe('Header controls look like the kit\'s buttons', () => {
   test('in the dark theme the primary button is the light one', async ({ page }) => {
     await page.goto('/?view=tokens');
     await page.click('#theme-toggle');
-    await expect.poll(async () => (await style(page, '.lab-nav__btn[aria-pressed="true"]')).background).toBe('rgb(245, 245, 245)');
-    expect((await style(page, '.lab-nav__btn[aria-pressed="true"]')).color).toBe('rgb(23, 23, 23)');
+    await expect.poll(async () => (await style(page, '.lab-nav__btn[aria-current="page"]')).background).toBe('rgb(245, 245, 245)');
+    expect((await style(page, '.lab-nav__btn[aria-current="page"]')).color).toBe('rgb(23, 23, 23)');
+  });
+});
+
+// The nav is real links and a click switches the view in place: no page load.
+test.describe('Navigation in place', () => {
+  test('the nav items are links, and the current one is aria-current', async ({ page }) => {
+    await page.goto('/?view=tokens');
+    await expect(page.locator('a.lab-nav__btn')).toHaveCount(4);
+    await expect(page.locator('a.lab-nav__btn[data-view="tokens"]')).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('a.lab-nav__btn[data-view="library"]')).toHaveAttribute('href', '?view=library');
+    await expect(page.locator('[aria-current="page"].lab-nav__btn')).toHaveCount(1);
+  });
+
+  test('a click changes the view without reloading the page', async ({ page }) => {
+    await page.goto('/?view=library');
+    await page.evaluate(() => { (window as unknown as { __kept: boolean }).__kept = true; });
+    await page.click('a.lab-nav__btn[data-view="tokens"]');
+    await expect(page).toHaveURL(/view=tokens/);
+    await expect(page.locator('.lab-tokens-title')).toBeVisible();
+    await page.click('a.lab-nav__btn[data-view="presets"]');
+    await expect(page.locator('#presets-grid')).toBeVisible();
+    // A reload would have thrown the marker away.
+    expect(await page.evaluate(() => (window as unknown as { __kept?: boolean }).__kept)).toBe(true);
+  });
+
+  test('the back and forward buttons walk the views', async ({ page }) => {
+    await page.goto('/?view=library');
+    await page.click('a.lab-nav__btn[data-view="tokens"]');
+    await page.click('a.lab-nav__btn[data-view="page"]');
+    await expect(page.locator('.lab-page-layout')).toBeVisible();
+    await page.goBack();
+    await expect(page.locator('.lab-tokens-title')).toBeVisible();
+    await expect(page.locator('a.lab-nav__btn[data-view="tokens"]')).toHaveAttribute('aria-current', 'page');
+    await page.goBack();
+    await expect(page.locator('#library-grid')).toBeVisible();
+    await page.goForward();
+    await expect(page.locator('.lab-tokens-title')).toBeVisible();
+  });
+
+  test('a card, the breadcrumb and the logo are followed in place too', async ({ page }) => {
+    await page.goto('/?view=library');
+    await page.evaluate(() => { (window as unknown as { __kept: boolean }).__kept = true; });
+    await page.locator('.lab-library-card').first().click();
+    await expect(page.locator('nav[aria-label="Breadcrumb"]')).toBeVisible();
+    await page.click('#breadcrumb-library');
+    await expect(page.locator('#library-grid')).toBeVisible();
+    await page.locator('.lab-library-card').first().click();
+    await page.click('.lab-header__brand');
+    await expect(page.locator('#library-grid')).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { __kept?: boolean }).__kept)).toBe(true);
+  });
+
+  test('a link opened with the command or control key keeps its browser behaviour (a new tab)', async ({ page, context }) => {
+    await page.goto('/?view=library');
+    const opened = context.waitForEvent('page');
+    await page.click('a.lab-nav__btn[data-view="tokens"]', { modifiers: ['ControlOrMeta'] });
+    const tab = await opened;
+    await expect(tab).toHaveURL(/view=tokens/);
+    await expect(page).toHaveURL(/view=library/);
+  });
+
+  test('a view left behind leaves nothing running: moving between the page view and the library many times is quiet', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(e.message));
+    page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+    await page.goto('/?view=page');
+    for (let i = 0; i < 4; i++) {
+      await page.click('a.lab-nav__btn[data-view="library"]');
+      await expect(page.locator('#library-grid')).toBeVisible();
+      await page.click('a.lab-nav__btn[data-view="page"]');
+      await expect(page.locator('.lab-page-layout')).toBeVisible();
+    }
+    expect(errors).toEqual([]);
   });
 });
