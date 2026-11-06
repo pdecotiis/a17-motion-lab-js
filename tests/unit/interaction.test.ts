@@ -152,10 +152,15 @@ describe('layers of an interaction', () => {
     expect(interactionParts(layered(imageHover).interaction!)).toEqual([null, 'image']);
   });
 
+  it('allows width, height, grid tracks and margins in states (a cell that resizes in place), where keyframes still refuse width', () => {
+    expect(() => validateInteraction(layered({ image: { states: { open: { width: '730px', height: '296px' } } } }))).not.toThrow();
+    expect(() => validateInteraction(layered({ image: { states: { open: { gridTemplateColumns: '1fr 2fr', marginLeft: '4px' } } } }))).not.toThrow();
+  });
+
   it('refuses a bad name, values for a state that does not exist, structural properties and a bad timing', () => {
     expect(() => validateInteraction(layered({ 'Hero Image': { states: {} } }))).toThrow('interaction layer name "Hero Image"');
     expect(() => validateInteraction(layered({ image: { states: { lost: { opacity: 1 } } } }))).toThrow('layer "image" has values for "lost"');
-    expect(() => validateInteraction(layered({ image: { states: { open: { width: '10px' } } } }))).toThrow('layer "image" state "open" contains structural property: "width"');
+    expect(() => validateInteraction(layered({ image: { states: { open: { position: 'absolute' } } } }))).toThrow('layer "image" state "open" contains structural property: "position"');
     expect(() => validateInteraction(layered({ image: { states: {}, transitions: { lost: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' } } } }))).toThrow('layer "image" has a transition into "lost"');
     expect(() => validateInteraction(layered({ image: { states: {}, transitions: { open: { model: 'tween', duration: 'duration.250' } as never } } }))).toThrow('needs a duration and an easing');
   });
