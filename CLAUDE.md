@@ -70,7 +70,7 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
    ```
    Every version needs lineage: `forkedFrom` (a version id in the same component) or, for an imported v1, `lineage: 'imported from <source>'`. `forkVersion(parent, id, label)` in `lab/lib/version-meta.ts` builds a new version that way.
 2. In `motion.ts`, import and re-export it, and add it to the `versions` array
-3. **Versions may only change motion properties**: `opacity`, `transform`, `filter`, `clip-path`. Never use `display`, `position`, `width`, `height`, or any structural property in keyframes.
+3. **Versions may only change motion properties**: `opacity`, `transform`, `filter`, `clip-path`. Never use `display`, `position`, `width`, `height`, or any structural property in keyframes. **One exception: an interaction's states and layer states may also set `width`, `height`, `grid-template-columns`/`rows`, `column-gap` and margins** (never `display`, `position`), so a cell can really resize and its neighbours give way (the mosaic morph); give every state a value for each such property, as none has a natural one. CSS interpolates these with equal track counts and the same units (px, not fr).
 4. Add unit tests for the new version in `tests/unit/<name>.test.ts`, including `validateVersionMeta(versions)`
 
 ### Component status and lineage
