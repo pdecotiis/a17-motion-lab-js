@@ -274,3 +274,38 @@ test.describe('Title and project name', () => {
     await expect(page).toHaveTitle(/^Library – /);
   });
 });
+
+// The header's icons are SVG line icons in the button's colour, not text glyphs.
+test.describe('Icons', () => {
+  test('Settings, the theme toggle and the dialog close button each hold an SVG icon, and no text', async ({ page }) => {
+    await page.goto('/?view=library');
+    for (const id of ['#settings-btn', '#theme-toggle', '#settings-close']) {
+      await expect(page.locator(`${id} svg.lab-icon`)).toHaveCount(1);
+      expect((await page.locator(id).innerText()).trim(), id).toBe('');
+      await expect(page.locator(id)).toHaveAttribute('aria-label', /.+/);
+    }
+  });
+
+  test('the theme toggle shows the theme it will switch to, and says so', async ({ page }) => {
+    await page.goto('/?view=library');
+    const toggle = page.locator('#theme-toggle');
+    await expect(toggle).toHaveAttribute('aria-label', 'Switch to the dark theme');
+    const moon = await toggle.innerHTML();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-label', 'Switch to the light theme');
+    expect(await toggle.innerHTML()).not.toBe(moon);
+    await toggle.click();
+    expect(await toggle.innerHTML()).toBe(moon);
+  });
+
+  test('an icon takes the button colour, in both themes', async ({ page }) => {
+    await page.goto('/?view=library');
+    const colours = () => page.locator('#settings-btn svg').evaluate(el => ({ stroke: getComputedStyle(el).stroke, text: getComputedStyle(el.parentElement!).color }));
+    const light = await colours();
+    expect(light.stroke).toBe(light.text);
+    await page.click('#theme-toggle');
+    await expect.poll(async () => (await colours()).stroke).not.toBe(light.stroke);
+    const dark = await colours();
+    expect(dark.stroke).toBe(dark.text);
+  });
+});

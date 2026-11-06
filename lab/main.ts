@@ -7,6 +7,7 @@ import { compileTokens, applyTokensToDom, tokenLabel } from './lib/token-compile
 import { motionTableOf } from './lib/motion-table.js';
 import { tokenDisplayName, tokenValueText, VALUE_HEADERS, EXAMPLE_KINDS } from './lib/token-names.js';
 import { projectNameOf, brandText, titleFor } from './lib/project.js';
+import { ICONS } from './lib/icons.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
 import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
@@ -193,11 +194,19 @@ if (reducedMotion) notice.classList.remove('lab-notice--hidden');
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 
+// The button shows what it will switch to: the moon in the light theme, the sun in the dark one.
 const themeToggle = document.getElementById('theme-toggle')!;
+function renderThemeToggle(): void {
+  themeToggle.innerHTML = currentTheme === 'dark' ? ICONS.sun : ICONS.moon;
+  const label = currentTheme === 'dark' ? 'Switch to the light theme' : 'Switch to the dark theme';
+  themeToggle.setAttribute('aria-label', label);
+  themeToggle.title = label;
+}
+renderThemeToggle();
 themeToggle.addEventListener('click', () => {
   currentTheme = currentTheme === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
-  themeToggle.textContent = currentTheme === 'dark' ? '☾' : '☀';
+  renderThemeToggle();
 });
 
 // ── Settings ───────────────────────────────────────────────────────────────
@@ -216,6 +225,8 @@ function openSettings(): void {
   });
   if (!settingsDialog.open) settingsDialog.showModal();
 }
+settingsButton.innerHTML = ICONS.settings;
+document.getElementById('settings-close')!.innerHTML = ICONS.close;
 settingsButton.addEventListener('click', openSettings);
 document.getElementById('settings-close')!.addEventListener('click', () => settingsDialog.close());
 // A click on the backdrop (the dialog itself, outside its content) closes it, as Escape does.
