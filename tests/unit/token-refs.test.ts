@@ -100,17 +100,19 @@ describe('pairingWarnings', () => {
     model: { model: 'tween', duration, easing },
   });
 
-  it('is quiet for a productive easing at 100–300ms and an expressive easing at 400–1200ms', () => {
+  it('is quiet for a productive easing at 50–300ms and an expressive easing at 400–1200ms', () => {
+    expect(pairingWarnings(tween('50ms', 'easing.productive-standard'), raw)).toEqual([]);
     expect(pairingWarnings(tween('duration.100', 'easing.productive-standard'), raw)).toEqual([]);
     expect(pairingWarnings(tween('duration.300', 'easing.productive-standard'), raw)).toEqual([]);
     expect(pairingWarnings(tween('duration.560', 'easing.expressive-standard'), raw)).toEqual([]);
     expect(pairingWarnings(tween('duration.1200', 'easing.expressive-standard'), raw)).toEqual([]);
   });
 
-  it('warns when a productive easing is outside 100–300ms', () => {
+  it('warns when a productive easing is outside 50–300ms', () => {
     expect(pairingWarnings(tween('duration.560', 'easing.productive-standard'), raw))
-      .toEqual(['productive-standard is a productive easing: pair it with 100–300ms, not 560ms']);
-    expect(pairingWarnings(tween('50ms', 'easing.productive-exit'), raw)).toHaveLength(1);
+      .toEqual(['productive-standard is a productive easing: pair it with 50–300ms, not 560ms']);
+    expect(pairingWarnings(tween('40ms', 'easing.productive-exit'), raw)).toEqual(['productive-exit is a productive easing: pair it with 50–300ms, not 40ms']);
+    expect(pairingWarnings(tween('350ms', 'easing.productive-exit'), raw)).toHaveLength(1);
   });
 
   it('warns when an expressive easing is outside 400–1200ms', () => {
@@ -351,7 +353,7 @@ describe('getStepRefs: which tokens are used where', () => {
         ...layered,
         layers: { text: { model: { model: 'tween', duration: 'duration.1200', easing: 'easing.productive-standard' }, keyframes: [] } },
       };
-      expect(pairingWarnings(slow, raw)).toEqual(['text: productive-standard is a productive easing: pair it with 100–300ms, not 1200ms']);
+      expect(pairingWarnings(slow, raw)).toEqual(['text: productive-standard is a productive easing: pair it with 50–300ms, not 1200ms']);
       expect(pairingWarnings(layered, raw)).toEqual([]);
     });
   });

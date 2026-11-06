@@ -20,14 +20,14 @@ beforeAll(() => {
   mkdirSync(join(dir, 'versions'), { recursive: true });
   writeFileSync(join(dir, 'versions/v1.ts'), `export const v1 = {
   id: 'v1', label: 'Plain', lineage: 'test',
-  model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' },
+  model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' },
   keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
 };
 `);
   writeFileSync(join(dir, 'versions/v2.ts'), `export const v2 = {
   id: 'v2', label: 'Preset', forkedFrom: 'v1',
   entrance: { preset: ${JSON.stringify(preset)} },
-  layers: { title: { preset: ${JSON.stringify(preset)}, delay: 'delay.70' } },
+  layers: { title: { preset: ${JSON.stringify(preset)}, delay: 'delay.80' } },
 };
 `);
   writeFileSync(join(dir, 'motion.ts'), `import { v1 } from './versions/v1';

@@ -439,7 +439,7 @@ function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 
 // speed, so durations and delays here are at normal speed.
 function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number, extraDelayMs = 0): PlayHandle {
   const isReduced = prefersReducedMotion();
-  // A stagger is a delay token (delay.70) or a literal (80ms).
+  // A stagger is a delay token (delay.80) or a literal (80ms).
   const staggerMs = version.stagger ? parseFloat(String(version.stagger in raw ? raw[version.stagger] : version.stagger)) : 0;
   const staggerDelay = staggerMs * staggerIndex + extraDelayMs;
 

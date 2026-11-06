@@ -77,7 +77,7 @@ test.describe('Page versions', () => {
     await expect(page.locator('.lab-page-col')).toHaveCount(2);
     await expect(page.locator('.lab-page-col__name')).toHaveText(['v1: Default', 'v2: Second card lifts, slower stagger']);
     await expect(page.locator('.lab-page-col .card')).toHaveCount(6);
-    expect(await delays(page, 0)).toEqual([0, 70, 140]);
+    expect(await delays(page, 0)).toEqual([0, 80, 160]);
     expect(await delays(page, 1)).toEqual([0, 120, 240]);
     await page.click('#replay-all-btn');
     expect(await delays(page, 1)).toEqual([0, 120, 240]);

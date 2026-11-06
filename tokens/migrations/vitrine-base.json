@@ -1,0 +1,19 @@
+{
+  "duration": { "values": [50, 100, 150, 200, 250, 400, 700, 1200] },
+  "distance": { "scale": "fibonacci" },
+  "delay": { "scale": "fibonacci" },
+  "scale": {
+    "tokens": [
+      { "name": "90", "value": 0.9 },
+      { "name": "95", "value": 0.95 },
+      { "name": "100", "value": 1 }
+    ],
+    "overrides": { "98": "95" }
+  },
+  "opacity": {
+    "tokens": [
+      { "name": "0", "value": 0 },
+      { "name": "100", "value": 1 }
+    ]
+  }
+}

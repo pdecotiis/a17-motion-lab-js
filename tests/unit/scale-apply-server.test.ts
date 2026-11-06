@@ -22,7 +22,7 @@ const version = [
 const setup = (): string => {
   const root = mkdtempSync(join(base, 'root-'));
   mkdirSync(join(root, 'tokens'));
-  cpSync(join(repo, 'tokens/motion.json'), join(root, 'tokens/motion.json'));
+  cpSync(join(__dirname, 'fixtures/old-motion.json'), join(root, 'tokens/motion.json'));
   mkdirSync(join(root, 'components/card/versions'), { recursive: true });
   writeFileSync(join(root, 'components/card/versions/v1.ts'), version);
   return root;

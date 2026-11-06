@@ -43,7 +43,7 @@ function timing(value: unknown, where: string): PresetTiming {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error(`${where} must be { duration, easing }`);
   const t = value as Record<string, unknown>;
   for (const k of Object.keys(t)) if (!TIMING_KEYS.includes(k)) throw new Error(`${where} has an unknown key "${k}" (use duration and easing)`);
-  if (typeof t['duration'] !== 'string' || !t['duration'].startsWith('duration.')) throw new Error(`${where}.duration must be a duration token such as "duration.300"`);
+  if (typeof t['duration'] !== 'string' || !t['duration'].startsWith('duration.')) throw new Error(`${where}.duration must be a duration token such as "duration.250"`);
   if (typeof t['easing'] !== 'string' || !t['easing'].startsWith('easing.')) throw new Error(`${where}.easing must be an easing token such as "easing.productive-entrance"`);
   return { duration: t['duration'], easing: t['easing'] };
 }
@@ -64,7 +64,7 @@ export function parsePresets(data: unknown): PresetTable {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error(`Preset "${name}" must be an object`);
     const p = value as Record<string, unknown>;
     for (const k of Object.keys(p)) if (!PRESET_KEYS.includes(k)) throw new Error(`Preset "${name}" has an unknown key "${k}"`);
-    if (typeof p['rise'] !== 'string' || !p['rise'].startsWith('distance.')) throw new Error(`Preset "${name}".rise must be a distance token such as "distance.16"`);
+    if (typeof p['rise'] !== 'string' || !p['rise'].startsWith('distance.')) throw new Error(`Preset "${name}".rise must be a distance token such as "distance.20"`);
     const out: EntrancePreset = { rise: p['rise'], move: timing(p['move'], `Preset "${name}".move`) };
     if (p['scale'] !== undefined) {
       if (typeof p['scale'] !== 'string' || !p['scale'].startsWith('scale.')) throw new Error(`Preset "${name}".scale must be a scale token such as "scale.95"`);

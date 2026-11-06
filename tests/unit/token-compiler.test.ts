@@ -111,7 +111,7 @@ describe('tokenCss and tokenLabel', () => {
   const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
 
   it('tokenCss returns durations as strings and easings as cubic-bezier()', () => {
-    expect(tokenCss(raw, 'duration.300')).toBe('300ms');
+    expect(tokenCss(raw, 'duration.250')).toBe('250ms');
     expect(tokenCss(raw, 'easing.productive-standard')).toBe('cubic-bezier(0.2, 0, 0.38, 0.9)');
     expect(tokenCss(raw, 'easing.linear')).toBe('cubic-bezier(0, 0, 1, 1)');
   });
@@ -139,11 +139,11 @@ describe('the real token file', () => {
   });
 
   it('has the value-named scales', () => {
-    expect(sorted('duration')).toEqual(['100', '140', '220', '300', '400', '560', '800', '1200']);
-    expect(sorted('distance')).toEqual(['4', '8', '12', '16', '24', '32', '40', '48']);
-    expect(sorted('scale')).toEqual(['60', '75', '90', '95', '96', '97', '98', '99', '103', '106']);
-    expect(sorted('opacity')).toEqual(['04', '08', '10', '56']);
-    expect(sorted('delay')).toEqual(['40', '70', '120']);
+    expect(sorted('duration')).toEqual(['50', '100', '150', '200', '250', '400', '700', '1200']);
+    expect(sorted('distance')).toEqual(['4', '8', '12', '20', '32', '52', '84', '136']);
+    expect(sorted('scale')).toEqual(['90', '95', '100']);
+    expect(sorted('opacity')).toEqual(['0', '100']);
+    expect(sorted('delay')).toEqual(['40', '80', '120']);
     expect(sorted('bounce')).toEqual(['0', '25', '50']);
   });
 
@@ -182,6 +182,7 @@ describe('the real token file', () => {
   it('every token has a status, and the bounce tokens are experimental', () => {
     for (const path of Object.keys(raw)) expect(meta[path]?.status).toMatch(/^(system|experimental)$/);
     for (const b of ['bounce.0', 'bounce.25', 'bounce.50']) expect(meta[b]?.status, b).toBe('experimental');
-    expect(meta['duration.300']?.status).toBe('system');
+    expect(meta['duration.250']?.status).toBe('system');
+    expect(meta['duration.50']?.status).toBe('system');
   });
 });

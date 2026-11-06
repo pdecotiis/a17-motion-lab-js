@@ -6,12 +6,12 @@ export const v1: MotionVersion = {
   label: 'Default Entrance',
   model: {
     model: 'tween',
-    duration: 'duration.560',
+    duration: 'duration.700',
     easing: 'easing.expressive-entrance',
     delay: '0ms',
   },
   keyframes: [
-    { opacity: 0, transform: 'translateY({distance.16})', offset: 0 },
+    { opacity: 0, transform: 'translateY({distance.20})', offset: 0 },
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
   lineage: "imported from https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=22711-54951",

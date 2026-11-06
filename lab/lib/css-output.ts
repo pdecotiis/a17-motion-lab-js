@@ -301,7 +301,7 @@ function interactionCss(version: MotionVersion, raw: Record<string, unknown>, ba
   const parts = interactionParts(i).filter(part => partProps(i, part).length > 0);
   const partSuffix = (part: string | null): string => (part ? ` [data-motion="${part}"]` : '');
   const out: string[] = [
-    `/* States: ${names.map(n => (n === i.initial ? `${n} (rest)` : n)).join(', ')}. ${i.triggers?.length ? 'Hover, press and focus are wired below; a click (or anything a script does) sets data-state="<state>" on the element.' : 'Set data-state="<state>" on the element to move between them.'} The transition into a state is the one declared on that state. */`,
+    `/* States: ${names.map(n => (n === i.initial ? `${n} (default)` : n)).join(', ')}. ${i.triggers?.length ? 'Hover, press and focus are wired below; a click (or anything a script does) sets data-state="<state>" on the element.' : 'Set data-state="<state>" on the element to move between them.'} The transition into a state is the one declared on that state. */`,
   ];
 
   // One rule per state: the root, then each layer, under the given root selectors.
@@ -333,7 +333,7 @@ function interactionCss(version: MotionVersion, raw: Record<string, unknown>, ba
   for (const name of names) {
     const sel = name === i.initial ? `.${base}` : `.${base}[data-state="${name}"]`;
     allSelectors.push(...parts.map(part => sel + partSuffix(part)));
-    out.push('', ...rules(name, [sel], name === i.initial ? `${name} (rest), and the transition into it` : `into ${name}`));
+    out.push('', ...rules(name, [sel], name === i.initial ? `${name} (default), and the transition into it` : `into ${name}`));
   }
 
   // Hover, press and focus triggers. Later rules win, so a press settles over a hover, as in the lab.
@@ -364,7 +364,7 @@ export function buildVersionCss(
 ): string {
   const { component = 'component' } = options;
   const base = `motion-${component}-${version.id}`;
-  // A stagger may be a delay token (delay.70) or a literal (80ms). It offsets the whole component,
+  // A stagger may be a delay token (delay.80) or a literal (80ms). It offsets the whole component,
   // layers included (a layer sits inside the element that carries --motion-index).
   const stagger = version.stagger ? cssValue(version.stagger, raw, version.stagger) : undefined;
 
@@ -377,7 +377,7 @@ export function buildVersionCss(
         ? `/* Plays: ${trigger}. Add .${base} when the trigger fires: the entrance plays, and from then on hover, press and focus work (a hover during the entrance takes effect when it ends). */`
         : `/* Plays: trigger not specified, confirm with the designer. Add .${base} when it should play: the entrance plays, and from then on hover, press and focus work. */`,
     );
-  } else if (version.interaction) out.push(`/* Add .${base} to the element once, for good: it is the resting state. */`);
+  } else if (version.interaction) out.push(`/* Add .${base} to the element once, for good: it is the default state. */`);
   else out.push(
     trigger
       ? `/* Plays: ${trigger}. Add .${base} when the trigger fires. */`

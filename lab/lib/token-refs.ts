@@ -138,7 +138,7 @@ function ms(value: string | undefined, raw: Record<string, unknown>): number | u
   return typeof v === 'string' && /^[\d.]+m?s$/.test(v) ? (v.endsWith('ms') ? parseFloat(v) : parseFloat(v) * 1000) : undefined;
 }
 
-// Pairing rules, as warnings and never errors: productive easings pair with 100–300ms, expressive
+// Pairing rules, as warnings and never errors: productive easings pair with 50–300ms, expressive
 // easings with 400–1200ms. A layer's
 // warnings start with its name. Under Motion nothing plays an easing, so there is nothing to pair.
 export function pairingWarnings(version: MotionVersion, raw: Record<string, unknown>, runtime?: Runtime): string[] {
@@ -160,8 +160,8 @@ export function pairingWarnings(version: MotionVersion, raw: Record<string, unkn
     const warnings: string[] = [];
     const time = ms(duration, raw);
     if (time !== undefined) {
-      if (eName.startsWith('productive-') && (time < 100 || time > 300)) {
-        warnings.push(`${eName} is a productive easing: pair it with 100–300ms, not ${time}ms`);
+      if (eName.startsWith('productive-') && (time < 50 || time > 300)) {
+        warnings.push(`${eName} is a productive easing: pair it with 50–300ms, not ${time}ms`);
       }
       if (eName.startsWith('expressive-') && (time < 400 || time > 1200)) {
         warnings.push(`${eName} is an expressive easing: pair it with 400–1200ms, not ${time}ms`);

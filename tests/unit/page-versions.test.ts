@@ -8,7 +8,7 @@ import type { ComponentModule, MotionVersion, PageConfig } from '../../lab/lib/t
 const version = (id: string): MotionVersion => ({
   id,
   label: id,
-  model: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-entrance' },
+  model: { model: 'tween', duration: 'duration.200', easing: 'easing.productive-entrance' },
   keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
   lineage: 'imported from test',
 });

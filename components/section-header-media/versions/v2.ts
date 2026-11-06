@@ -8,9 +8,9 @@ export const v2: MotionVersion = {
   entrance: { preset: 'ui' },
   layers: {
     'eyebrow': { preset: 'eyebrow', delay: 'delay.40' },
-    'title': { preset: 'title', delay: 'delay.70' },
+    'title': { preset: 'title', delay: 'delay.80' },
     'paragraph': { preset: 'text', delay: 'delay.120' },
-    'media': { preset: 'media', delay: 'duration.220' },
+    'media': { preset: 'media', delay: 'duration.200' },
   },
   trigger: { on: 'in-view', threshold: 0.2, once: true },
   forkedFrom: 'v1',

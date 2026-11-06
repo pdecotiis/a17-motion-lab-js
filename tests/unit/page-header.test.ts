@@ -26,8 +26,8 @@ describe('Page Header motion versions', () => {
       expect(t.easing).toContain('cubic-bezier');
     });
 
-    it('resolves duration.560 to a concrete duration', () => {
-      expect(resolveTiming(v1, raw).duration).toBe(Number.parseFloat(String((raw as Record<string, unknown>)['duration.560'])));
+    it('resolves duration.700 to a concrete duration', () => {
+      expect(resolveTiming(v1, raw).duration).toBe(Number.parseFloat(String((raw as Record<string, unknown>)['duration.700'])));
     });
   });
 

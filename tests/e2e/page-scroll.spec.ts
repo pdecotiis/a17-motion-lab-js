@@ -60,7 +60,7 @@ test.describe('Page preview: a window you scroll', () => {
     await page.goto('/?view=page&page=home&pv=v3');
     await expect(section(page, 'card-2')).not.toHaveClass(/waiting/);
     expect(await rootDelay(page, 'card-1')).toBe(0);
-    expect(await rootDelay(page, 'card-2')).toBe(70);
+    expect(await rootDelay(page, 'card-2')).toBe(80);
     await scrollTo(page, 'bottom');
     await expect(section(page, 'card-3')).not.toHaveClass(/waiting/);
     expect(await rootDelay(page, 'card-3')).toBe(0);

@@ -10,17 +10,17 @@ test.describe('Tokens used', () => {
 
   test('a tween lists its duration, easing, stagger and the distance its keyframes name, and where each sits', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
-    await expect(chips(page).nth(0)).toHaveText('duration-220');
+    await expect(chips(page).nth(0)).toHaveText('duration-200');
     await expect(chips(page).nth(1)).toHaveText('productive-entrance');
-    await expect(chips(page).nth(2)).toHaveText('delay-70');
-    await expect(chips(page).nth(3)).toHaveText('distance-16');
+    await expect(chips(page).nth(2)).toHaveText('delay-80');
+    await expect(chips(page).nth(3)).toHaveText('distance-20');
     await expect(wheres(page).nth(2)).toHaveText('stagger');
     await expect(wheres(page).nth(3)).toHaveText('0% transform');
   });
 
   test('a spring lists its duration and easing, with no bounce token under CSS', async ({ page }) => {
     await page.goto('/?view=component&component=side-panel&version=v1');
-    await expect(chips(page).nth(0)).toHaveText('duration-560');
+    await expect(chips(page).nth(0)).toHaveText('duration-700');
     await expect(chips(page).nth(1)).toHaveText('expressive-entrance');
     await expect(wheres(page).nth(0)).toHaveText('duration');
     await expect(page.locator('#tokens-used-list')).not.toContainText('bounce-');
@@ -28,7 +28,7 @@ test.describe('Tokens used', () => {
 
   test('under Motion no motion lists an easing: everything is a spring, from its duration', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1&runtime=motion');
-    await expect(chips(page).nth(0)).toHaveText('duration-220');
+    await expect(chips(page).nth(0)).toHaveText('duration-200');
     await expect(chips(page).nth(1)).toHaveText('bounce-25');
     await expect(wheres(page).nth(1)).toHaveText('bounce');
     await expect(page.locator('#tokens-used-list')).not.toContainText(/(productive|expressive)-/);
@@ -36,7 +36,7 @@ test.describe('Tokens used', () => {
     await expect(page.locator('.lab-tokens-layer')).toHaveText(['root', 'title', 'list', 'actions']);
     await expect(chips(page)).not.toContainText(['productive-entrance']);
     await expect(page.locator('#tokens-used-list')).not.toContainText(/(productive|expressive)-/);
-    await expect(chips(page).first()).toHaveText('duration-560');
+    await expect(chips(page).first()).toHaveText('duration-700');
     await expect(page.locator('#tokens-used-list')).toContainText('bounce-50');
     await page.click('#runtime-css');
     await expect(page.locator('#tokens-used-list')).toContainText('expressive-entrance');
@@ -56,9 +56,9 @@ test.describe('Tokens used', () => {
     await expect(page.locator('.lab-tokens-layer')).toHaveText(['root', 'title', 'text']);
     await expect(page.locator('.lab-tokens-layer').nth(1)).toHaveAttribute('title', 'The element marked data-motion="title"');
     await expect(chips(page)).toHaveText([
-      'duration-220', 'productive-entrance', 'delay-70', 'distance-16',
-      'duration-300', 'productive-entrance', 'delay-70', 'distance-8',
-      'duration-300', 'productive-entrance', 'delay-120', 'distance-8',
+      'duration-200', 'productive-entrance', 'delay-80', 'distance-20',
+      'duration-250', 'productive-entrance', 'delay-80', 'distance-8',
+      'duration-250', 'productive-entrance', 'delay-120', 'distance-8',
     ]);
     await expect(wheres(page)).toHaveText([
       'duration', 'easing', 'stagger', '0% transform',

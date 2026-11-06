@@ -5,28 +5,28 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 export const v3: MotionVersion = {
   id: 'v3',
   label: 'Expressive',
-  model: { model: 'tween', duration: 'duration.560', easing: 'easing.expressive-entrance' },
+  model: { model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance' },
   keyframes: [
     { opacity: 0, offset: 0 },
     { opacity: 1, offset: 1 },
   ],
   layers: {
     'eyebrow': {
-      model: { model: 'tween', duration: 'duration.800', easing: 'easing.expressive-entrance', delay: 'delay.40' },
+      model: { model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance', delay: 'delay.40' },
       keyframes: [
         { opacity: 0, transform: 'translateY({distance.32})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px)', offset: 1 },
       ],
     },
     'title': {
-      model: { model: 'tween', duration: 'duration.800', easing: 'easing.expressive-entrance', delay: 'delay.120' },
+      model: { model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance', delay: 'delay.120' },
       keyframes: [
         { opacity: 0, transform: 'translateY({distance.32})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px)', offset: 1 },
       ],
     },
     'description': {
-      model: { model: 'tween', duration: 'duration.800', easing: 'easing.expressive-entrance', delay: 'duration.220' },
+      model: { model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance', delay: 'duration.200' },
       keyframes: [
         { opacity: 0, transform: 'translateY({distance.32})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px)', offset: 1 },

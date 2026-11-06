@@ -39,7 +39,7 @@ test.describe('prefers-reduced-motion', () => {
     test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto('/?view=frame&component=card&version=v1');
-    expect(await playedAnimation(page)).toEqual({ duration: 220, properties: ['opacity', 'transform'] });
+    expect(await playedAnimation(page)).toEqual({ duration: 200, properties: ['opacity', 'transform'] });
   });
 
   test('a layer plays the same short opacity-only fade as the root', async ({ page }) => {

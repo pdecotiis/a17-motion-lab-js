@@ -5,7 +5,7 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 export const v3: MotionVersion = {
   id: 'v3',
   label: 'Expressive',
-  model: { model: 'tween', duration: 'duration.560', easing: 'easing.expressive-entrance' },
+  model: { model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance' },
   keyframes: [
     { opacity: 0, offset: 0 },
     { opacity: 1, offset: 1 },
@@ -14,42 +14,42 @@ export const v3: MotionVersion = {
     'image-1': {
       model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'delay.40' },
       keyframes: [
-        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 0, transform: 'translateY({distance.32}) scale({scale.95})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
       ],
     },
     'image-2': {
       model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'delay.120' },
       keyframes: [
-        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 0, transform: 'translateY({distance.32}) scale({scale.95})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
       ],
     },
     'image-3': {
-      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.220' },
+      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.200' },
       keyframes: [
-        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 0, transform: 'translateY({distance.32}) scale({scale.95})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
       ],
     },
     'image-4': {
-      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.300' },
+      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.250' },
       keyframes: [
-        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 0, transform: 'translateY({distance.32}) scale({scale.95})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
       ],
     },
     'image-5': {
       model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.400' },
       keyframes: [
-        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 0, transform: 'translateY({distance.32}) scale({scale.95})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
       ],
     },
     'image-6': {
-      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.560' },
+      model: { model: 'tween', duration: 'duration.1200', easing: 'easing.expressive-entrance', delay: 'duration.700' },
       keyframes: [
-        { opacity: 0, transform: 'translateY({distance.40}) scale({scale.95})', offset: 0 },
+        { opacity: 0, transform: 'translateY({distance.32}) scale({scale.95})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 },
       ],
     },

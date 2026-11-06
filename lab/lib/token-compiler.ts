@@ -10,7 +10,7 @@ export interface CompiledTokens {
 
 export const TOKEN_STATUSES: readonly TokenStatus[] = ['system', 'experimental'];
 
-// The CSS custom property a token path compiles to, e.g. 'duration.300' → '--motion-duration-300'.
+// The CSS custom property a token path compiles to, e.g. 'duration.250' → '--motion-duration-300'.
 // Token paths carry no "motion" root: the token file is the namespace, as a collection is in Figma
 // (easing/productive-standard). The CSS variable keeps the prefix so it can't collide with others.
 export function tokenVarName(path: string): string {
@@ -117,14 +117,14 @@ export function tokenCss(raw: Record<string, unknown>, path: string): string | u
   return undefined;
 }
 
-// A token's name within its group: "easing.productive-standard" → "productive-standard", "duration.300" → "300".
+// A token's name within its group: "easing.productive-standard" → "productive-standard", "duration.250" → "300".
 export function tokenLabel(path: string): string {
   return path.slice(path.indexOf('.') + 1);
 }
 
 // ── References in keyframes ────────────────────────────────────────────────
-// A keyframe value may name tokens: "translateY({distance.16})", "{opacity.56}". A leading minus
-// negates one: "translateY(-{distance.16})".
+// A keyframe value may name tokens: "translateY({distance.20})", "{opacity.100}". A leading minus
+// negates one: "translateY(-{distance.20})".
 
 const REF = /(-?)\{([^{}]+)\}/g;
 
@@ -135,7 +135,7 @@ function cssOf(v: unknown): string | undefined {
   return undefined;
 }
 
-// Token paths named in a keyframe value, e.g. ['distance.16'].
+// Token paths named in a keyframe value, e.g. ['distance.20'].
 export function findRefs(text: string): string[] {
   return [...text.matchAll(REF)].map(m => m[2]!);
 }

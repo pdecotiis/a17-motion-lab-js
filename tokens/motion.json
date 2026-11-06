@@ -1,13 +1,13 @@
 {
   "$schema": "https://design-tokens.github.io/community-group/format/",
   "duration": {
+    "50": { "$type": "duration", "$value": "50ms", "$extensions": { "status": "system" } },
     "100": { "$type": "duration", "$value": "100ms", "$extensions": { "status": "system" } },
-    "140": { "$type": "duration", "$value": "140ms", "$extensions": { "status": "system" } },
-    "220": { "$type": "duration", "$value": "220ms", "$extensions": { "status": "system" } },
-    "300": { "$type": "duration", "$value": "300ms", "$extensions": { "status": "system" } },
+    "150": { "$type": "duration", "$value": "150ms", "$extensions": { "status": "system", "oldNames": ["140"] } },
+    "200": { "$type": "duration", "$value": "200ms", "$extensions": { "status": "system", "oldNames": ["220"] } },
+    "250": { "$type": "duration", "$value": "250ms", "$extensions": { "status": "system", "oldNames": ["300"] } },
     "400": { "$type": "duration", "$value": "400ms", "$extensions": { "status": "system" } },
-    "560": { "$type": "duration", "$value": "560ms", "$extensions": { "status": "system" } },
-    "800": { "$type": "duration", "$value": "800ms", "$extensions": { "status": "system" } },
+    "700": { "$type": "duration", "$value": "700ms", "$extensions": { "status": "system", "oldNames": ["560", "800"] } },
     "1200": { "$type": "duration", "$value": "1200ms", "$extensions": { "status": "system" } }
   },
   "easing": {
@@ -28,33 +28,36 @@
     "4": { "$type": "dimension", "$value": "4px", "$extensions": { "status": "system" } },
     "8": { "$type": "dimension", "$value": "8px", "$extensions": { "status": "system" } },
     "12": { "$type": "dimension", "$value": "12px", "$extensions": { "status": "system" } },
-    "16": { "$type": "dimension", "$value": "16px", "$extensions": { "status": "system" } },
-    "24": { "$type": "dimension", "$value": "24px", "$extensions": { "status": "system" } },
-    "32": { "$type": "dimension", "$value": "32px", "$extensions": { "status": "system" } },
-    "40": { "$type": "dimension", "$value": "40px", "$extensions": { "status": "system" } },
-    "48": { "$type": "dimension", "$value": "48px", "$extensions": { "status": "system" } }
+    "20": { "$type": "dimension", "$value": "20px", "$extensions": { "status": "system", "oldNames": ["16", "24"] } },
+    "32": { "$type": "dimension", "$value": "32px", "$extensions": { "status": "system", "oldNames": ["40"] } },
+    "52": { "$type": "dimension", "$value": "52px", "$extensions": { "status": "system", "oldNames": ["48"] } },
+    "84": { "$type": "dimension", "$value": "84px", "$extensions": { "status": "experimental" } },
+    "136": { "$type": "dimension", "$value": "136px", "$extensions": { "status": "experimental" } }
   },
   "scale": {
-    "60": { "$type": "number", "$value": 0.6, "$extensions": { "status": "system" } },
-    "75": { "$type": "number", "$value": 0.75, "$extensions": { "status": "system" } },
-    "90": { "$type": "number", "$value": 0.9, "$extensions": { "status": "system" } },
-    "95": { "$type": "number", "$value": 0.95, "$extensions": { "status": "system" } },
-    "96": { "$type": "number", "$value": 0.96, "$extensions": { "status": "system" } },
-    "97": { "$type": "number", "$value": 0.97, "$extensions": { "status": "system" } },
-    "98": { "$type": "number", "$value": 0.98, "$extensions": { "status": "system" } },
-    "99": { "$type": "number", "$value": 0.99, "$extensions": { "status": "system" } },
-    "103": { "$type": "number", "$value": 1.03, "$extensions": { "status": "system" } },
-    "106": { "$type": "number", "$value": 1.06, "$extensions": { "status": "system" } }
+    "90": { "$type": "number", "$value": 0.9, "$extensions": { "status": "system", "oldNames": ["60", "75"] } },
+    "95": { "$type": "number", "$value": 0.95, "$extensions": { "status": "system", "oldNames": ["96", "97", "98"] } },
+    "100": { "$type": "number", "$value": 1, "$extensions": { "status": "system", "oldNames": ["99", "103", "106"] } }
   },
   "opacity": {
-    "04": { "$type": "number", "$value": 0.04, "$extensions": { "status": "system" } },
-    "08": { "$type": "number", "$value": 0.08, "$extensions": { "status": "system" } },
-    "10": { "$type": "number", "$value": 0.1, "$extensions": { "status": "system" } },
-    "56": { "$type": "number", "$value": 0.56, "$extensions": { "status": "system" } }
+    "0": { "$type": "number", "$value": 0, "$extensions": { "status": "system", "oldNames": ["04", "08", "10"] } },
+    "100": { "$type": "number", "$value": 1, "$extensions": { "status": "system", "oldNames": ["56"] } }
   },
   "delay": {
     "40": { "$type": "duration", "$value": "40ms", "$extensions": { "status": "system" } },
-    "70": { "$type": "duration", "$value": "70ms", "$extensions": { "status": "system" } },
+    "80": { "$type": "duration", "$value": "80ms", "$extensions": { "status": "system", "oldNames": ["70"] } },
     "120": { "$type": "duration", "$value": "120ms", "$extensions": { "status": "system" } }
+  },
+  "$extensions": {
+    "scale": {
+      "kinds": {
+        "distance": {
+          "scale": "fibonacci"
+        },
+        "delay": {
+          "scale": "fibonacci"
+        }
+      }
+    }
   }
 }

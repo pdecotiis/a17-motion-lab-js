@@ -6,7 +6,7 @@ import { motionArgsOf } from './motion-args.js';
 import { DEFAULT_BOUNCE } from './bounce.js';
 
 // An interaction version in plain words, for a designer: "When you hover over the card, it moves up 4px
-// (220ms) and the image scales to 103% (300ms). Moving off goes back to rest in 140ms." Built from the same
+// (220ms) and the image scales to 103% (300ms). Moving off goes back to default in 140ms." Built from the same
 // version file as everything else; it describes, it never decides.
 
 export interface SummaryLine {
@@ -49,7 +49,7 @@ function describeChange(prop: string, from: string | number | undefined, to: str
       else if (k === 'scaleY') out.push(`stretches to ${pct(Number(v))} tall`);
       else if (k === 'rotate') out.push(`rotates ${num(Number(v))}°`);
     }
-    // Something that was moved and is now not (back to rest): say so
+    // Something that was moved and is now not (back to default): say so
     if (out.length === 0 && Object.keys(was).length > 0 && Object.keys(props).length === 0) out.push('goes back to its place');
     return [...out, ...unsupported.map(u => `uses ${u}`)];
   }

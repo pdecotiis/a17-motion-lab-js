@@ -14,6 +14,7 @@
     "figma:import-page": "vite-node scripts/figma-import/page-cli.ts --",
     "spec": "vite-node scripts/export-spec.ts --",
     "tokens:scale": "vite-node scripts/scale-tokens.ts --",
+    "tokens:remap": "vite-node scripts/tokens-remap.ts --",
     "check": "npm run typecheck && npm run test && npm run build && npm run test:e2e",
     "check:fast": "npm run typecheck && npm run test && npm run test:e2e:fast"
   },

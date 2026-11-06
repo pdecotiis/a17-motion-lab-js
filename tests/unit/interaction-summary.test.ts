@@ -17,8 +17,8 @@ const withImage: MotionVersion = {
     ...cardV2.interaction!,
     layers: {
       image: {
-        states: { hover: { transform: 'scale({scale.103})' }, pressed: { transform: 'scale({scale.103})' } },
-        transitions: { hover: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-standard' } },
+        states: { hovered: { transform: 'scale(1.03)' }, pressed: { transform: 'scale(1.03)' } },
+        transitions: { hovered: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-standard' } },
       },
     },
   },
@@ -33,17 +33,17 @@ describe('summarizeInteraction', () => {
     const s = summarizeInteraction(withImage, raw, 'css', { component: 'card' });
     const hover = s.lines.find(l => l.heading === 'Hover')!;
     expect(hover.text).toContain('When you hover over the card');
-    expect(hover.text).toContain('the card moves up 4px (220ms, productive standard)');
-    expect(hover.text).toContain('the image scales to 103% (300ms');
-    expect(hover.text).toContain('Moving off goes back to rest');
+    expect(hover.text).toContain('the card moves up 4px (200ms, productive standard)');
+    expect(hover.text).toContain('the image scales to 103% (250ms');
+    expect(hover.text).toContain('Moving off goes back to default');
     const press = s.lines.find(l => l.heading === 'Press')!;
-    expect(press.text).toContain('scales to 98%');
+    expect(press.text).toContain('scales to 95%');
     expect(s.fromOutside).toEqual([]);
   });
 
   it('describes timing as duration and bounce under Motion', () => {
     const s = summarizeInteraction(cardV2, raw, 'motion', { component: 'card' });
-    expect(s.text).toMatch(/220ms, bounce/);
+    expect(s.text).toMatch(/200ms, bounce/);
     expect(s.text).not.toContain('productive standard');
   });
 
@@ -60,7 +60,7 @@ describe('a version that appears, then has states (card v2)', () => {
     const s = summarizeInteraction(cardV2, raw, 'css', { component: 'card' });
     expect(s.lines.map(l => l.heading)).toEqual(['Appears', 'Hover', 'Press']);
     const appears = s.lines[0]!.text;
-    expect(appears).toContain('the card fades in and rises 16px (220ms, productive entrance)');
+    expect(appears).toContain('the card fades in and rises 20px (200ms, productive entrance)');
     expect(appears).toContain('the title fades in and rises 8px');
     expect(appears).toContain('the text fades in and rises 8px');
     expect(appears).toContain('Hover, press and focus work once it has appeared');
@@ -72,13 +72,13 @@ describe('a version that appears, then has states (card v2)', () => {
     expect(summarizeInteraction(panelV2, raw, 'css', { component: 'side-panel' }).lines.map(l => l.heading)).not.toContain('Appears');
   });
   it('under Motion the entrance is in duration and bounce', () => {
-    expect(summarizeInteraction(cardV2, raw, 'motion', { component: 'card' }).lines[0]!.text).toMatch(/220ms, bounce/);
+    expect(summarizeInteraction(cardV2, raw, 'motion', { component: 'card' }).lines[0]!.text).toMatch(/200ms, bounce/);
   });
 });
 
 describe('describeTransition with a layer target', () => {
   it('names the layer and uses its own timing', () => {
-    const text = describeTransition(withImage.interaction!, 'hover', raw, 'css', { target: 'image' });
-    expect(text).toBe('image into hover: Easing · productive-standard, 300ms');
+    const text = describeTransition(withImage.interaction!, 'hovered', raw, 'css', { target: 'image' });
+    expect(text).toBe('image into hovered: Easing · productive-standard, 250ms');
   });
 });

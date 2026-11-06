@@ -16,9 +16,9 @@ const { raw } = tokens;
 const tween = (over: Partial<MotionVersion> = {}): MotionVersion => ({
   id: 'v1',
   label: 'Fade Up',
-  model: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-entrance' },
+  model: { model: 'tween', duration: 'duration.200', easing: 'easing.productive-entrance' },
   keyframes: [
-    { opacity: 0, transform: 'translateY({distance.16})', offset: 0 },
+    { opacity: 0, transform: 'translateY({distance.20})', offset: 0 },
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
   lineage: 'imported from test',
@@ -28,7 +28,7 @@ const tween = (over: Partial<MotionVersion> = {}): MotionVersion => ({
 const spring = (properties: SpringProperty[], over: Partial<MotionVersion> = {}): MotionVersion => ({
   id: 'v2',
   label: 'Scale In',
-  model: { model: 'spring', duration: 'duration.560', easing: 'easing.expressive-entrance', bounce: 0.25, properties },
+  model: { model: 'spring', duration: 'duration.700', easing: 'easing.expressive-entrance', bounce: 0.25, properties },
   forkedFrom: 'v1',
   ...over,
 });
@@ -100,7 +100,7 @@ describe('buildVersionCss: tween', () => {
   });
 
   it('uses token custom properties with the literal value as fallback', () => {
-    expect(css).toContain('animation-duration: var(--motion-duration-220, 220ms);');
+    expect(css).toContain('animation-duration: var(--motion-duration-200, 200ms);');
     expect(css).toContain('animation-timing-function: var(--motion-easing-productive-entrance, cubic-bezier(0, 0, 0.38, 0.9));');
   });
 
@@ -115,8 +115,8 @@ describe('buildVersionCss: tween', () => {
   });
 
   it('a stagger that is a delay token uses its custom property', () => {
-    const staggered = buildVersionCss(tween({ stagger: 'delay.70' }), raw, { component: 'card' });
-    expect(staggered).toContain('animation-delay: calc(var(--motion-index, 0) * var(--motion-delay-70, 70ms));');
+    const staggered = buildVersionCss(tween({ stagger: 'delay.80' }), raw, { component: 'card' });
+    expect(staggered).toContain('animation-delay: calc(var(--motion-index, 0) * var(--motion-delay-80, 80ms));');
   });
 
   it('keeps every keyframe, in offset order, with kebab-case properties', () => {
@@ -164,7 +164,7 @@ describe('buildVersionCss: spring', () => {
   it('has no real spring in CSS: it plays from and to with the easing curve, with no linear() curve', () => {
     const css = buildVersionCss(mixedSpring, raw, { component: 'card' });
     expect(css).not.toContain('linear(');
-    expect(css).toContain('animation-duration: var(--motion-duration-560, 560ms);');
+    expect(css).toContain('animation-duration: var(--motion-duration-700, 700ms);');
     expect(css).toContain('animation-timing-function: var(--motion-easing-expressive-entrance, cubic-bezier(');
     expect(css).toMatch(/from \{[^}]*opacity: 0;[^}]*transform: scale\(0\.92\);/);
     expect(css).toMatch(/to \{[^}]*opacity: 1;[^}]*transform: scale\(1\);/);
@@ -194,7 +194,7 @@ describe('buildVersionExport', () => {
 
   it('states the trigger, the timing tokens with values, and the reduced-motion rule', () => {
     expect(out.markdown).toContain('When scrolled into view (20% visible, first time only)');
-    expect(out.markdown).toContain('Duration: duration.220 (220ms)');
+    expect(out.markdown).toContain('Duration: duration.200 (200ms)');
     expect(out.markdown).toContain('Easing: easing.productive-entrance (cubic-bezier(0, 0, 0.38, 0.9))');
     expect(out.markdown).toContain('Fade only, no movement.');
     expect(out.markdown).toContain('Set `--motion-index');
@@ -214,16 +214,16 @@ describe('buildVersionExport', () => {
   });
 
   it('tokens.css holds only the custom properties the version uses', () => {
-    expect(out.tokensCss).toContain('--motion-duration-220: 220ms;');
+    expect(out.tokensCss).toContain('--motion-duration-200: 200ms;');
     expect(out.tokensCss).toContain('--motion-easing-productive-entrance: cubic-bezier(0, 0, 0.38, 0.9);');
-    expect(out.tokensCss).toContain('--motion-distance-16: 16px;');
+    expect(out.tokensCss).toContain('--motion-distance-20: 20px;');
     expect(out.tokensCss).not.toContain('duration-400');
   });
 
   it('a spring version exports its easing and says it was authored as a spring', () => {
     const springOut = buildVersionExport('card', mixedSpring, [mixedSpring], tokens);
     expect(springOut.css).not.toContain('linear(');
-    expect(springOut.markdown).toContain('- Duration: duration.560 (560ms)');
+    expect(springOut.markdown).toContain('- Duration: duration.700 (700ms)');
     expect(springOut.markdown).toContain('- Easing: easing.expressive-entrance');
     expect(springOut.markdown).toContain('Authored as a spring');
     expect(springOut.markdown).not.toContain('linear() curve');
@@ -240,28 +240,28 @@ describe('buildVersionExport', () => {
 describe('keyframes that name tokens', () => {
   const kf = tween({
     keyframes: [
-      { opacity: '{opacity.56}', transform: 'translateY(-{distance.16}) scale({scale.95})', offset: 0 },
+      { opacity: '{opacity.0}', transform: 'translateY(-{distance.20}) scale({scale.95})', offset: 0 },
       { opacity: 1, transform: 'translateY(0px)', offset: 1 },
     ],
   });
 
   it('the CSS uses each token\'s custom property with the value as fallback, and a negative becomes calc', () => {
     const css = buildVersionCss(kf, raw, { component: 'card' });
-    expect(css).toContain('opacity: var(--motion-opacity-56, 0.56);');
-    expect(css).toContain('transform: translateY(calc(-1 * var(--motion-distance-16, 16px))) scale(var(--motion-scale-95, 0.95));');
+    expect(css).toContain('opacity: var(--motion-opacity-0, 0);');
+    expect(css).toContain('transform: translateY(calc(-1 * var(--motion-distance-20, 20px))) scale(var(--motion-scale-95, 0.95));');
   });
 
   it('the reduced-motion fade uses the opacity token too', () => {
     const css = buildVersionCss(kf, raw, { component: 'card' });
-    expect(css.slice(css.indexOf('@media'))).toContain('opacity: var(--motion-opacity-56, 0.56);');
+    expect(css.slice(css.indexOf('@media'))).toContain('opacity: var(--motion-opacity-0, 0);');
   });
 
   it('spec.md shows the resolved values; tokens.css defines the variables the keyframes use', () => {
     const { markdown, tokensCss } = buildVersionExport('card', kf, [kf], tokens);
-    expect(markdown).toContain('translateY(-16px) scale(0.95)');
-    expect(tokensCss).toContain('--motion-opacity-56: 0.56;');
+    expect(markdown).toContain('translateY(-20px) scale(0.95)');
+    expect(tokensCss).toContain('--motion-opacity-0: 0;');
     expect(tokensCss).toContain('--motion-scale-95: 0.95;');
-    expect(tokensCss).toContain('--motion-distance-16: 16px;');
+    expect(tokensCss).toContain('--motion-distance-20: 20px;');
   });
 
   it('a reference to a token that does not exist throws', () => {
@@ -275,10 +275,10 @@ describe('layers', () => {
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ];
   const layered = tween({
-    stagger: 'delay.70',
+    stagger: 'delay.80',
     layers: {
-      title: { model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' }, keyframes: rise('8') },
-      text: { model: { model: 'tween', duration: 'duration.140', easing: 'easing.productive-standard', delay: 'delay.120' }, keyframes: rise('12') },
+      title: { model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance', delay: 'delay.80' }, keyframes: rise('8') },
+      text: { model: { model: 'tween', duration: 'duration.150', easing: 'easing.productive-standard', delay: 'delay.120' }, keyframes: rise('12') },
     },
   });
   const css = buildVersionCss(layered, raw, { component: 'card' });
@@ -297,16 +297,16 @@ describe('layers', () => {
 
   it('each layer uses its own tokens', () => {
     const title = css.slice(css.indexOf('.motion-card-v1-title {'));
-    expect(title).toContain('animation-duration: var(--motion-duration-300, 300ms);');
+    expect(title).toContain('animation-duration: var(--motion-duration-250, 250ms);');
     const text = css.slice(css.indexOf('.motion-card-v1-text {'));
-    expect(text).toContain('animation-duration: var(--motion-duration-140, 140ms);');
+    expect(text).toContain('animation-duration: var(--motion-duration-150, 150ms);');
     expect(text).toContain('animation-timing-function: var(--motion-easing-productive-standard,');
     expect(css.slice(css.indexOf('@keyframes motion-card-v1-text {'))).toContain('translateY(var(--motion-distance-12, 12px))');
   });
 
   it('a layer is offset by its own delay and by the version\'s stagger', () => {
-    expect(css).toContain('animation-delay: calc(var(--motion-delay-70, 70ms) + var(--motion-index, 0) * var(--motion-delay-70, 70ms));');
-    expect(css).toContain('animation-delay: calc(var(--motion-delay-120, 120ms) + var(--motion-index, 0) * var(--motion-delay-70, 70ms));');
+    expect(css).toContain('animation-delay: calc(var(--motion-delay-80, 80ms) + var(--motion-index, 0) * var(--motion-delay-80, 80ms));');
+    expect(css).toContain('animation-delay: calc(var(--motion-delay-120, 120ms) + var(--motion-index, 0) * var(--motion-delay-80, 80ms));');
   });
 
   it('every layer has its own reduced-motion block', () => {
@@ -329,7 +329,7 @@ describe('layers', () => {
       expect(out.markdown).toContain('## Layer: text');
       expect(out.markdown).toContain("The component's root element");
       const text = out.markdown.slice(out.markdown.indexOf('## Layer: text'));
-      expect(text).toContain('- Duration: duration.140 (140ms)');
+      expect(text).toContain('- Duration: duration.150 (150ms)');
       expect(text).toContain('- Delay: delay.120 (120ms)');
       expect(text).toContain('- 0%: opacity 0, transform translateY(12px)');
     });
@@ -342,12 +342,12 @@ describe('layers', () => {
       const tokensSection = out.markdown.slice(out.markdown.indexOf('## Tokens'));
       expect(tokensSection).toContain('- **root**');
       expect(tokensSection).toContain('- **title**');
-      expect(tokensSection).toContain('  - `duration.140` (duration)');
+      expect(tokensSection).toContain('  - `duration.150` (duration)');
       expect(tokensSection).toContain('  - `distance.12` (0% transform)');
     });
 
     it('tokens.css defines the variables the layers use too', () => {
-      expect(out.tokensCss).toContain('--motion-duration-140: 140ms;');
+      expect(out.tokensCss).toContain('--motion-duration-150: 150ms;');
       expect(out.tokensCss).toContain('--motion-distance-12: 12px;');
       expect(out.tokensCss).toContain('--motion-delay-120: 120ms;');
     });
@@ -360,7 +360,7 @@ describe('layers', () => {
       const plain = buildVersionExport('card', tween(), [tween()], tokens).markdown;
       expect(plain).not.toContain('## Layer');
       expect(plain).not.toContain('- **root**');
-      expect(plain).toContain('- `duration.220` (duration)');
+      expect(plain).toContain('- `duration.200` (duration)');
     });
   });
 });
@@ -369,7 +369,7 @@ describe('the scroll snippet in the spec', () => {
   const layered = (trigger?: MotionVersion['trigger']): MotionVersion => tween({
     trigger,
     layers: {
-      title: { model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }] },
+      title: { model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance', delay: 'delay.80' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }] },
     },
   });
   const md = (v: MotionVersion) => buildVersionExport('card', v, [v], tokens).markdown;
@@ -425,18 +425,18 @@ describe('the scroll snippet in the spec', () => {
 describe('delay tokens in the CSS', () => {
   it('a delay token is written as its variable with the literal as the fallback, so changing the token changes the delay', () => {
     const v = tween({
-      layers: { title: { model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }] } },
+      layers: { title: { model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance', delay: 'delay.80' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }] } },
     });
     const css = buildVersionCss(v, raw, { component: 'card' });
-    expect(css).toContain('animation-delay: var(--motion-delay-70, 70ms);');
+    expect(css).toContain('animation-delay: var(--motion-delay-80, 80ms);');
     expect(css).not.toContain('animation-delay: 70ms;');
   });
 
   it('a literal delay stays a literal, and a duration token used as a delay is a variable too', () => {
-    const lit = tween({ model: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-entrance', delay: '90ms' } });
+    const lit = tween({ model: { model: 'tween', duration: 'duration.200', easing: 'easing.productive-entrance', delay: '90ms' } });
     expect(buildVersionCss(lit, raw, { component: 'card' })).toContain('animation-delay: 90ms;');
-    const byDuration = tween({ model: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-entrance', delay: 'duration.300' } });
-    expect(buildVersionCss(byDuration, raw, { component: 'card' })).toContain('animation-delay: var(--motion-duration-300, 300ms);');
+    const byDuration = tween({ model: { model: 'tween', duration: 'duration.200', easing: 'easing.productive-entrance', delay: 'duration.250' } });
+    expect(buildVersionCss(byDuration, raw, { component: 'card' })).toContain('animation-delay: var(--motion-duration-250, 250ms);');
   });
 });
 
@@ -451,9 +451,9 @@ describe('spec.md: the motion table', () => {
 
   it('has a row per property with the easing as its token name, the times in ms and a text timeline', () => {
     expect(md).toContain('| Element | Property | From | To | Easing | Duration (ms) | Delay (ms) | Also |');
-    expect(md).toContain('| **demo** | `opacity` | `0` | `1` | `productive-entrance` | `220` | `0` |  |');
-    expect(md).toContain('`translateY(16px)`');
-    expect(md).toMatch(/demo +█+ +0–220ms/);
+    expect(md).toContain('| **demo** | `opacity` | `0` | `1` | `productive-entrance` | `200` | `0` |  |');
+    expect(md).toContain('`translateY(20px)`');
+    expect(md).toMatch(/demo +█+ +0–200ms/);
   });
 
   it('says how the names map to the CSS variables', () => {
@@ -467,14 +467,14 @@ describe('spec.md: the motion table', () => {
         initial: 'rest',
         states: { rest: {}, hover: { transform: 'translateY(-{distance.4})' } },
         transitions: {
-          rest: { model: 'tween', duration: 'duration.140', easing: 'easing.productive-exit' },
-          hover: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-standard' },
+          rest: { model: 'tween', duration: 'duration.150', easing: 'easing.productive-exit' },
+          hover: { model: 'tween', duration: 'duration.200', easing: 'easing.productive-standard' },
         },
       },
     };
     const text = buildVersionExport('demo', states, [states], tokens).markdown;
-    expect(text).toContain('### into rest');
-    expect(text).toContain('### into hover');
+    expect(text).toContain('### hover');
+    expect(text).not.toContain('### back to');
     expect(text).toContain('`translateY(-4px)`');
   });
 });
