@@ -307,11 +307,29 @@ for (const btn of runtimeButtons) {
 
 // ── Speed control ──────────────────────────────────────────────────────────
 
-const speedControl = document.getElementById('speed-control') as HTMLSelectElement;
-speedControl.addEventListener('change', () => {
-  playbackRate = parseFloat(speedControl.value);
-  activeAnimations.forEach(a => { a.speed = playbackRate; });
-});
+// The playback bar sits above the example, on the views that play one (component and page): the speed motion plays at,
+// and, when the lab is playing with Motion rather than CSS, a chip that says so and opens Settings to change it.
+const SPEEDS: [string, string][] = [['0.25', '0.25×'], ['0.5', '0.5×'], ['1', '1×'], ['2', '2×']];
+
+function playbackBarHtml(): string {
+  const options = SPEEDS.map(([value, label]) => `<option value="${value}"${Number(value) === playbackRate ? ' selected' : ''}>${label}</option>`).join('');
+  const chip = runtime === 'motion'
+    ? '<button type="button" class="lab-runtime-chip" id="runtime-chip" title="Change the motion library in Settings">Playing with Motion (springs)</button>'
+    : '';
+  return `<div class="lab-toolbar" role="group" aria-label="Playback">
+      <label class="lab-control-label">Speed <select id="speed-control" class="lab-select">${options}</select></label>
+      ${chip}
+    </div>`;
+}
+
+function bindPlaybackBar(): void {
+  const speed = document.getElementById('speed-control') as HTMLSelectElement | null;
+  speed?.addEventListener('change', () => {
+    playbackRate = parseFloat(speed.value);
+    activeAnimations.forEach(a => { a.speed = playbackRate; });
+  });
+  document.getElementById('runtime-chip')?.addEventListener('click', openSettings);
+}
 
 // ── Nav ────────────────────────────────────────────────────────────────────
 
@@ -663,6 +681,7 @@ function renderComponentView(params: URLSearchParams): void {
     </nav>
     <div class="lab-component-layout">
       <div class="lab-preview-area${framed ? ' lab-preview-area--framed' : ''}">
+        ${playbackBarHtml()}
         <div class="lab-preview" id="preview-primary">
           <div class="lab-preview__inner" id="preview-inner-primary"></div>
         </div>
@@ -727,6 +746,7 @@ function renderComponentView(params: URLSearchParams): void {
   `;
 
   document.getElementById('breadcrumb-current')!.textContent = componentName;
+  bindPlaybackBar();
 
   // Version tabs
   const versionTabs = document.getElementById('version-tabs')!;
@@ -1127,7 +1147,10 @@ function renderPageView(params: URLSearchParams): void {
 
   main.innerHTML = `
     <div class="lab-page-layout">
-      <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
+      <div class="lab-page-main">
+        ${playbackBarHtml()}
+        <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
+      </div>
       <aside class="lab-sidebar">
         <section class="lab-controls" aria-label="Page versions">
           <h3 class="lab-controls__title">Page versions</h3>
@@ -1170,6 +1193,7 @@ function renderPageView(params: URLSearchParams): void {
     </div>
   `;
 
+  bindPlaybackBar();
   const stage = document.getElementById('page-stage')!;
   const motionMapPanel = document.getElementById('motion-map-panel')!;
 

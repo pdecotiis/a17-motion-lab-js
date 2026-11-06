@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { setRuntime } from './lab.js';
 
 // The top navigation: the Library is home and the way into a component, there is no Component item, and a component
 // has a breadcrumb back. Runs on the lab's own components, so it holds in a project as well as in the template.
@@ -105,20 +106,26 @@ test.describe('Header controls look like the kit\'s buttons', () => {
     await page.mouse.up();
   });
 
-  test('the runtime toggle, the speed dropdown and the icon buttons are 40px, the kit\'s height', async ({ page }) => {
+  test('the speed dropdown and the icon buttons are 40px, the kit\'s height, with 8px corners', async ({ page }) => {
     await page.goto('/?view=component');
-    for (const selector of ['.lab-segmented', '#speed-control', '#settings-btn', '#theme-toggle']) {
+    for (const selector of ['#speed-control', '#settings-btn', '#theme-toggle']) {
       expect((await style(page, selector)).height, selector).toBe(40);
     }
     expect((await style(page, '#speed-control')).radius).toBe('8px');
-    expect((await style(page, '.lab-segmented__btn[aria-pressed="true"]')).background).toBe('rgb(23, 23, 23)');
+  });
+
+  test('the motion library switch is in Settings, 40px, with the active half near-black', async ({ page }) => {
+    await page.goto('/?view=component');
+    await expect(page.locator('.lab-header .lab-segmented')).toHaveCount(0);
+    await page.click('#settings-btn');
+    expect((await style(page, '.lab-settings .lab-segmented')).height).toBe(40);
+    await expect.poll(() => style(page, '.lab-segmented__btn[aria-pressed="true"]')).toMatchObject({ background: 'rgb(23, 23, 23)' });
   });
 
   test('in the dark theme the primary button is the light one', async ({ page }) => {
     await page.goto('/?view=tokens');
     await page.click('#theme-toggle');
-    await expect.poll(async () => (await style(page, '.lab-nav__btn[aria-current="page"]')).background).toBe('rgb(245, 245, 245)');
-    expect((await style(page, '.lab-nav__btn[aria-current="page"]')).color).toBe('rgb(23, 23, 23)');
+    await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ background: 'rgb(245, 245, 245)', color: 'rgb(23, 23, 23)' });
   });
 });
 
@@ -192,5 +199,48 @@ test.describe('Navigation in place', () => {
       await expect(page.locator('.lab-page-layout')).toBeVisible();
     }
     expect(errors).toEqual([]);
+  });
+});
+
+// Speed is a playback control: it sits above the example on the views that play one, not in the header or the side panel.
+test.describe('Playback bar', () => {
+  test('is above the example on the component view, and not in the header', async ({ page }) => {
+    await page.goto('/?view=component');
+    await expect(page.locator('.lab-header #speed-control')).toHaveCount(0);
+    await expect(page.locator('.lab-sidebar #speed-control')).toHaveCount(0);
+    const speed = (await page.locator('#speed-control').boundingBox())!;
+    const preview = (await page.locator('#preview-primary').boundingBox())!;
+    expect(speed.y + speed.height).toBeLessThanOrEqual(preview.y);
+  });
+
+  test('is above the page on the page view', async ({ page }) => {
+    await page.goto('/?view=page');
+    const speed = (await page.locator('#speed-control').boundingBox())!;
+    const stage = (await page.locator('#page-stage').boundingBox())!;
+    expect(speed.y + speed.height).toBeLessThanOrEqual(stage.y);
+  });
+
+  test('is only on the views that play an example', async ({ page }) => {
+    for (const view of ['library', 'tokens', 'presets']) {
+      await page.goto(`/?view=${view}`);
+      await expect(page.locator('#speed-control')).toHaveCount(0);
+    }
+  });
+
+  test('the speed holds as you move between views', async ({ page }) => {
+    await page.goto('/?view=component');
+    await page.selectOption('#speed-control', '0.5');
+    await page.click('a.lab-nav__btn[data-view="page"]');
+    await expect(page.locator('#speed-control')).toHaveValue('0.5');
+  });
+
+  test('says when the lab is playing with Motion, and the chip opens Settings', async ({ page }) => {
+    await page.goto('/?view=component');
+    await expect(page.locator('#runtime-chip')).toHaveCount(0);
+    await setRuntime(page, 'motion');
+    await expect(page.locator('#runtime-chip')).toHaveText('Playing with Motion (springs)');
+    await page.click('#runtime-chip');
+    await expect(page.locator('#settings-dialog')).toHaveAttribute('open', '');
+    await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
   });
 });

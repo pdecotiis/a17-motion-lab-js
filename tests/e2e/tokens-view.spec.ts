@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { setRuntime } from './lab.js';
 import { SAMPLES_PRESENT, SAMPLES_NEEDED } from '../samples.js';
 
 test.describe('Tokens view', () => {
@@ -114,7 +115,7 @@ test.describe('Tokens view', () => {
     await expect(page.locator('.lab-token-row', { hasText: 'expressive-bounce' })).toHaveCount(0);
 
     // Notes and status show for an experimental token too: the bounce tokens, under Motion.
-    await page.click('#runtime-motion');
+    await setRuntime(page, 'motion');
     await open(page, 'Bounce');
     const bounce = await tip('bounce-25');
     expect(bounce).toContain("Motion's default bounce");
@@ -148,7 +149,7 @@ test.describe('Tokens view', () => {
 
   test('a bounce curve has no handles: it is a spring, not a bezier', async ({ page }) => {
     test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
-    await page.click('#runtime-motion');
+    await setRuntime(page, 'motion');
     await open(page, 'Bounce');
     const curve = page.locator('.lab-token-row .lab-curve').first();
     await expect(curve.locator('.lab-curve__handle')).toHaveCount(0);
@@ -180,7 +181,7 @@ test.describe('Tokens view', () => {
     test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     await page.goto('/?view=tokens');
     await expect(page.locator('.lab-tokens-subtab', { hasText: 'Bounce' })).toHaveCount(0);
-    await page.click('#runtime-motion');
+    await setRuntime(page, 'motion');
     await open(page, 'Bounce');
     await expect(page.locator('.lab-token-name')).toHaveText(['bounce-0', 'bounce-25', 'bounce-50']);
     await expect(page.locator('#bounce-control')).toHaveValue('bounce.25');
@@ -188,7 +189,7 @@ test.describe('Tokens view', () => {
     const tip = (key: string) => page.locator('.lab-token-row', { hasText: key }).getAttribute('title');
     expect(await tip('bounce-25')).toContain('Used by: the global bounce setting');
     expect(await tip('bounce-50')).toContain('Used by: side-panel/v1');
-    await page.click('#runtime-css');
+    await setRuntime(page, 'css');
     await expect(page.locator('.lab-tokens-subtab', { hasText: 'Bounce' })).toHaveCount(0);
   });
 
