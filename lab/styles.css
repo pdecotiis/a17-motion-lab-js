@@ -161,7 +161,7 @@ html, body {
 .lab-nav__btn[aria-current="page"]:active { background: var(--color-btn-pressed); }
 
 /* Breadcrumb (component view): the way back to the Library */
-.lab-breadcrumb { margin: 0 0 16px; }
+.lab-breadcrumb { margin: 0; }
 .lab-breadcrumb ol { display: flex; align-items: center; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .lab-breadcrumb li + li::before { content: '/'; margin-right: 8px; color: var(--color-text-muted); }
 .lab-breadcrumb a { color: var(--color-text-muted); text-decoration: none; border-radius: var(--radius-xs); }
@@ -683,7 +683,12 @@ html, body {
 .lab-mt-tick { position: absolute; top: 4px; transform: translateX(-50%); font-size: var(--lab-text-small); }
 
 /* The playback bar above the example (component and page views): the speed, and which motion library is playing. */
-.lab-toolbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+/* The top bar of the component and page views: one row across the whole width, above the example and the rail, with where
+   you are on the left and the playback controls on the right. */
+.lab-viewbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 0 0 16px; }
+.lab-viewbar__title { margin: 0; font-size: var(--lab-text-medium); font-weight: 600; }
+.lab-toolbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-left: auto; }
+.lab-toolbar .lab-btn { width: auto; margin: 0; }
 .lab-toolbar .lab-control-label { font-size: var(--lab-text-medium); }
 .lab-toolbar .lab-select { width: auto; }
 .lab-runtime-chip {
@@ -699,7 +704,6 @@ html, body {
 }
 .lab-runtime-chip:hover { filter: brightness(0.96); }
 .lab-runtime-chip:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-.lab-page-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 /* The runtime switch lives in Settings now. */
 .lab-settings .lab-segmented { width: fit-content; }
 
