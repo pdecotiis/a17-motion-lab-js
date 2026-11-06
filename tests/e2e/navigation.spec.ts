@@ -246,12 +246,18 @@ test.describe('Playback bar', () => {
 });
 
 // The tab says what is on screen, and the header says the project when it has named itself (project.json). The template
-// has no project.json, so these see the plain product name; the name itself is unit-tested (tests/unit/project.test.ts).
+// has none, a project has one: these hold either way; the name itself is unit-tested (tests/unit/project.test.ts).
 test.describe('Title and project name', () => {
-  test('the header says Motion Lab and no project name when there is no project.json', async ({ page }) => {
+  test('the header says Motion Lab, with the project name before it only when there is a project.json', async ({ page }) => {
     await page.goto('/?view=library');
     await expect(page.locator('.lab-header__logo')).toHaveText('Motion Lab');
-    await expect(page.locator('#header-project')).toBeHidden();
+    const name = page.locator('#header-project');
+    if (await name.isVisible()) {
+      await expect(name).not.toBeEmpty();
+      await expect(page.locator('.lab-header__brand')).toHaveAttribute('aria-label', new RegExp(`^${(await name.innerText()).trim()} · Motion Lab`));
+    } else {
+      await expect(name).toBeHidden();
+    }
   });
 
   test('the tab title says what is on screen, then the brand', async ({ page }) => {
