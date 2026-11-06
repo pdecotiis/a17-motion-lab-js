@@ -1,38 +1,47 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 :root {
-  --color-bg: #f5f5f5;
+  /* The lab's own look: the Vitrine UI kit (Inter, IBM Plex Mono, near-black and white, tight corners). These are the
+     lab's variables, not the client's: a previewed component never reads them. */
+  --color-bg: #f2f2f2;
   --color-surface: #ffffff;
-  --color-text: #111111;
-  --color-text-muted: #666666;
-  --color-border: #e0e0e0;
-  --color-accent: #0057ff;
-  --color-accent-text: #ffffff;
+  --color-text: #171717;
+  --color-text-muted: #6b6b6b;
+  --color-border: #e2e2e2;
+  --color-accent: #171717;
+  --color-accent-text: #f5f5f5;
   --color-image-bg: #e8e8e8;
-  --color-notice-bg: #fff8e0;
-  --color-notice-border: #f0d000;
-  --radius: 6px;
+  --color-notice-bg: #e7f3ff;
+  --color-notice-border: #448df4;
+  --radius: 8px;
+  --radius-xs: 2px;
   --header-height: 56px;
+  --lab-font-sans: "Inter Variable", system-ui, -apple-system, sans-serif;
+  --lab-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --lab-font-content: system-ui, -apple-system, sans-serif;
 }
 
 [data-theme="dark"] {
-  --color-bg: #1a1a1a;
-  --color-surface: #2a2a2a;
-  --color-text: #f0f0f0;
-  --color-text-muted: #999999;
-  --color-border: #3a3a3a;
-  --color-accent: #4f8fff;
-  --color-image-bg: #3a3a3a;
-  --color-notice-bg: #3a3000;
-  --color-notice-border: #806000;
+  --color-bg: #171717;
+  --color-surface: #1d1d1d;
+  --color-text: #f5f5f5;
+  --color-text-muted: #acacac;
+  --color-border: #2e2e2e;
+  --color-accent: #f5f5f5;
+  --color-accent-text: #171717;
+  --color-image-bg: #262626;
+  --color-notice-bg: #1d1d1d;
+  --color-notice-border: #034db9;
 }
 
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--lab-font-sans);
   font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
   background: var(--color-bg);
   color: var(--color-text);
 }
@@ -59,7 +68,7 @@ html, body {
 }
 
 .lab-header__brand { margin-right: auto; }
-.lab-header__logo { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.lab-header__logo { font-weight: 500; font-size: 15px; letter-spacing: -0.02em; }
 .lab-header__controls { display: flex; align-items: center; gap: 12px; }
 
 /* Segmented toggle (Tokens view: Easing / Springs) */
@@ -211,7 +220,7 @@ html, body {
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--color-bg);
   color: var(--color-text);
   font-size: 13px;
@@ -259,7 +268,7 @@ html, body {
 .lab-version-tab {
   padding: 7px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--color-text-muted);
   text-align: left;
@@ -320,11 +329,11 @@ html, body {
   padding: 4px 8px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   margin-bottom: 4px;
   font-size: 12px;
 }
-.lab-token-chip code { flex: 1; font-family: monospace; font-size: 11px; word-break: break-all; }
+.lab-token-chip code { flex: 1; font-family: var(--lab-font-mono); font-size: 11px; word-break: break-all; }
 .lab-token-chip-where { color: var(--color-text-muted); font-size: 11px; text-align: right; }
 .lab-tokens-layer { margin: 10px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-muted); }
 .lab-tokens-layer:first-child { margin-top: 0; }
@@ -339,20 +348,20 @@ html, body {
   padding: 6px 8px;
   background: var(--color-notice-bg);
   border: 1px solid var(--color-notice-border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: 12px;
 }
 .lab-tokens-hardcoded-label { font-weight: 600; display: block; margin-bottom: 4px; }
-.lab-tokens-hardcoded-item { color: var(--color-text-muted); margin-top: 2px; font-family: monospace; font-size: 11px; }
+.lab-tokens-hardcoded-item { color: var(--color-text-muted); margin-top: 2px; font-family: var(--lab-font-mono); font-size: 11px; }
 
 /* Generated CSS panel */
 .lab-css-pre {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   padding: 8px 10px;
   font-size: 11px;
-  font-family: monospace;
+  font-family: var(--lab-font-mono);
   line-height: 1.5;
   overflow-x: auto;
   white-space: pre;
@@ -419,14 +428,14 @@ html, body {
   width: 40px;
   height: 8px;
   background: var(--color-accent);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   transform-origin: left center;
   transition: opacity 120ms;
 }
 .lab-token-preview:hover { opacity: 0.7; }
 
-.lab-token-name { font-family: monospace; font-size: 12px; word-break: break-all; }
+.lab-token-name { font-family: var(--lab-font-mono); font-size: 12px; word-break: break-all; }
 
 /* Imported components: rendered at their Figma frame size (see getFramedMarkup) */
 .lab-preview-area--framed { min-width: 0; }
@@ -464,7 +473,7 @@ html, body {
 .lab-spec-meta dd { margin: 0; white-space: pre-line; }
 .lab-spec-meta__unset { color: var(--color-text-muted); font-style: italic; }
 .lab-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
-.lab-history__item a { color: var(--color-accent); text-decoration: none; }
+.lab-history__item a { color: var(--color-accent); text-decoration: underline; }
 .lab-history__item a:hover { text-decoration: underline; }
 .lab-history__origin { display: block; color: var(--color-text-muted); font-size: 11px; }
 
@@ -554,3 +563,6 @@ html, body {
 .lab-presets__intro .lab-btn, .lab-preset__head .lab-btn { width: auto; }
 .lab-compare[hidden] { display: none; }
 .lab-preset__recipe { font-size: 11px; line-height: 1.4; word-break: break-word; }
+
+/* What is being previewed is not the lab: components, pages and frames keep a neutral font, never the lab's Inter. */
+.lab-preview, .lab-page-viewport, .lab-main--frame, .lab-frame-mode, .lab-library-card__preview { font-family: var(--lab-font-content); }

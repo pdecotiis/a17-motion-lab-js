@@ -4,7 +4,7 @@ Read PLAN.md at the start of each session. When a step is completed or a decisio
 
 ## Architecture
 
-**Shell**: Vite + vanilla TypeScript. No UI framework.
+**Shell**: Vite + vanilla TypeScript. No UI framework. **Look**: the Vitrine UI kit (Inter, IBM Plex Mono, near-black and white), set in `lab/styles.css` under the lab's own `--color-*`, `--radius` and `--lab-font-*` variables, never a client's variable names; previewed content keeps a neutral font (`--lab-font-content`), never the lab's.
 **Motion runtime**: the lab plays with a runtime chosen in the header, **CSS / Motion** (CSS by default), and **never mixes them: CSS plays easing curves for every motion, Motion plays springs for every motion**, the root and every layer. **CSS** is the Web Animations API (`element.animate(keyframes, options)`). **Motion** is motion.dev's `animate`, a real library with springs. The lab simulates nothing a runtime lacks.
 **Tokens**: W3C DTCG JSON (`tokens/motion.json`) → CSS custom properties + raw values.
 **Components**: HTML/CSS prototypes with a `motion.ts` file that re-exports named motion versions, one file per version in `versions/`.
