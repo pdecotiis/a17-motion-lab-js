@@ -31,7 +31,9 @@
 
 .grid-container-mosaic-routing__grid {
   display: grid;
-  flex: 1 0 0;
+  flex: none;
+  width: 976px;
+  overflow: hidden;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 8px;
@@ -39,6 +41,15 @@
   height: 600px;
   min-width: 0;
   border-radius: var(--size-12);
+}
+
+/* The tab bentos (v4: Technology, Trading). Closed, each is only its first cell, a 40px bar the grid's full height with no gaps;
+   a version opens the grid around that cell, so the bar becomes the card. */
+.grid-container-mosaic-routing__grid--tab {
+  width: 40px;
+  grid-template-columns: 40px 0 0 0;
+  grid-template-rows: 600px 0;
+  column-gap: 0;
 }
 
 .grid-container-mosaic-routing__span-2 { grid-column: span 2; }
@@ -57,7 +68,39 @@
   background: var(--background-accent-primary);
 }
 
+.grid-container-mosaic-routing__tile--tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 0; /* a bar when closed (no side padding); v4 to v7 open the sides to 24px as it becomes the card */
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: var(--size-12);
+  white-space: nowrap;
+}
+
+.grid-container-mosaic-routing__tile--tab .grid-container-mosaic-routing__heading,
+.grid-container-mosaic-routing__tile--tab .grid-container-mosaic-routing__actions { opacity: 0; }
+
+.grid-container-mosaic-routing__tile--yellow { background: var(--background-accent-1); }
+.grid-container-mosaic-routing__tile--green { background: var(--background-accent-2); }
+.grid-container-mosaic-routing__tile--green .grid-container-mosaic-routing__title { color: var(--text-on-accent-2); }
+.grid-container-mosaic-routing__tile--orange { cursor: pointer; }
+
 .grid-container-mosaic-routing__tile--lilac { background: var(--background-accent-3); }
+
+/* A colour card can be an image (v6, v7): its cover photo is hidden until a version shows it. */
+.grid-container-mosaic-routing__tile--cover { position: relative; overflow: hidden; }
+.grid-container-mosaic-routing__cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  opacity: 0;
+}
 
 .grid-container-mosaic-routing__heading {
   display: flex;
@@ -101,11 +144,40 @@
   opacity: 0.75;
 }
 
+/* The photo keeps its size and the cell is a mask over it: centred at the size of the cell when it is open (238 x 296, or 484 wide
+   for a double cell), so a cell that grows or shrinks reveals or hides the picture instead of scaling it. Where a cell is
+   larger than that (the morph states of v2) the photo covers it. */
 .grid-container-mosaic-routing__photo {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 50%;
+  left: 50%;
+  width: 238px;
+  height: 296px;
+  min-width: 100%;
+  min-height: 100%;
   max-width: none;
+  transform: translate(-50%, -50%);
   object-fit: cover;
 }
+
+.grid-container-mosaic-routing__span-2 > .grid-container-mosaic-routing__photo { width: 484px; }
+
+/* A black veil over a picture: hidden, a version fades it up to hide the picture on black (v7). */
+.grid-container-mosaic-routing__veil {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* v9: a closed bar is the secondary background; hovering it shows its own colour. The attribute selector matches only a bar a version has
+   set to background-secondary (an inline style from the player), so other versions' bars are untouched. */
+.grid-container-mosaic-routing__tile--orange[style*="--background-secondary"],
+.grid-container-mosaic-routing__tile--yellow[style*="--background-secondary"],
+.grid-container-mosaic-routing__tile--green[style*="--background-secondary"] {
+  transition: background-color var(--motion-duration-220, 220ms) var(--motion-easing-productive-standard, ease);
+}
+.grid-container-mosaic-routing__tile--orange[style*="--background-secondary"]:hover { background-color: var(--background-accent-primary) !important; }
+.grid-container-mosaic-routing__tile--yellow[style*="--background-secondary"]:hover { background-color: var(--background-accent-1) !important; }
+.grid-container-mosaic-routing__tile--green[style*="--background-secondary"]:hover { background-color: var(--background-accent-2) !important; }

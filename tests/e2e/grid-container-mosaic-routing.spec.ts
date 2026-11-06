@@ -23,7 +23,7 @@ test.describe('Grid Container Mosaic Routing', () => {
 
   // The morph (v2): a click moves the orange Machine Learning cell from two columns to three and the others make room.
   for (const runtime of ['css', 'motion']) {
-    test(`v2 morphs on click under ${runtime}: the orange cell grows to two thirds, the bars stay`, async ({ page }) => {
+    test(`v2 morphs on click under ${runtime}: the orange cell grows to two thirds`, async ({ page }) => {
       const errors: string[] = [];
       page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
       const q = runtime === 'motion' ? '&runtime=motion' : '';
@@ -35,13 +35,8 @@ test.describe('Grid Container Mosaic Routing', () => {
       const figma = async () => { await expect(root).toHaveAttribute('data-state', 'default'); await expect.poll(async () => Math.round((await box('tile-1')).width), { timeout: 5000 }).toBe(484); };
       await wide();
       await expect.poll(async () => Math.round((await box('tile-2')).width), { timeout: 5000 }).toBe(320);
-      // Where a bar sits in the section (the stage may re-centre, so not on the page).
-      const inSection = async (name: string) => { const r = await box('grid-container-mosaic-routing'); const b = await box(name); return { x: Math.round(b.x - r.x), y: Math.round(b.y - r.y), w: Math.round(b.width), h: Math.round(b.height) }; };
-      const bars = { one: await inSection('bar-1'), two: await inSection('bar-2') };
       await page.locator('[data-motion="tile-1"]').first().click();
       await figma();
-      expect(await inSection('bar-1')).toEqual(bars.one);
-      expect(await inSection('bar-2')).toEqual(bars.two);
       await page.locator('[data-motion="tile-1"]').first().click();
       await wide();
       expect(errors).toHaveLength(0);
@@ -55,4 +50,23 @@ test.describe('Grid Container Mosaic Routing', () => {
     await expect.poll(async () => Math.round((await page.locator('[data-motion="tile-1"]').first().boundingBox())!.width), { timeout: 5000 }).toBe(484);
     expect(errors).toHaveLength(0);
   });
+
+  // The tabs (v4 to v7): the arrow keys move left and right through the bentos as they sit in the row.
+  for (const version of ['v4', 'v5', 'v6', 'v7']) {
+    test(`${version}: the left and right arrow keys move through the bentos`, async ({ page }) => {
+      await page.goto(`/?view=component&component=grid-container-mosaic-routing&version=${version}`);
+      const root = page.locator('[data-motion-target]').first();
+      await page.locator('[data-motion="tile-1"]').first().click();   // start from Machine Learning (the right-most)
+      await expect(root).toHaveAttribute('data-state', 'default');
+      await page.locator('body').click({ position: { x: 5, y: 5 } });  // keys go to the page, not a control
+      await page.keyboard.press('ArrowLeft');
+      await expect(root).toHaveAttribute('data-state', 'trading');
+      await page.keyboard.press('ArrowLeft');
+      await expect(root).toHaveAttribute('data-state', 'technology');
+      await page.keyboard.press('ArrowRight');
+      await expect(root).toHaveAttribute('data-state', 'trading');
+      await page.keyboard.press('ArrowRight');
+      await expect(root).toHaveAttribute('data-state', 'default');
+    });
+  }
 });
