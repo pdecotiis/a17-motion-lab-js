@@ -637,6 +637,12 @@ function renderComponentView(params: URLSearchParams): void {
   const framed = Boolean(metaModules[`../components/${componentName}/meta.json`]);
 
   main.innerHTML = `
+    <nav class="lab-breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="${libraryHref()}" id="breadcrumb-library">Library</a></li>
+        <li aria-current="page" id="breadcrumb-current"></li>
+      </ol>
+    </nav>
     <div class="lab-component-layout">
       <div class="lab-preview-area${framed ? ' lab-preview-area--framed' : ''}">
         <div class="lab-preview" id="preview-primary">
@@ -655,7 +661,7 @@ function renderComponentView(params: URLSearchParams): void {
           <div class="lab-accordion__body">
             <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
             <p class="lab-lineage" id="version-lineage"></p>
-            <button class="lab-btn" id="replay-btn">Replay</button>
+            <button class="lab-btn lab-btn--primary" id="replay-btn">Replay</button>
             <div class="lab-states" id="interaction-controls" hidden></div>
           </div>
         </details>
@@ -701,6 +707,8 @@ function renderComponentView(params: URLSearchParams): void {
     </div>
     <section class="lab-motion-table" id="motion-table" aria-label="Motion table"></section>
   `;
+
+  document.getElementById('breadcrumb-current')!.textContent = componentName;
 
   // Version tabs
   const versionTabs = document.getElementById('version-tabs')!;
@@ -1120,13 +1128,13 @@ function renderPageView(params: URLSearchParams): void {
           </div>
           ${compareWith ? `<label class="lab-check"><input type="checkbox" id="page-actual-size"${actualSize ? ' checked' : ''}> Actual size (scroll sideways)</label>` : ''}
           <p class="lab-lineage" id="page-version-note"></p>
-          <button class="lab-btn" id="save-page-version-btn">Save as new version</button>
+          <button class="lab-btn lab-btn--primary" id="save-page-version-btn">Save as new version</button>
           <p class="lab-text-muted lab-controls__hint" id="page-version-status"></p>
         </section>
         <section class="lab-controls" aria-label="Motion map">
           <h3 class="lab-controls__title">Motion Map</h3>
           <div id="motion-map-panel" class="lab-motion-map-panel"></div>
-          <button class="lab-btn" id="replay-all-btn">Replay All</button>
+          <button class="lab-btn lab-btn--primary" id="replay-all-btn">Replay All</button>
           <p class="lab-text-muted lab-controls__hint">The page is a fixed-height window: scroll it. A section whose version plays on scroll waits until it enters the window; Replay All scrolls back to the top.</p>
         </section>
         <section class="lab-controls" aria-label="Stagger">
@@ -1851,6 +1859,25 @@ function fitLibraryPreview(box: HTMLElement, scaler: HTMLElement, width: number,
   scaler.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
 }
 
+// The Library's filters (status, archived, search), kept for the way back from a component: the breadcrumb returns to
+// the Library the way it was left.
+const LIBRARY_SEARCH_KEY = 'lab-library-search';
+function rememberLibrarySearch(): void {
+  try { sessionStorage.setItem(LIBRARY_SEARCH_KEY, window.location.search); } catch { /* storage can be blocked */ }
+}
+// Where the breadcrumb's Library link goes: the Library with its last filters (and nothing else from that URL).
+function libraryHref(): string {
+  const out = new URLSearchParams({ view: 'library' });
+  try {
+    const saved = new URLSearchParams(sessionStorage.getItem(LIBRARY_SEARCH_KEY) ?? '');
+    for (const key of ['status', 'archived', 'q']) {
+      const value = saved.get(key);
+      if (value) out.set(key, value);
+    }
+  } catch { /* storage can be blocked */ }
+  return `?${out.toString()}`;
+}
+
 function renderLibraryView(params: URLSearchParams): void {
   const main = document.getElementById('main-content')!;
   main.innerHTML = '';
@@ -1932,6 +1959,7 @@ function renderLibraryView(params: URLSearchParams): void {
       footer.append(name, ...(entry.status === 'in-progress' ? [] : [statusBadge(entry.status)]), versions);
 
       card.append(preview, footer);
+      card.addEventListener('click', rememberLibrarySearch);
       grid.appendChild(card);
 
       // Figma frames know their size; hand-built components are measured once the card is in the DOM.
@@ -1960,10 +1988,12 @@ function renderLibraryView(params: URLSearchParams): void {
 
 function route(): void {
   const params = new URLSearchParams(window.location.search);
-  const view = params.get('view') ?? 'component';
+  // The Library is home. A component opens from it, so while one is open the Library stays the lit item.
+  const view = params.get('view') ?? 'library';
+  const navView = view === 'component' ? 'library' : view;
 
   navBtns.forEach(btn => {
-    const isActive = btn.dataset['view'] === view;
+    const isActive = btn.dataset['view'] === navView;
     btn.setAttribute('aria-pressed', String(isActive));
     btn.classList.toggle('lab-nav__btn--active', isActive);
   });

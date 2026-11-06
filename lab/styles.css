@@ -18,9 +18,19 @@
   --color-bar: #000000;
   --color-bar-text: #ffffff;
   --color-highlight: #e7f3ff;
+  /* Buttons, as the Vitrine kit has them: 40px high, 8px corners, 16px sides; near-black, a shade lighter on hover
+     and lighter again pressed. The tint is the kit's "component" background (black at 4%), for the quieter ones. */
+  --color-btn: #171717;
+  --color-btn-hover: #282828;
+  --color-btn-pressed: #3e3e3e;
+  --color-btn-text: #f5f5f5;
+  --color-tint: rgba(0, 0, 0, 0.04);
+  --color-tint-hover: rgba(0, 0, 0, 0.08);
+  --color-tint-pressed: rgba(0, 0, 0, 0.12);
+  --control-height: 40px;
   --radius: 8px;
   --radius-xs: 2px;
-  --header-height: 56px;
+  --header-height: 64px;
   --lab-font-sans: "Inter Variable", system-ui, -apple-system, sans-serif;
   --lab-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --lab-font-content: system-ui, -apple-system, sans-serif;
@@ -45,6 +55,13 @@
   --color-chip: #2a2a2a;
   --color-subtle: #242424;
   --color-highlight: #12294a;
+  --color-btn: #f5f5f5;
+  --color-btn-hover: #e2e2e2;
+  --color-btn-pressed: #c9c9c9;
+  --color-btn-text: #171717;
+  --color-tint: rgba(255, 255, 255, 0.08);
+  --color-tint-hover: rgba(255, 255, 255, 0.12);
+  --color-tint-pressed: rgba(255, 255, 255, 0.16);
 }
 
 html, body {
@@ -80,54 +97,74 @@ html, body {
   flex-shrink: 0;
 }
 
-.lab-header__brand { margin-right: auto; }
+.lab-header__brand { margin-right: auto; color: inherit; text-decoration: none; border-radius: var(--radius); }
+.lab-header__brand:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
 .lab-header__logo { font-weight: 500; font-size: var(--lab-text-large); letter-spacing: -0.01em; }
 .lab-header__controls { display: flex; align-items: center; gap: 12px; }
 
-/* Segmented toggle (Tokens view: Easing / Springs) */
+/* Segmented toggle (the runtime, CSS / Motion): the kit's tint with the active half a primary button */
 .lab-segmented {
   display: flex;
-  border: 1px solid var(--color-border);
+  gap: 2px;
+  height: var(--control-height);
+  padding: 4px;
   border-radius: var(--radius);
-  overflow: hidden;
+  background: var(--color-tint);
 }
 .lab-segmented__btn {
-  padding: 5px 12px;
+  padding: 0 12px;
   border: none;
+  border-radius: 6px;
   background: transparent;
   color: var(--color-text-muted);
-  font-size: var(--lab-text-small);
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  font: inherit;
   cursor: pointer;
   transition: background 120ms, color 120ms;
 }
-.lab-segmented__btn + .lab-segmented__btn { border-left: 1px solid var(--color-border); }
-.lab-segmented__btn:hover { background: var(--color-bg); color: var(--color-text); }
-.lab-segmented__btn--active {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
+.lab-segmented__btn:hover { background: var(--color-tint-hover); color: var(--color-text); }
+.lab-segmented__btn:active { background: var(--color-tint-pressed); }
+.lab-segmented__btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.lab-segmented__btn--active,
+.lab-segmented__btn[aria-pressed="true"] {
+  background: var(--color-btn);
+  color: var(--color-btn-text);
 }
+.lab-segmented__btn--active:hover,
+.lab-segmented__btn[aria-pressed="true"]:hover { background: var(--color-btn-hover); color: var(--color-btn-text); }
+.lab-segmented__btn--active:active,
+.lab-segmented__btn[aria-pressed="true"]:active { background: var(--color-btn-pressed); }
 
-/* Nav */
+/* Nav: quiet buttons, and the page you are on is the primary one */
 .lab-nav { display: flex; gap: 4px; }
 .lab-nav__btn {
-  padding: 6px 14px;
-  border: 1px solid var(--color-border);
+  height: var(--control-height);
+  padding: 0 16px;
+  border: none;
   border-radius: var(--radius);
   background: transparent;
   color: var(--color-text-muted);
+  font: inherit;
   cursor: pointer;
-  font-size: var(--lab-text-medium);
-  transition: background 150ms, color 150ms, border-color 150ms;
+  transition: background 120ms, color 120ms;
 }
-.lab-nav__btn:hover { background: var(--color-bg); color: var(--color-text); }
+.lab-nav__btn:hover { background: var(--color-tint-hover); color: var(--color-text); }
+.lab-nav__btn:active { background: var(--color-tint-pressed); }
+.lab-nav__btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .lab-nav__btn--active,
-.lab-nav__btn[aria-pressed="true"] {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
-  border-color: var(--color-accent);
-}
+.lab-nav__btn[aria-pressed="true"] { background: var(--color-btn); color: var(--color-btn-text); }
+.lab-nav__btn--active:hover,
+.lab-nav__btn[aria-pressed="true"]:hover { background: var(--color-btn-hover); color: var(--color-btn-text); }
+.lab-nav__btn--active:active,
+.lab-nav__btn[aria-pressed="true"]:active { background: var(--color-btn-pressed); }
+
+/* Breadcrumb (component view): the way back to the Library */
+.lab-breadcrumb { margin: 0 0 16px; }
+.lab-breadcrumb ol { display: flex; align-items: center; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lab-breadcrumb li + li::before { content: '/'; margin-right: 8px; color: var(--color-text-muted); }
+.lab-breadcrumb a { color: var(--color-text-muted); text-decoration: none; border-radius: var(--radius-xs); }
+.lab-breadcrumb a:hover { color: var(--color-text); text-decoration: underline; }
+.lab-breadcrumb a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.lab-breadcrumb [aria-current="page"] { font-weight: 600; }
 
 /* Notice */
 .lab-notice {
@@ -226,23 +263,45 @@ html, body {
 }
 
 /* Inputs */
+/* The kit's button shape on a field: 40px, 8px corners, the tint for a background, no border. */
 .lab-input,
 .lab-select {
   width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xs);
-  background: var(--color-bg);
+  height: var(--control-height);
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--color-tint);
   color: var(--color-text);
-  font-size: var(--lab-text-medium);
+  font: inherit;
   line-height: 1.4;
+  transition: background-color 120ms;
+}
+.lab-input:hover,
+.lab-select:hover { background-color: var(--color-tint-hover); }
+/* Our own arrow, so the select is the same shape in every browser (a native one keeps the browser's corners). */
+.lab-select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23171717' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+[data-theme="dark"] .lab-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23f5f5f5' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 .lab-input:focus,
-.lab-select:focus {
+.lab-select:focus,
+.lab-input:focus-visible,
+.lab-select:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
-  border-color: transparent;
 }
+/* A header label ("Speed") sits beside its field. */
+.lab-header__controls .lab-control-label { font-size: var(--lab-text-medium); }
+.lab-header__controls .lab-select { width: auto; }
 .lab-input--hidden { display: none; }
 
 /* Controls panel: a dropdown of the system's named options (transforms, or springs) */
@@ -258,45 +317,60 @@ html, body {
 .lab-curve__dot { fill: var(--color-accent); stroke: var(--color-surface); stroke-width: 2; }
 
 /* Buttons */
+/* The kit's button: 40px, 8px corners, 16px sides. A plain one is the quiet tint; .lab-btn--primary (the one action of a
+   panel: Replay, Save, Apply) is the kit's near-black one, a shade lighter on hover and lighter again pressed. A button
+   that is on (aria-pressed, a state button) looks primary too. */
 .lab-btn {
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 7px 14px;
-  border: 1px solid var(--color-border);
+  gap: 8px;
+  height: var(--control-height);
+  padding: 0 16px;
+  border: none;
   border-radius: var(--radius);
-  background: var(--color-surface);
+  background: var(--color-tint);
   color: var(--color-text);
-  font-size: var(--lab-text-medium);
+  font: inherit;
   cursor: pointer;
   transition: background 120ms, color 120ms;
   margin-top: 6px;
   width: 100%;
 }
-.lab-btn:hover { background: var(--color-bg); }
-.lab-btn--icon { width: 36px; height: 36px; padding: 0; margin: 0; font-size: 16px; }
-.lab-btn--sm { padding: 5px 10px; font-size: var(--lab-text-small); margin-top: 4px; }
+.lab-btn:hover { background: var(--color-tint-hover); }
+.lab-btn:active { background: var(--color-tint-pressed); }
+.lab-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.lab-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.lab-btn--primary,
+.lab-btn[aria-pressed="true"] { background: var(--color-btn); color: var(--color-btn-text); }
+.lab-btn--primary:hover:not(:disabled),
+.lab-btn[aria-pressed="true"]:hover { background: var(--color-btn-hover); }
+.lab-btn--primary:active:not(:disabled),
+.lab-btn[aria-pressed="true"]:active { background: var(--color-btn-pressed); }
+.lab-btn--icon { width: var(--control-height); padding: 0; margin: 0; background: transparent; font-size: 16px; }
+.lab-btn--sm { height: 32px; padding: 0 12px; font-size: var(--lab-text-small); margin-top: 4px; }
 
 /* Version tabs */
 .lab-version-tabs { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
 .lab-version-tab {
-  padding: 7px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xs);
-  background: transparent;
+  height: var(--control-height);
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-tint);
   color: var(--color-text-muted);
   text-align: left;
   cursor: pointer;
-  font-size: var(--lab-text-medium);
-  transition: background 120ms, color 120ms, border-color 120ms;
+  font: inherit;
+  transition: background 120ms, color 120ms;
 }
-.lab-version-tab:hover { background: var(--color-bg); color: var(--color-text); }
-.lab-version-tab--active {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
-  border-color: var(--color-accent);
-}
+.lab-version-tab:hover { background: var(--color-tint-hover); color: var(--color-text); }
+.lab-version-tab:active { background: var(--color-tint-pressed); }
+.lab-version-tab:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.lab-version-tab--active { background: var(--color-btn); color: var(--color-btn-text); }
+.lab-version-tab--active:hover { background: var(--color-btn-hover); color: var(--color-btn-text); }
+.lab-version-tab--active:active { background: var(--color-btn-pressed); }
 
 /* Page view: one column per page version shown (two when comparing).
    Each page sits in a fixed-height window you scroll, like a browser window, so a motion that plays when a
@@ -394,14 +468,15 @@ html, body {
 .lab-tokens-title { margin: 0; font-size: 48px; font-weight: 500; line-height: 1; letter-spacing: -0.04em; text-transform: capitalize; }
 .lab-tokens-subtabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .lab-tokens-subtab {
-  padding: 5px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  height: var(--control-height);
+  padding: 0 16px;
+  border: none;
   border-radius: var(--radius);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.1);
   color: var(--color-bar-text);
   cursor: pointer;
-  font-size: var(--lab-text-medium);
-  transition: background 120ms, color 120ms, border-color 120ms;
+  font: inherit;
+  transition: background 120ms, color 120ms;
 }
 .lab-tokens-subtab:hover { background: rgba(255, 255, 255, 0.14); }
 .lab-tokens-subtab--active { background: var(--color-bar-text); color: var(--color-bar); border-color: var(--color-bar-text); }
@@ -550,7 +625,7 @@ html, body {
 .lab-states { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .lab-states__now { color: var(--color-text-muted); font-size: var(--lab-text-medium); margin: 0; }
 .lab-states__row { display: flex; flex-wrap: wrap; gap: 6px; }
-.lab-states__row .lab-btn[aria-pressed="true"] { background: var(--color-accent, #1a73e8); border-color: var(--color-accent, #1a73e8); color: #fff; }
+.lab-states__row .lab-btn { width: auto; flex: 1 1 auto; }
 
 /* What an interaction version does, in plain words (Version panel) */
 .lab-behaviour { margin: 0 0 10px; font-size: var(--lab-text-medium); }

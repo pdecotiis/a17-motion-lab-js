@@ -321,7 +321,7 @@ test.describe('Runtime (CSS / Motion)', () => {
     await expect(page.locator('.lab-token-row', { hasText: 'bounce-0' })).toHaveAttribute('title', /Used by: .*the global bounce setting/);
     await expect(page.locator('.lab-token-row', { hasText: 'bounce-25' })).toHaveAttribute('title', /Not used yet/);
 
-    await page.click('.lab-nav__btn[data-view="component"]');
+    await page.goBack();
     await expect(playbackRow(page)).toContainText('Spring · bounce 0 (bounce.0), 200ms (authored as easing; bounce is the global setting)');
   });
 
