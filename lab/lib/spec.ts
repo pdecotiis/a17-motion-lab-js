@@ -107,12 +107,16 @@ function transitionLines(version: MotionVersion, raw: Record<string, unknown>): 
 }
 
 // What starts each move, and the ones the component can't start itself.
-const TRIGGER_WORDS: Record<string, string> = { hover: 'pointer over it (a mouse or pen, never a touch)', press: 'pointer held down on it', focus: 'keyboard focus (not a mouse click)', click: 'a click or tap' };
+const TRIGGER_WORDS: Record<string, string> = { arrows: 'the left and right arrow keys', hover: 'pointer over it (a mouse or pen, never a touch)', press: 'pointer held down on it', focus: 'keyboard focus (not a mouse click)', click: 'a click or tap' };
 function triggerLines(version: MotionVersion): string[] {
   const i = version.interaction!;
   const triggers = i.triggers ?? [];
   const led = new Set<string>();
   const rows = triggers.map(t => {
+    if (t.on === 'arrows') {
+      t.states.forEach(st => led.add(st));
+      return `| arrows | the page (not while typing in a field) | ${TRIGGER_WORDS['arrows']} | steps through ${t.states.map(st => `**${st}**`).join(', ')}, left to right: left goes to the one before, right to the one after, and it stops at the ends |`;
+    }
     const where = t.target ? `the element marked \`data-motion="${t.target}"\`` : 'the component itself';
     if (t.on === 'click') {
       const states = 'set' in t ? [t.set] : t.toggle;
