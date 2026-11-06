@@ -9,7 +9,7 @@ export const v2: MotionVersion = {
   layers: {
     'quote-card-1': { preset: 'card', delay: 'delay.40' },
     'quote-card-2': { preset: 'card', delay: 'delay.120' },
-    'pagination': { preset: 'ui', delay: 'duration.250' },
+    'pagination': { preset: 'ui', delay: 'duration.220' },
   },
   trigger: { on: 'in-view', threshold: 0.2, once: true },
   forkedFrom: 'v1',

@@ -16,6 +16,7 @@ test.describe('Tokens view', () => {
   });
 
   test('each kind has a sub-header, and an easing one per group, as the kit\'s sheets do', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED); // pins the template's easings
     await expect(page.locator('.lab-tokens-group')).toHaveText(['duration']);
     await open(page, 'Easing');
     await expect(page.locator('.lab-tokens-group')).toHaveText(['productive', 'expressive', 'linear']);
@@ -59,6 +60,7 @@ test.describe('Tokens view', () => {
   });
 
   test('easings run in system order', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED); // pins the template's easings
     await open(page, 'Easing');
     expect(await names(page)).toEqual([
       'productive-standard', 'productive-entrance', 'productive-exit',
@@ -124,6 +126,7 @@ test.describe('Tokens view', () => {
   });
 
   test('easings have a curve; durations and distances a bar or a square; the rest have no example', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED); // pins the template's easings
     await expect(page.locator('.lab-token-row .lab-curve')).toHaveCount(0);
     await expect(page.locator('.lab-token-row .lab-token-preview')).toHaveCount(8);
     await open(page, 'Easing');
@@ -194,6 +197,7 @@ test.describe('Tokens view', () => {
   });
 
   test('the easing view is just easings: no bounce column, no Bounces table, no Easing / Spring switch', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED); // pins the template's easings
     await open(page, 'Easing');
     await expect(page.locator('.lab-tokens-table')).toHaveCount(3);
     await expect(page.locator('.lab-tokens-table').first().locator('th')).toHaveText(['Token', 'Value', 'Example']);

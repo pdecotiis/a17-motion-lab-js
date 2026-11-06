@@ -17,9 +17,9 @@ const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
 
 const ok = {
   eyebrow: {
-    rise: 'distance.20',
-    move: { duration: 'duration.700', easing: 'easing.expressive-entrance' },
-    fade: { duration: 'duration.250', easing: 'easing.productive-entrance' },
+    rise: 'distance.24',
+    move: { duration: 'duration.800', easing: 'easing.expressive-entrance' },
+    fade: { duration: 'duration.220', easing: 'easing.productive-entrance' },
   },
 };
 
@@ -82,8 +82,8 @@ describe('parsePresets', () => {
     expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, rise: '16px' } } })).toThrow('Preset "x".rise must be a distance token');
     expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, scale: 'distance.4' } } })).toThrow('Preset "x".scale must be a scale token');
     expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, move: { duration: '300ms', easing: 'easing.linear' } } } })).toThrow('Preset "x".move.duration');
-    expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, fade: { duration: 'duration.250', easing: 'ease' } } } })).toThrow('Preset "x".fade.easing');
-    expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, move: { duration: 'duration.250', easing: 'easing.linear', delay: 'delay.40' } } } })).toThrow('unknown key "delay"');
+    expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, fade: { duration: 'duration.220', easing: 'ease' } } } })).toThrow('Preset "x".fade.easing');
+    expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, move: { duration: 'duration.220', easing: 'easing.linear', delay: 'delay.40' } } } })).toThrow('unknown key "delay"');
     expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, status: 'approved' } } })).toThrow('"system" or "experimental"');
     expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, blur: 4 } } })).toThrow('unknown key "blur"');
     expect(() => parsePresets({ presets: { x: { rise: 'distance.8' } } })).toThrow('Preset "x".move');
@@ -104,7 +104,7 @@ describe('validatePresetTokens', () => {
   });
 
   it('names a token that is the wrong kind (a distance that is not in px, an easing that is not a curve)', () => {
-    expect(validatePresetTokens(table({}), { ...raw, 'distance.20': 16 })).toEqual(['Preset "x" rise: "distance.20" is not a distance token']);
+    expect(validatePresetTokens(table({}), { ...raw, 'distance.24': 16 })).toEqual(['Preset "x" rise: "distance.24" is not a distance token']);
     expect(validatePresetTokens(table({}), { ...raw, 'easing.productive-entrance': '300ms' })).toEqual(['Preset "x" fade easing: "easing.productive-entrance" is not a easing token']);
   });
 });

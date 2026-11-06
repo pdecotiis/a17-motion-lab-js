@@ -5,30 +5,30 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 export const v3: MotionVersion = {
   id: 'v3',
   label: 'Expressive',
-  model: { model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance' },
+  model: { model: 'tween', duration: 'duration.800', easing: 'easing.expressive-entrance' },
   keyframes: [
     { opacity: 0, offset: 0 },
     { opacity: 1, offset: 1 },
   ],
   layers: {
     'quote-card-1': {
-      model: { model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance', delay: 'delay.40' },
+      model: { model: 'tween', duration: 'duration.800', easing: 'easing.expressive-entrance', delay: 'delay.40' },
       keyframes: [
-        { opacity: 0, transform: 'translateX({distance.52})', offset: 0 },
+        { opacity: 0, transform: 'translateX({distance.48})', offset: 0 },
         { opacity: 1, transform: 'translateX(0px)', offset: 1 },
       ],
     },
     'quote-card-2': {
-      model: { model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance', delay: 'duration.200' },
+      model: { model: 'tween', duration: 'duration.800', easing: 'easing.expressive-entrance', delay: 'duration.220' },
       keyframes: [
-        { opacity: 0, transform: 'translateX({distance.52})', offset: 0 },
+        { opacity: 0, transform: 'translateX({distance.48})', offset: 0 },
         { opacity: 1, transform: 'translateX(0px)', offset: 1 },
       ],
     },
     'pagination': {
-      model: { model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance', delay: 'duration.400' },
+      model: { model: 'tween', duration: 'duration.800', easing: 'easing.expressive-entrance', delay: 'duration.400' },
       keyframes: [
-        { opacity: 0, transform: 'translateY({distance.20})', offset: 0 },
+        { opacity: 0, transform: 'translateY({distance.24})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px)', offset: 1 },
       ],
     },
