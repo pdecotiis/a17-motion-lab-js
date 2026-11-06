@@ -8,7 +8,8 @@ import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 // what each runtime is asked to do when the component goes to a state. The DOM side is
 // interaction-player.ts.
 
-const STRUCTURAL = ['display', 'position', 'width', 'height', 'content', 'innerHTML'];
+// width and height are allowed in states (an experiment: a cell that grows in place, corners intact); keyframes still refuse them.
+const STRUCTURAL = ['display', 'position', 'content', 'innerHTML'];
 
 /** The events a trigger can listen for. */
 export const TRIGGER_EVENTS: readonly TriggerEvent[] = ['hover', 'press', 'focus', 'click'];
