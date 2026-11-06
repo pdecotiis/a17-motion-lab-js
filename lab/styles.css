@@ -571,10 +571,16 @@ html, body {
 .lab-history__origin { display: block; color: var(--color-text-muted); font-size: var(--lab-text-small); }
 
 /* Library view */
-.lab-library__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }
-.lab-library__toolbar .lab-version-filter { margin-bottom: 0; }
-.lab-library__toolbar .lab-input { width: 220px; }
-.lab-library__count { margin-left: auto; font-size: var(--lab-text-small); color: var(--color-text-muted); }
+.lab-library__toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+/* The search and the status dropdown sit together on the left; the count and Show archived on the right, as large as the lab's other labels (16px). */
+.lab-library__filters { display: flex; align-items: center; gap: 8px; }
+.lab-library__filters .lab-input { width: 240px; }
+.lab-library__filters .lab-select { width: auto; min-width: 160px; }
+.lab-library__meta { display: flex; align-items: center; gap: 24px; margin-left: auto; }
+.lab-library__count,
+.lab-library__meta .lab-check { font-size: var(--lab-text-large); color: var(--color-text-muted); }
+.lab-library__meta .lab-check { gap: 8px; cursor: pointer; }
+.lab-library__meta .lab-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--color-accent); cursor: pointer; }
 .lab-library__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .lab-library__empty { color: var(--color-text-muted); }
 .lab-library-card {

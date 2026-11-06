@@ -59,3 +59,44 @@ test.describe('Library view', () => {
     expect(errors).toHaveLength(0);
   });
 });
+
+// The toolbar above the cards: search and the status dropdown together on the left; the count and Show archived on the right.
+test.describe('Library toolbar', () => {
+  const box = async (page: import('@playwright/test').Page, selector: string) => (await page.locator(selector).first().boundingBox())!;
+
+  test('the search and the status dropdown sit together, side by side', async ({ page }) => {
+    await page.goto('/?view=library');
+    const search = await box(page, '#library-search');
+    const status = await box(page, '#status-filter');
+    expect(Math.abs(search.y - status.y)).toBeLessThanOrEqual(1);
+    expect(status.x - (search.x + search.width)).toBeLessThanOrEqual(16);
+    expect(status.x).toBeGreaterThan(search.x);
+  });
+
+  test('the count and Show archived are on the right, the count first', async ({ page }) => {
+    await page.goto('/?view=library');
+    const status = await box(page, '#status-filter');
+    const count = await box(page, '#library-count');
+    const archived = await box(page, 'label.lab-check');
+    const main = await box(page, '#main-content');
+    expect(count.x).toBeGreaterThan(status.x + status.width);
+    expect(archived.x).toBeGreaterThan(count.x);
+    expect(archived.x + archived.width).toBeGreaterThan(main.x + main.width - 40);
+    expect(Math.abs(count.y + count.height / 2 - (archived.y + archived.height / 2))).toBeLessThanOrEqual(2);
+  });
+
+  test('the count and the Show archived label are 16px, like the lab\'s other labels', async ({ page }) => {
+    await page.goto('/?view=library');
+    const size = (selector: string) => page.locator(selector).first().evaluate(el => getComputedStyle(el).fontSize);
+    expect(await size('#library-count')).toBe('16px');
+    expect(await size('label.lab-check')).toBe('16px');
+  });
+
+  test('Show archived still works from its new place', async ({ page }) => {
+    await page.goto('/?view=library');
+    await page.check('#show-archived');
+    await expect(page).toHaveURL(/archived=1/);
+    await page.uncheck('#show-archived');
+    await expect(page).not.toHaveURL(/archived=1/);
+  });
+});

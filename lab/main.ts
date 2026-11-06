@@ -554,10 +554,9 @@ function statusBadge(status: ComponentStatus): HTMLSpanElement {
 }
 
 // Status filter + "Show archived" toggle; state lives in the URL (?status=…&archived=1).
-function buildStatusFilterControls(filter: ComponentFilter, onChange: (next: ComponentFilter) => void): HTMLElement {
-  const wrap = document.createElement('div');
-  wrap.className = 'lab-version-filter';
-
+// The Library's two filters, as separate pieces so the toolbar can place them: the status dropdown (beside the search)
+// and the Show archived checkbox (with the count, on the right).
+function buildStatusFilterControls(filter: ComponentFilter, onChange: (next: ComponentFilter) => void): { status: HTMLSelectElement; archived: HTMLLabelElement } {
   const select = document.createElement('select');
   select.className = 'lab-select';
   select.id = 'status-filter';
@@ -593,8 +592,7 @@ function buildStatusFilterControls(filter: ComponentFilter, onChange: (next: Com
   select.addEventListener('change', emit);
   toggle.addEventListener('change', emit);
 
-  wrap.append(select, toggleLabel);
-  return wrap;
+  return { status: select, archived: toggleLabel };
 }
 
 // ── Component view ─────────────────────────────────────────────────────────
@@ -1968,7 +1966,15 @@ function renderLibraryView(params: URLSearchParams): void {
   grid.className = 'lab-library__grid';
   grid.id = 'library-grid';
 
-  toolbar.append(search, buildStatusFilterControls(filter, renderGrid), count);
+  // The search and the status dropdown together on the left; the count and Show archived on the right.
+  const controls = buildStatusFilterControls(filter, renderGrid);
+  const filters = document.createElement('div');
+  filters.className = 'lab-library__filters';
+  filters.append(search, controls.status);
+  const meta = document.createElement('div');
+  meta.className = 'lab-library__meta';
+  meta.append(count, controls.archived);
+  toolbar.append(filters, meta);
   main.append(toolbar, grid);
 
   search.addEventListener('input', () => {
