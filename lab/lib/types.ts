@@ -72,15 +72,23 @@ export interface InteractionLayer {
 // listened on: a layer's data-motion name, or the component's root when it is left out.
 //   hover, press, focus   go to `state` while it lasts, and back to the state it was in when it ends
 //   click                 `set` goes to a state; `toggle` swaps between two
-export type TriggerEvent = 'hover' | 'press' | 'focus' | 'click';
+//   arrows                the left and right arrow keys step through `states`, left to right (left goes to the one before the
+//                         current state, right to the one after; it stops at the ends). Heard anywhere on the page except while
+//                         typing in a field.
+export type TriggerEvent = 'hover' | 'press' | 'focus' | 'click' | 'arrows';
 export type InteractionTrigger =
   | { on: 'hover' | 'press' | 'focus'; state: string; target?: string }
   | { on: 'click'; set: string; target?: string }
-  | { on: 'click'; toggle: [string, string]; target?: string };
+  | { on: 'click'; toggle: [string, string]; target?: string }
+  | { on: 'arrows'; states: string[]; target?: string };
 
 export interface Interaction {
   /** The state the component rests in, and starts in. */
   initial: string;
+  /** How long it rests in the initial state before the first move plays when the version opens or is replayed (a delay or duration token,
+   *  or a literal such as "1000ms"). For a version that plays its first move by itself (one with only click or arrow triggers), and after the entrance of one that also appears;
+   *  absent = no wait. */
+  hold?: string;
   states: Record<string, StateValues>;
   /** Timing of going TO each state; every state needs one. */
   transitions: Record<string, TransitionTiming>;

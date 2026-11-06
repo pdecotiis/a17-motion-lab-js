@@ -231,6 +231,23 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
         t.target ? [...el.querySelectorAll<HTMLElement>(`[data-motion="${t.target}"]`)] : [el];
 
       for (const t of interaction.triggers ?? []) {
+        // Arrow keys step through a list of states, left to right: heard on the whole page, but not while typing in a field.
+        if (t.on === 'arrows') {
+          listen(document, 'keydown', ev => {
+            const k = ev as KeyboardEvent;
+            if (locked || k.defaultPrevented || k.altKey || k.ctrlKey || k.metaKey || k.shiftKey) return;
+            if (k.key !== 'ArrowLeft' && k.key !== 'ArrowRight') return;
+            if ((k.target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+            const right = k.key === 'ArrowRight';
+            const at = t.states.indexOf(base);
+            const next = at < 0 ? (right ? 0 : t.states.length - 1) : at + (right ? 1 : -1);
+            if (next < 0 || next >= t.states.length) return;
+            base = t.states[next]!;
+            settle();
+            k.preventDefault();
+          });
+          continue;
+        }
         const els = elsFor(t);
         if (els.length === 0) continue;
 

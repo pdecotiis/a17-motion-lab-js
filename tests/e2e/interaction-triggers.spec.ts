@@ -35,6 +35,7 @@ const SETUP = async (page: Page) => {
     make('foc', 280, [{ on: 'focus', state: 'a' }], '<button id="focbtn" style="margin:10px">focus me</button><input id="focin" style="margin:10px;width:60px">');
     make('clk', 360, [{ on: 'click', set: 'a' }]);
     make('tog', 440, [{ on: 'click', toggle: ['rest', 'b'] }]);
+    make('arw', 600, [{ on: 'arrows', states: ['rest', 'a', 'b'] }]);
     make('lay', 520, [{ on: 'click', target: 'inner', set: 'a' }], '<span data-motion="inner" id="laybtn" style="display:inline-block;margin:10px">layer</span>');
   });
 };
@@ -124,6 +125,32 @@ test.describe('Interaction triggers', () => {
     expect(await stateOf(page, 'lay')).toBe('rest');
     await page.click('#laybtn');
     await expect(page.locator('#lay')).toHaveAttribute('data-state', 'a');
+  });
+
+  test('the arrow keys step through the states, left to right, and stop at the ends', async ({ page }) => {
+    expect(await stateOf(page, 'arw')).toBe('rest');
+    await page.keyboard.press('ArrowLeft');
+    await page.waitForTimeout(200);
+    expect(await stateOf(page, 'arw')).toBe('rest'); // nothing before the first
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#arw')).toHaveAttribute('data-state', 'a');
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#arw')).toHaveAttribute('data-state', 'b');
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(200);
+    expect(await stateOf(page, 'arw')).toBe('b'); // nothing after the last
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('#arw')).toHaveAttribute('data-state', 'a');
+  });
+
+  test('the arrow keys are left alone with a modifier, and while typing in a field', async ({ page }) => {
+    await page.keyboard.press('Shift+ArrowRight');
+    await page.waitForTimeout(200);
+    expect(await stateOf(page, 'arw')).toBe('rest');
+    await page.locator('#focin').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(200);
+    expect(await stateOf(page, 'arw')).toBe('rest');
   });
 
   test('detaching stops listening', async ({ page }) => {

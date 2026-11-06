@@ -157,6 +157,11 @@ export function summarizeInteraction(
   const led = new Set<string>();
 
   for (const t of i.triggers ?? []) {
+    if (t.on === 'arrows') {
+      t.states.forEach(st => led.add(st));
+      lines.push({ heading: 'Arrow keys', text: `When you press the left or right arrow key, it steps through ${listJoin(t.states)}, left to right: left goes to the one before the current state and right to the one after, and it stops at the ends.` });
+      continue;
+    }
     const { heading, when } = triggerWords(t, component);
     if (t.on === 'click') {
       if ('set' in t && t.set !== undefined) {

@@ -335,7 +335,7 @@ for (const btn of runtimeButtons) {
 // Replay.
 const SPEEDS: [string, string][] = [['0.25', '0.25×'], ['0.5', '0.5×'], ['1', '1×'], ['2', '2×']];
 
-function viewBarHtml(replay: { id: string; label: string }, leading = ''): string {
+function viewBarHtml(replay: { id: string; label: string }, leading = '', extra = ''): string {
   const options = SPEEDS.map(([value, label]) => `<option value="${value}"${Number(value) === playbackRate ? ' selected' : ''}>${label}</option>`).join('');
   const chip = runtime === 'motion'
     ? '<button type="button" class="lab-runtime-chip" id="runtime-chip" title="Change the motion library in Settings">Playing with Motion (springs)</button>'
@@ -345,6 +345,7 @@ function viewBarHtml(replay: { id: string; label: string }, leading = ''): strin
       <div class="lab-toolbar" role="group" aria-label="Playback">
         <label class="lab-control-label">Speed <select id="speed-control" class="lab-select">${options}</select></label>
         ${chip}
+        ${extra}
         <button class="lab-btn lab-btn--primary" id="${replay.id}">${replay.label}</button>
       </div>
     </div>`;
@@ -428,12 +429,23 @@ function playerFor(el: HTMLElement, version: MotionVersion, onChange?: (state: s
 // left; one that is clicked (open, closed) stays where it went.
 const DEMO_HOLD_MS = 700;
 
+// A version that rests first (`interaction.hold`) waits before its first move; a replay cancels a wait still running.
+const pendingStarts = new WeakMap<HTMLElement, number>();
+
 function playInteractionEntrance(el: HTMLElement, version: MotionVersion): PlayHandle {
   const player = playerFor(el, version);
+  window.clearTimeout(pendingStarts.get(el));
   // Reset first, and move on once it has taken effect (Motion applies it on its next frame).
   void player.reset().then(() => {
     const next = player.states().find(s => s !== player.state());
     if (!next) return;
+    const hold = version.interaction?.hold;
+    if (hold) {
+      const rested = player.state();
+      const ms = parseMsLocal(String(hold in raw ? raw[hold] : hold));
+      pendingStarts.set(el, window.setTimeout(() => { if (player.state() === rested) player.goTo(next); }, ms / playbackRate));
+      return;
+    }
     player.goTo(next);
     if (version.interaction && hasHoldTriggers(version.interaction)) {
       window.setTimeout(() => { if (player.state() === next) player.goTo(version.interaction!.initial); }, DEMO_HOLD_MS / playbackRate);
@@ -479,6 +491,7 @@ function playEntranceThenStates(el: HTMLElement, version: MotionVersion, stagger
   const run = (entranceRuns.get(el) ?? 0) + 1;
   entranceRuns.set(el, run);
   const player = playerFor(el, version);
+  window.clearTimeout(pendingStarts.get(el));
   player.setLocked(true);
   void player.reset().then(() => {
     if (entranceRuns.get(el) !== run) return;
@@ -489,6 +502,14 @@ function playEntranceThenStates(el: HTMLElement, version: MotionVersion, stagger
       if (runtime === 'css') el.getAnimations({ subtree: true }).forEach(a => a.cancel());
       await player.reset();
       if (entranceRuns.get(el) === run) player.setLocked(false);
+      // An interaction with a hold then rests in its first state for that long and plays its first move (the entrance is the way in).
+      const hold = version.interaction?.hold;
+      const rested = player.state();
+      const next = player.states().find(s => s !== rested);
+      if (hold && next && entranceRuns.get(el) === run) {
+        const ms = parseMsLocal(String(hold in raw ? raw[hold] : hold));
+        pendingStarts.set(el, window.setTimeout(() => { if (entranceRuns.get(el) === run && player.state() === rested) player.goTo(next); }, ms / playbackRate));
+      }
     });
   });
   return cssHandle(el, el.animate([{}], { duration: 0, fill: 'both' }));
@@ -603,6 +624,12 @@ const SHOW_COMPARE = false;
 // The plain-language "What it does" list in the Details panel.
 const SHOW_WHAT_IT_DOES = false;
 
+// The motion table under the preview (the spec sheet). Switched off while ideating, so a change to a version does not
+// rewrite it each time; it is built and tested, and `?motionTable=1` shows it. The Generate spec button in the top bar
+// will write it out (spec.md and the code) when it is wired.
+const SHOW_MOTION_TABLE = false;
+const motionTableShown = (): boolean => SHOW_MOTION_TABLE || new URLSearchParams(location.search).get('motionTable') === '1';
+
 // How long into a transition the "Interrupt" button cuts it short.
 const INTERRUPT_MS = 150;
 
@@ -704,7 +731,7 @@ function renderComponentView(params: URLSearchParams): void {
           <li><a href="${libraryHref()}" id="breadcrumb-library">Library</a></li>
           <li aria-current="page" id="breadcrumb-current"></li>
         </ol>
-      </nav>`)}
+      </nav>`, '<button class="lab-btn" id="generate-spec-btn" type="button" disabled title="Writes the spec and the code for the open version (coming soon)">Generate spec</button>')}
     <div class="lab-component-layout">
       <div class="lab-preview-area${framed ? ' lab-preview-area--framed' : ''}">
         <div class="lab-preview" id="preview-primary">
@@ -766,7 +793,7 @@ function renderComponentView(params: URLSearchParams): void {
         </section>
       </aside>
     </div>
-    <section class="lab-motion-table" id="motion-table" aria-label="Motion table"></section>
+    <section class="lab-motion-table" id="motion-table" aria-label="Motion table"${motionTableShown() ? '' : ' hidden'}></section>
   `;
 
   document.getElementById('breadcrumb-current')!.textContent = componentName;
@@ -1027,7 +1054,7 @@ function renderComponentView(params: URLSearchParams): void {
     tokensList.appendChild(warn);
   }
 
-  renderMotionTable(document.getElementById('motion-table')!, version, componentName);
+  if (motionTableShown()) renderMotionTable(document.getElementById('motion-table')!, version, componentName);
 
   // Generated code section
   const cssPre = document.getElementById('css-pre')!;

@@ -12,7 +12,7 @@ import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 const STRUCTURAL = ['display', 'position', 'content', 'innerHTML'];
 
 /** The events a trigger can listen for. */
-export const TRIGGER_EVENTS: readonly TriggerEvent[] = ['hover', 'press', 'focus', 'click'];
+export const TRIGGER_EVENTS: readonly TriggerEvent[] = ['hover', 'press', 'focus', 'click', 'arrows'];
 
 const NAME = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -55,6 +55,12 @@ function validateTrigger(version: MotionVersion, t: InteractionTrigger, names: s
   if (!TRIGGER_EVENTS.includes(t.on)) throw new Error(`${id} has an unknown trigger "${String(t.on)}" (use ${TRIGGER_EVENTS.join(', ')})`);
   if (t.target !== undefined && !NAME.test(t.target)) throw new Error(`${id} trigger target "${t.target}" must be lowercase letters, numbers and hyphens, as in data-motion="${t.target}"`);
   const known = (s: unknown, what: string): void => { if (typeof s !== 'string' || !names.includes(s)) throw new Error(`${id} ${t.on} trigger ${what} "${String(s)}", which is not one of its states (${names.join(', ')})`); };
+  if (t.on === 'arrows') {
+    const list = (t as { states: string[] }).states;
+    if (!Array.isArray(list) || list.length < 2 || new Set(list).size !== list.length) throw new Error(`${id} arrows trigger needs a list of at least two different states, left to right`);
+    list.forEach(s => known(s, 'steps through'));
+    return;
+  }
   if (t.on === 'click') {
     const hasSet = 'set' in t && t.set !== undefined, hasToggle = 'toggle' in t && t.toggle !== undefined;
     if (hasSet === hasToggle) throw new Error(`${id} click trigger needs either "set" (a state) or "toggle" (two states), not both or neither`);
@@ -73,6 +79,7 @@ function validateTrigger(version: MotionVersion, t: InteractionTrigger, names: s
 export function validateInteraction(version: MotionVersion): void {
   const i = version.interaction;
   if (!i) return;
+  if (i.hold !== undefined && (typeof i.hold !== 'string' || i.hold === '')) throw new Error(`MotionVersion "${version.id}" interaction hold must be a delay or duration token, or a time such as "1000ms"`);
   const names = Object.keys(i.states ?? {});
   if (names.length < 2) throw new Error(`MotionVersion "${version.id}" interaction needs at least two states`);
   if (!names.includes(i.initial)) throw new Error(`MotionVersion "${version.id}" interaction starts in "${i.initial}", which is not one of its states (${names.join(', ')})`);

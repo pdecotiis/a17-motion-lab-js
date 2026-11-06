@@ -26,10 +26,18 @@ test.describe('every version plays', () => {
       const errors: string[] = [];
       page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
       page.on('pageerror', err => errors.push(err.message));
+      // Count the animations the version starts: a finite one (a click-only version's first move) can be over before a slow page is checked.
+      await page.addInitScript(() => {
+        (window as unknown as { __animations: number }).__animations = 0;
+        const start = Element.prototype.animate;
+        Element.prototype.animate = function (...args: Parameters<Element['animate']>) {
+          (window as unknown as { __animations: number }).__animations++;
+          return start.apply(this, args);
+        };
+      });
       await page.goto(`/?view=component&component=${component}&version=${id}`);
       await expect(page.locator('[data-motion-target]').first()).toBeVisible();
-      // Polled: a version that plays its first move on open (a click-only one) starts it a moment after the page loads.
-      await expect.poll(() => page.evaluate(() => document.getAnimations().length), { timeout: 3000 }).toBeGreaterThan(0);
+      await expect.poll(() => page.evaluate(() => (window as unknown as { __animations: number }).__animations), { timeout: 10000 }).toBeGreaterThan(0);
       await page.waitForLoadState('networkidle');
       expect(errors).toEqual([]);
     });

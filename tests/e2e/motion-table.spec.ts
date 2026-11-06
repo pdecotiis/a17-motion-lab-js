@@ -4,10 +4,20 @@ import { setRuntime } from './lab.js';
 // The motion table under the preview in the component view (lab/lib/motion-table.ts). It opens on the lab's default
 // component, so it runs in a project as well as in the template.
 test.describe('Motion table', () => {
+  test('is hidden by default (it is switched off while ideating), and the top bar has a Generate spec button that is not wired yet', async ({ page }) => {
+    await page.goto('/?view=component');
+    await expect(page.locator('#motion-table')).toBeHidden();
+    expect(await page.locator('#motion-table').innerHTML()).toBe('');
+    const button = page.getByRole('button', { name: 'Generate spec' });
+    await expect(button).toBeVisible();
+    await expect(button).toBeDisabled();
+    await expect(page.locator('.lab-viewbar .lab-btn--primary')).toHaveCount(1); // Replay stays the one primary button
+  });
+
   test('documents the open version: a header with the component, a table, and a timeline', async ({ page }) => {
     const errors: string[] = [];
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-    await page.goto('/?view=component');
+    await page.goto('/?view=component&motionTable=1');
     const table = page.locator('#motion-table');
     await expect(table.locator('.lab-mt-title')).not.toBeEmpty();
     await expect(table.locator('.lab-mt-version')).toContainText('v1');
@@ -20,7 +30,7 @@ test.describe('Motion table', () => {
   });
 
   test('is the version as authored: it does not change with the runtime', async ({ page }) => {
-    await page.goto('/?view=component');
+    await page.goto('/?view=component&motionTable=1');
     const before = await page.locator('#motion-table').innerText();
     await setRuntime(page, 'motion');
     await expect(page.locator('#motion-table .lab-mt-title')).not.toBeEmpty();
@@ -28,7 +38,7 @@ test.describe('Motion table', () => {
   });
 
   test('switching version rewrites it', async ({ page }) => {
-    await page.goto('/?view=component');
+    await page.goto('/?view=component&motionTable=1');
     const tabs = page.locator('.lab-version-tab');
     test.skip((await tabs.count()) < 2, 'needs a component with two versions');
     const first = await page.locator('#motion-table .lab-mt-version').innerText();
@@ -37,7 +47,7 @@ test.describe('Motion table', () => {
   });
 
   test('token names in the table read the way the Tokens view writes them: hyphens, easing without its group', async ({ page }) => {
-    await page.goto('/?view=component');
+    await page.goto('/?view=component&motionTable=1');
     const text = await page.locator('#motion-table .lab-mt-table').first().innerText();
     expect(text).not.toMatch(/\beasing\./);
     expect(text).not.toMatch(/\bduration\.\d/);
