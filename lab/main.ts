@@ -1191,7 +1191,7 @@ function renderPageView(params: URLSearchParams): void {
           </div>
           ${compareWith ? `<label class="lab-check"><input type="checkbox" id="page-actual-size"${actualSize ? ' checked' : ''}> Actual size (scroll sideways)</label>` : ''}
           <p class="lab-lineage" id="page-version-note"></p>
-          <button class="lab-btn lab-btn--primary" id="save-page-version-btn">Save as new version</button>
+          <button class="lab-btn" id="save-page-version-btn">Save as new version</button>
           <p class="lab-text-muted lab-controls__hint" id="page-version-status"></p>
         </section>
         <section class="lab-controls" aria-label="Motion map">
