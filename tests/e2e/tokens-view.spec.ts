@@ -36,19 +36,19 @@ test.describe('Tokens view', () => {
   });
 
   test('tokens run smallest to largest within each kind', async ({ page }) => {
-    expect(await names(page)).toEqual(['100', '140', '220', '300', '400', '560', '800', '1200'].map(n => `duration-${n}`));
+    expect(await names(page)).toEqual(['50', '100', '150', '200', '250', '400', '700', '1200'].map(n => `duration-${n}`));
     await open(page, 'Distance');
-    expect(await names(page)).toEqual(['4', '8', '12', '16', '24', '32', '40', '48'].map(n => `distance-${n}`));
+    expect(await names(page)).toEqual(['4', '8', '12', '20', '32', '52', '84', '136'].map(n => `distance-${n}`));
     await open(page, 'Scale');
-    expect(await names(page)).toEqual(['60', '75', '90', '95', '96', '97', '98', '99', '103', '106'].map(n => `scale-${n}`));
+    expect(await names(page)).toEqual(['90', '95', '100'].map(n => `scale-${n}`));
     await open(page, 'Opacity');
-    expect(await names(page)).toEqual(['04', '08', '10', '56'].map(n => `opacity-${n}`));
+    expect(await names(page)).toEqual(['0', '100'].map(n => `opacity-${n}`));
     await open(page, 'Delay');
-    expect(await names(page)).toEqual(['40', '70', '120'].map(n => `delay-${n}`));
+    expect(await names(page)).toEqual(['40', '80', '120'].map(n => `delay-${n}`));
   });
 
   test('token names use hyphens, and an easing drops its group word', async ({ page }) => {
-    expect((await names(page))[0]).toBe('duration-100');
+    expect((await names(page))[0]).toBe('duration-50');
     expect((await names(page)).some(n => n.includes('.'))).toBe(false);
     await open(page, 'Easing');
     expect((await names(page)).some(n => n.includes('.') || n.startsWith('easing'))).toBe(false);
@@ -80,23 +80,25 @@ test.describe('Tokens view', () => {
   test('a row is the name, the value and an example: usage, status and notes are in the tooltip', async ({ page }) => {
     await expect(page.locator('.lab-token-used-by, .lab-token-badge, .lab-token-desc')).toHaveCount(0);
     const cells = page.locator('.lab-token-row').first().locator('td');
-    await expect(cells.nth(0)).toHaveText('duration-100');
-    await expect(cells.nth(1)).toHaveText('100');
+    await expect(cells.nth(0)).toHaveText('duration-50');
+    await expect(cells.nth(1)).toHaveText('50');
     await open(page, 'Easing');
     await expect(page.locator('.lab-token-row').first().locator('td').nth(1)).toHaveText('0.2, 0, 0.38, 0.9');
     await open(page, 'Scale');
     await expect(page.locator('.lab-token-row', { hasText: 'scale-95' }).locator('td').nth(1)).toHaveText('95');
     await open(page, 'Opacity');
-    await expect(page.locator('.lab-token-row', { hasText: 'opacity-04' }).locator('td').nth(1)).toHaveText('4');
+    await expect(page.locator('.lab-token-row', { hasText: 'opacity-100' }).locator('td').nth(1)).toHaveText('100');
+    await expect(page.locator('.lab-token-row', { hasText: 'opacity-0' }).locator('td').nth(1)).toHaveText('0');
   });
 
   test('notes, status, value, usage and old names are in the tooltip', async ({ page }) => {
     test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     const tip = (key: string) => page.locator('.lab-token-row', { hasText: key }).first().getAttribute('title');
-    const used = await tip('duration-220');
-    expect(used).toContain('Path: duration.220');
+    const used = await tip('duration-200');
+    expect(used).toContain('Path: duration.200');
     expect(used).toContain('Status: system');
-    expect(used).toContain('Value: 220ms');
+    expect(used).toContain('Value: 200ms');
+    expect(used).toContain('Old names: 220');
     expect(used).toContain('Used by: card/v1');
     expect(await tip('duration-1200')).toContain('Not used yet');
 
@@ -155,7 +157,7 @@ test.describe('Tokens view', () => {
     expect([...widths].sort((a, b) => a - b)).toEqual(widths);
     expect(widths[7]! / widths[0]!).toBeGreaterThan(8);
     await open(page, 'Distance');
-    const box = page.locator('.lab-token-row', { hasText: 'distance-48' }).locator('.lab-dist-box');
+    const box = page.locator('.lab-token-row', { hasText: 'distance-52' }).locator('.lab-dist-box');
     const before = (await box.boundingBox())!.x;
     await box.click();
     await expect.poll(async () => (await box.boundingBox())!.x).toBeGreaterThan(before + 30);

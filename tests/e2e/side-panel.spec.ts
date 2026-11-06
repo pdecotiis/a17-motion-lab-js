@@ -56,10 +56,10 @@ test.describe('Side panel', () => {
     await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion');
     const note = ' (authored as easing; bounce is the global setting)';
     await expect(page.locator('#version-spec-meta dt:has-text("Playback") + dd')).toHaveText([
-      'Spring · bounce 0.5 (bounce.50), 560ms',
-      `title: Spring · bounce 0.25 (bounce.25), 300ms${note}`,
-      `list: Spring · bounce 0.25 (bounce.25), 300ms${note}`,
-      `actions: Spring · bounce 0.25 (bounce.25), 300ms${note}`,
+      'Spring · bounce 0.5 (bounce.50), 700ms',
+      `title: Spring · bounce 0.25 (bounce.25), 250ms${note}`,
+      `list: Spring · bounce 0.25 (bounce.25), 250ms${note}`,
+      `actions: Spring · bounce 0.25 (bounce.25), 250ms${note}`,
     ].join('\n'));
   });
 });

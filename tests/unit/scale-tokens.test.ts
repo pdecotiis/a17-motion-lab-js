@@ -11,7 +11,9 @@ import { deriveKind } from '../../lab/lib/scales.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import type { DtcgGroup } from '../../lab/lib/types.js';
 
-const file = readFileSync(join(process.cwd(), 'tokens/motion.json'), 'utf8');
+// The scale generator is tested against a fixed token file (the template's set before the Vitrine tokens), so these
+// tests do not depend on which tokens a project has.
+const file = readFileSync(join(__dirname, 'fixtures/old-motion.json'), 'utf8');
 const tokens = JSON.parse(file) as Record<string, unknown>;
 
 describe('scaleValues', () => {
@@ -270,7 +272,7 @@ describe('npm run tokens:scale', () => {
   const setup = (): string => {
     const d = mkdtempSync(join(dir, 'run-'));
     mkdirSync(join(d, 'tokens'));
-    cpSync(join(root, 'tokens/motion.json'), join(d, 'tokens/motion.json'));
+    cpSync(join(__dirname, 'fixtures/old-motion.json'), join(d, 'tokens/motion.json'));
     mkdirSync(join(d, 'components/card/versions'), { recursive: true });
     writeFileSync(join(d, 'components/card/versions/v1.ts'), version);
     return d;

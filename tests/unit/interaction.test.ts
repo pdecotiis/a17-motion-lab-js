@@ -64,11 +64,11 @@ describe('validateInteraction', () => {
 
   it('keeps to motion properties, and a transition needs a duration and an easing', () => {
     expect(() => validateInteraction(version({ states: { ...interaction.states, open: { display: 'block' } } }))).toThrow('structural property: "display"');
-    expect(() => validateInteraction(version({ transitions: { ...interaction.transitions, open: { model: 'tween', duration: 'duration.300' } as never } }))).toThrow('needs a duration and an easing');
+    expect(() => validateInteraction(version({ transitions: { ...interaction.transitions, open: { model: 'tween', duration: 'duration.250' } as never } }))).toThrow('needs a duration and an easing');
   });
 
   it('checks a spring bounce: a token or a number from 0 to 1', () => {
-    const bad = version({ transitions: { ...interaction.transitions, open: { model: 'spring', duration: 'duration.300', easing: 'easing.productive-entrance', bounce: 2 } } });
+    const bad = version({ transitions: { ...interaction.transitions, open: { model: 'spring', duration: 'duration.250', easing: 'easing.productive-entrance', bounce: 2 } } });
     expect(() => validateInteraction(bad)).toThrow('bounce must be a bounce token or a number from 0 to 1');
   });
 });
@@ -80,7 +80,7 @@ describe('a version with an interaction needs no model', () => {
   });
 
   it('modelOf derives the timing of its first transition, as a tween', () => {
-    expect(modelOf(v2)).toEqual({ model: 'tween', duration: 'duration.560', easing: 'easing.expressive-entrance' });
+    expect(modelOf(v2)).toEqual({ model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance' });
   });
 
   it('the root of stepsOf carries that model, so every panel that expects one has it', () => {
@@ -89,8 +89,8 @@ describe('a version with an interaction needs no model', () => {
   });
 
   it('keeps its own model when it names one; a version with neither is refused', () => {
-    const own = { ...v2, model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' } } as MotionVersion;
-    expect(modelOf(own)).toMatchObject({ duration: 'duration.300' });
+    const own = { ...v2, model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' } } as MotionVersion;
+    expect(modelOf(own)).toMatchObject({ duration: 'duration.250' });
     const none = { id: 'x', label: 'x' } as MotionVersion;
     expect(() => validateMotionVersion(none)).toThrow('needs a model, an entrance preset, or an interaction');
     expect(() => modelOf(none)).toThrow('has no model and no interaction');
@@ -144,7 +144,7 @@ describe('triggers', () => {
 
 describe('layers of an interaction', () => {
   const layered = (layers: Interaction['layers']): MotionVersion => version({ layers });
-  const imageHover: Interaction['layers'] = { image: { states: { open: { transform: 'scale({scale.103})' } }, transitions: { open: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' } } } };
+  const imageHover: Interaction['layers'] = { image: { states: { open: { transform: 'scale(1.03)' } }, transitions: { open: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' } } } };
 
   it('accepts values and their own timing for the states', () => {
     expect(() => validateInteraction(layered(imageHover))).not.toThrow();
@@ -156,8 +156,8 @@ describe('layers of an interaction', () => {
     expect(() => validateInteraction(layered({ 'Hero Image': { states: {} } }))).toThrow('interaction layer name "Hero Image"');
     expect(() => validateInteraction(layered({ image: { states: { lost: { opacity: 1 } } } }))).toThrow('layer "image" has values for "lost"');
     expect(() => validateInteraction(layered({ image: { states: { open: { width: '10px' } } } }))).toThrow('layer "image" state "open" contains structural property: "width"');
-    expect(() => validateInteraction(layered({ image: { states: {}, transitions: { lost: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' } } } }))).toThrow('layer "image" has a transition into "lost"');
-    expect(() => validateInteraction(layered({ image: { states: {}, transitions: { open: { model: 'tween', duration: 'duration.300' } as never } } }))).toThrow('needs a duration and an easing');
+    expect(() => validateInteraction(layered({ image: { states: {}, transitions: { lost: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' } } } }))).toThrow('layer "image" has a transition into "lost"');
+    expect(() => validateInteraction(layered({ image: { states: {}, transitions: { open: { model: 'tween', duration: 'duration.250' } as never } } }))).toThrow('needs a duration and an easing');
   });
 
   it('partProps lists what a part changes: the root\'s, and a layer\'s', () => {
@@ -169,7 +169,7 @@ describe('layers of an interaction', () => {
 
   it('partValues fills a property a state leaves out with its natural value', () => {
     const i = layered(imageHover).interaction!;
-    expect(partValues(i, 'image', 'open')).toEqual({ transform: 'scale({scale.103})' });
+    expect(partValues(i, 'image', 'open')).toEqual({ transform: 'scale(1.03)' });
     expect(partValues(i, 'image', 'closed')).toEqual({ transform: 'none' });
     expect(partValues(i, null, 'open')).toEqual({ opacity: 1, transform: 'translateX(0px)' });
     expect(NATURAL_VALUES).toMatchObject({ opacity: 1, transform: 'none' });
@@ -182,7 +182,7 @@ describe('layers of an interaction', () => {
 
   it('timingFor: a layer\'s own timing where it has one, else the component\'s', () => {
     const i = layered(imageHover).interaction!;
-    expect(timingFor(i, 'image', 'open')).toMatchObject({ model: 'tween', duration: 'duration.300' });
+    expect(timingFor(i, 'image', 'open')).toMatchObject({ model: 'tween', duration: 'duration.250' });
     expect(timingFor(i, 'image', 'closed')).toBe(interaction.transitions['closed']);
     expect(timingFor(i, null, 'open')).toBe(interaction.transitions['open']);
   });
@@ -190,8 +190,8 @@ describe('layers of an interaction', () => {
 
 describe('states', () => {
   it('resolves token references in a state\'s values, and lists the tokens it names', () => {
-    expect(resolveState(interaction.states['closed']!, raw)).toEqual({ opacity: 0, transform: 'translateX(48px)' });
-    expect(stateRefs(interaction.states['closed']!)).toEqual(['distance.48']);
+    expect(resolveState(interaction.states['closed']!, raw)).toEqual({ opacity: 0, transform: 'translateX(52px)' });
+    expect(stateRefs(interaction.states['closed']!)).toEqual(['distance.52']);
     expect(stateRefs(interaction.states['open']!)).toEqual([]);
   });
 
@@ -218,10 +218,10 @@ describe('transformParts', () => {
 describe('cssTransitionPlan: going to a state in CSS', () => {
   it('animates to the state\'s values over the transition\'s duration, along its easing curve', () => {
     const open = cssTransitionPlan(interaction, 'open', raw);
-    expect(open).toMatchObject({ animate: { opacity: 1, transform: 'translateX(0px)' }, snap: {}, duration: 560, delay: 0 });
+    expect(open).toMatchObject({ animate: { opacity: 1, transform: 'translateX(0px)' }, snap: {}, duration: 700, delay: 0 });
     expect(open.easing).toBe('cubic-bezier(0, 0, 0.3, 1)');
     const closed = cssTransitionPlan(interaction, 'closed', raw);
-    expect(closed).toMatchObject({ animate: { opacity: 0, transform: 'translateX(48px)' }, duration: 300 });
+    expect(closed).toMatchObject({ animate: { opacity: 0, transform: 'translateX(52px)' }, duration: 250 });
     expect(closed.easing).toBe('cubic-bezier(0.2, 0, 1, 0.9)');
   });
 
@@ -245,7 +245,7 @@ describe('cssTransitionPlan: going to a state in CSS', () => {
 
 describe('motionStates and motionTransitionPlan: going to a state in Motion', () => {
   it('turns transforms into independent properties, the same in every state', () => {
-    expect(motionStates(interaction, raw)).toEqual({ closed: { opacity: 0, x: 48 }, open: { opacity: 1, x: 0 } });
+    expect(motionStates(interaction, raw)).toEqual({ closed: { opacity: 0, x: 52 }, open: { opacity: 1, x: 0 } });
   });
 
   it('a transform property one state leaves out is its resting value there', () => {
@@ -256,15 +256,15 @@ describe('motionStates and motionTransitionPlan: going to a state in Motion', ()
   it('a spring: its duration is when it arrives, its bounce is the transition\'s own', () => {
     const open = motionTransitionPlan(interaction, 'open', raw, { globalBounce: 'bounce.0' });
     expect(open.animate).toEqual({ opacity: 1, x: 0 });
-    expect(open.options).toEqual({ type: 'spring', visualDuration: 0.56, bounce: 0.5, delay: 0 });
+    expect(open.options).toEqual({ type: 'spring', visualDuration: 0.7, bounce: 0.5, delay: 0 });
     expect(open.bounceToken).toBe('bounce.50');
     expect(motionTransitionPlan(interaction, 'closed', raw, { globalBounce: 'bounce.50' }).options.bounce).toBe(0);
   });
 
   it('a tween transition plays as a spring with the global bounce', () => {
-    const tween = version({ transitions: { ...interaction.transitions, open: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' } } });
+    const tween = version({ transitions: { ...interaction.transitions, open: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' } } });
     const p = motionTransitionPlan(tween.interaction!, 'open', raw, { globalBounce: 'bounce.25' });
-    expect(p.options).toMatchObject({ visualDuration: 0.3, bounce: 0.25 });
+    expect(p.options).toMatchObject({ visualDuration: 0.25, bounce: 0.25 });
     expect(p.note).toBe('authored as easing; bounce is the global setting');
   });
 
@@ -278,9 +278,9 @@ describe('motionStates and motionTransitionPlan: going to a state in Motion', ()
 
 describe('describeTransition', () => {
   it('says what plays into each state, under each runtime', () => {
-    expect(describeTransition(interaction, 'open', raw, 'css')).toBe('into open: Easing · expressive-entrance, 560ms (authored as a spring; CSS plays its easing)');
-    expect(describeTransition(interaction, 'open', raw, 'motion')).toBe('into open: Spring · bounce 0.5 (bounce.50), 560ms');
-    expect(describeTransition(interaction, 'closed', raw, 'motion')).toBe('into closed: Spring · bounce 0 (bounce.0), 300ms');
+    expect(describeTransition(interaction, 'open', raw, 'css')).toBe('into open: Easing · expressive-entrance, 700ms (authored as a spring; CSS plays its easing)');
+    expect(describeTransition(interaction, 'open', raw, 'motion')).toBe('into open: Spring · bounce 0.5 (bounce.50), 700ms');
+    expect(describeTransition(interaction, 'closed', raw, 'motion')).toBe('into closed: Spring · bounce 0 (bounce.0), 250ms');
   });
 });
 
@@ -289,9 +289,9 @@ describe('tokens used by an interaction version', () => {
 
   it('lists each transition\'s duration and easing, and the tokens a state\'s values name', () => {
     expect(uses('css')).toEqual(expect.arrayContaining([
-      'duration.560 [into open duration]', 'easing.expressive-entrance [into open easing]',
-      'duration.300 [into closed duration]', 'easing.productive-exit [into closed easing]',
-      'distance.48 [closed transform]',
+      'duration.700 [into open duration]', 'easing.expressive-entrance [into open easing]',
+      'duration.250 [into closed duration]', 'easing.productive-exit [into closed easing]',
+      'distance.52 [closed transform]',
     ]));
   });
 
@@ -303,18 +303,18 @@ describe('tokens used by an interaction version', () => {
 
   it('as authored (what exports) lists the easings and the bounce tokens', () => {
     const t = getTokenRefs(v2, raw).tokens;
-    expect(t).toEqual(expect.arrayContaining(['easing.expressive-entrance', 'easing.productive-exit', 'bounce.50', 'bounce.0', 'distance.48']));
+    expect(t).toEqual(expect.arrayContaining(['easing.expressive-entrance', 'easing.productive-exit', 'bounce.50', 'bounce.0', 'distance.52']));
   });
 });
 
 describe('the CSS export of states', () => {
   const css = buildVersionCss(v2, raw, { component: 'side-panel' });
 
-  it('the rest state is the class, every other state is data-state, each with the timing into it', () => {
-    expect(css).toContain('.motion-side-panel-v2 {\n  opacity: 0;\n  transform: translateX(var(--motion-distance-48, 48px));');
+  it('the default state is the class, every other state is data-state, each with the timing into it', () => {
+    expect(css).toContain('.motion-side-panel-v2 {\n  opacity: 0;\n  transform: translateX(var(--motion-distance-52, 52px));');
     expect(css).toContain('.motion-side-panel-v2[data-state="open"] {\n  opacity: 1;\n  transform: translateX(0px);');
-    expect(css).toContain('transition-duration: var(--motion-duration-560, 560ms);');
-    expect(css).toContain('transition-duration: var(--motion-duration-300, 300ms);');
+    expect(css).toContain('transition-duration: var(--motion-duration-700, 700ms);');
+    expect(css).toContain('transition-duration: var(--motion-duration-250, 250ms);');
     expect(css).toContain('transition-timing-function: var(--motion-easing-expressive-entrance, cubic-bezier(0, 0, 0.3, 1));');
     expect(css).toContain('transition-timing-function: var(--motion-easing-productive-exit, cubic-bezier(0.2, 0, 1, 0.9));');
     expect(css).toContain('transition-property: opacity, transform;');
@@ -343,10 +343,10 @@ describe('the spec of an interaction version', () => {
 
   it('lists the states and the transition into each, not a keyframe list', () => {
     expect(md).toContain('## States');
-    expect(md).toContain('- closed (rest, where it starts): opacity 0, transform translateX(48px)');
+    expect(md).toContain('- closed (default, where it starts): opacity 0, transform translateX(52px)');
     expect(md).toContain('- open: opacity 1, transform translateX(0px)');
     expect(md).toContain('## Transitions');
-    expect(md).toContain('- **Into open**: duration.560 (560ms), easing easing.expressive-entrance');
+    expect(md).toContain('- **Into open**: duration.700 (700ms), easing easing.expressive-entrance');
     expect(md).toContain('Authored as a spring, bounce: bounce.50 (0.5)');
     expect(md).not.toContain('## What animates');
   });
@@ -357,18 +357,18 @@ describe('the spec of an interaction version', () => {
 
   it('exports without throwing, tokens.css included', () => {
     const out = buildVersionExport('side-panel', v2, panelVersions, tokens);
-    expect(out.tokensCss).toContain('--motion-duration-560: 560ms;');
-    expect(out.tokensCss).toContain('--motion-distance-48: 48px;');
+    expect(out.tokensCss).toContain('--motion-duration-700: 700ms;');
+    expect(out.tokensCss).toContain('--motion-distance-52: 52px;');
   });
 });
 
 describe('the GSAP and Motion code of states', () => {
   it('GSAP: the states, the timing into each, and a goTo that retargets', () => {
     const code = buildGsapCode(v2, raw, { component: 'side-panel' });
-    expect(code).toContain('closed: { opacity: 0, x: 48 },');
+    expect(code).toContain('closed: { opacity: 0, x: 52 },');
     expect(code).toContain('open: { opacity: 1, x: 0 },');
-    expect(code).toContain('open: { duration: 0.56, ease: "expressive-entrance" }');
-    expect(code).toContain('closed: { duration: 0.3, ease: "productive-exit" }');
+    expect(code).toContain('open: { duration: 0.7, ease: "expressive-entrance" }');
+    expect(code).toContain('closed: { duration: 0.25, ease: "productive-exit" }');
     expect(code).toContain('export function goToSidePanelV2(el, state)');
     expect(code).toContain('overwrite: "auto"');
     expect(code).toContain('GSAP has no springs');
@@ -376,8 +376,8 @@ describe('the GSAP and Motion code of states', () => {
 
   it('Motion: springs into each state with the transition\'s bounce, and the honest note about speed', () => {
     const code = buildMotionCode(v2, raw, { component: 'side-panel' });
-    expect(code).toContain('open: { animate: {"opacity":1,"x":0}, snap: {}, options: { type: "spring", visualDuration: 0.56, bounce: 0.5 } }, // bounce.50');
-    expect(code).toContain('closed: { animate: {"opacity":0,"x":48}, snap: {}, options: { type: "spring", visualDuration: 0.3, bounce: 0 } }, // bounce.0');
+    expect(code).toContain('open: { animate: {"opacity":1,"x":0}, snap: {}, options: { type: "spring", visualDuration: 0.7, bounce: 0.5 } }, // bounce.50');
+    expect(code).toContain('closed: { animate: {"opacity":0,"x":52}, snap: {}, options: { type: "spring", visualDuration: 0.25, bounce: 0 } }, // bounce.0');
     expect(code).toContain('export function goToSidePanelV2(el, state)');
     expect(code).toContain('do not carry the');
     expect(code).not.toContain('ease:');

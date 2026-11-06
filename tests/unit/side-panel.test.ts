@@ -15,14 +15,14 @@ const tween: MotionVersion = {
   id: 'v1', label: 'Slide In', lineage: 'fixture',
   model: { model: 'tween', duration: 'duration.400', easing: 'easing.expressive-entrance' },
   keyframes: [
-    { opacity: 0, transform: 'translateX({distance.48})', offset: 0 },
+    { opacity: 0, transform: 'translateX({distance.52})', offset: 0 },
     { opacity: 1, transform: 'translateX(0px)', offset: 1 },
   ],
 };
 const spring: MotionVersion = {
   id: 'v1', label: 'Slide In, Spring', lineage: 'fixture',
   model: {
-    model: 'spring', duration: 'duration.560', easing: 'easing.expressive-entrance', bounce: 'bounce.50',
+    model: 'spring', duration: 'duration.700', easing: 'easing.expressive-entrance', bounce: 'bounce.50',
     properties: [
       { property: 'transform', wrapTransform: 'translateX', unit: 'px', from: 48, to: 0 },
       { property: 'opacity', from: 0, to: 1 },
@@ -47,19 +47,19 @@ describe('Side panel motion versions', () => {
       expect(t.easing).toContain('cubic-bezier');
     });
 
-    it('slides in from distance.48', () => {
-      expect(playbackOf(tween, raw).keyframes[0]).toMatchObject({ opacity: 0, transform: 'translateX(48px)' });
+    it('slides in from distance.52', () => {
+      expect(playbackOf(tween, raw).keyframes[0]).toMatchObject({ opacity: 0, transform: 'translateX(52px)' });
     });
   });
 
   describe('a spring slide', () => {
     it('is a spring with a visible bounce', () => {
-      expect(spring.model).toMatchObject({ model: 'spring', bounce: 'bounce.50', duration: 'duration.560' });
+      expect(spring.model).toMatchObject({ model: 'spring', bounce: 'bounce.50', duration: 'duration.700' });
     });
 
     it('CSS plays its from/to values along the easing, with no overshoot', () => {
       const p = playbackOf(spring, raw);
-      expect(p.duration).toBe(560);
+      expect(p.duration).toBe(700);
       expect(p.keyframes).toEqual([
         { offset: 0, transform: 'translateX(48px)', opacity: 0 },
         { offset: 1, transform: 'translateX(0px)', opacity: 1 },
@@ -67,7 +67,7 @@ describe('Side panel motion versions', () => {
     });
 
     it('Motion plays it as a real spring: its bounce, its duration as the visual duration', () => {
-      expect(motionArgsOf(spring, raw).options).toEqual({ type: 'spring', visualDuration: 0.56, bounce: 0.5, delay: 0 });
+      expect(motionArgsOf(spring, raw).options).toEqual({ type: 'spring', visualDuration: 0.7, bounce: 0.5, delay: 0 });
       expect(motionArgsOf(spring, raw, { globalBounce: 'bounce.0' }).options.bounce).toBe(0.5);
     });
   });
@@ -76,7 +76,7 @@ describe('Side panel motion versions', () => {
     it('moves the panel as a bounce.50 spring and gives the title, the list and the buttons their own motion', () => {
       expect(v1.model).toEqual(spring.model);
       expect(Object.keys(v1.layers!)).toEqual(['title', 'list', 'actions']);
-      expect(stepsOf(v1).map(s => playbackOf(s.version, raw).delay).slice(1)).toEqual([70, 120, 120]);
+      expect(stepsOf(v1).map(s => playbackOf(s.version, raw).delay).slice(1)).toEqual([80, 120, 120]);
     });
 
     it('everything is a spring under Motion: the panel keeps its bounce, the layers use the global bounce', () => {

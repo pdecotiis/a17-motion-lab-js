@@ -150,7 +150,7 @@ export function interactionParts(interaction: Interaction): (string | null)[] {
   return [null, ...layerNames(interaction)];
 }
 
-/** A state's values with token references resolved ("translateX({distance.48})" → "translateX(48px)"). */
+/** A state's values with token references resolved ("translateX({distance.52})" → "translateX(48px)"). */
 export function resolveState(values: StateValues, raw: Record<string, unknown>): StateValues {
   return Object.fromEntries(Object.entries(values).map(([k, v]) => [k, typeof v === 'string' ? resolveRefs(v, raw) : v]));
 }

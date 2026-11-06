@@ -42,7 +42,7 @@ test.describe('Interactions: states', () => {
         await page.click('[data-state-btn="closed"]');
         await expect(page.locator(ROOT)).toHaveAttribute('data-state', 'closed');
         await settled(page);
-        await expect.poll(async () => (await trace(page, 60)).at(-1)![1], { timeout: 4000 }).toBeCloseTo(48, 0);
+        await expect.poll(async () => (await trace(page, 60)).at(-1)![1], { timeout: 4000 }).toBeCloseTo(52, 0);
         await expect.poll(() => page.evaluate(sel => getComputedStyle(document.querySelector(sel)!).opacity, ROOT)).toBe('0');
         await page.click('[data-state-btn="open"]');
         await settled(page);
@@ -90,13 +90,13 @@ test.describe('Interactions: states', () => {
   test('Playback names the transition into each state, as the runtime plays it', async ({ page }) => {
     await page.goto(url('css'));
     await expect(playbackRow(page)).toHaveText([
-      'into closed: Easing · productive-exit, 300ms (authored as a spring; CSS plays its easing)',
-      'into open: Easing · expressive-entrance, 560ms (authored as a spring; CSS plays its easing)',
+      'into closed: Easing · productive-exit, 250ms (authored as a spring; CSS plays its easing)',
+      'into open: Easing · expressive-entrance, 700ms (authored as a spring; CSS plays its easing)',
     ].join('\n'));
     await page.goto(url('motion'));
     await expect(playbackRow(page)).toHaveText([
-      'into closed: Spring · bounce 0 (bounce.0), 300ms',
-      'into open: Spring · bounce 0.5 (bounce.50), 560ms',
+      'into closed: Spring · bounce 0 (bounce.0), 250ms',
+      'into open: Spring · bounce 0.5 (bounce.50), 700ms',
     ].join('\n'));
   });
 
@@ -159,7 +159,7 @@ test.describe('Interactions: tokens and exports', () => {
 
   test('Tokens used lists each transition\'s tokens and where in the states they sit', async ({ page }) => {
     await page.goto(url('css'));
-    await expect(chips(page).locator('code')).toContainText(['duration-560', 'expressive-entrance', 'duration-300', 'productive-exit', 'distance-48']);
+    await expect(chips(page).locator('code')).toContainText(['duration-700', 'expressive-entrance', 'duration-250', 'productive-exit', 'distance-52']);
     await expect(page.locator('#tokens-used-list')).toContainText('into open duration');
     await expect(page.locator('#tokens-used-list')).toContainText('closed transform');
     await expect(page.locator('#tokens-used-list')).not.toContainText('Pairing');
@@ -177,12 +177,12 @@ test.describe('Interactions: tokens and exports', () => {
     await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
     const pre = page.locator('#css-pre');
     await expect(pre).toContainText('.motion-side-panel-v2[data-state="open"]');
-    await expect(pre).toContainText('transition-duration: var(--motion-duration-560, 560ms);');
+    await expect(pre).toContainText('transition-duration: var(--motion-duration-700, 700ms);');
     await page.selectOption('#export-format', 'gsap');
     await expect(pre).toContainText('export function goToSidePanelV2(el, state)');
     await expect(pre).toContainText('overwrite: "auto"');
     await page.selectOption('#export-format', 'motion');
-    await expect(pre).toContainText('type: "spring", visualDuration: 0.56, bounce: 0.5');
+    await expect(pre).toContainText('type: "spring", visualDuration: 0.7, bounce: 0.5');
   });
 });
 
@@ -215,8 +215,8 @@ test.describe('Interactions: entrance, then hover and press on the card', () => 
       test('fades in and ends at rest, so it can be hovered: nothing is lifted', async ({ page }) => {
         await page.goto(cardUrl(runtime));
         await entranceDone(page, runtime);
-        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'rest');
-        await expect(stateNow(page)).toHaveText('State: rest');
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'default');
+        await expect(stateNow(page)).toHaveText('State: default');
         await settledPose(page, { lift: 0, scale: 1, opacity: 1 });
       });
 
@@ -232,7 +232,7 @@ test.describe('Interactions: entrance, then hover and press on the card', () => 
         await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
         await page.waitForTimeout(50);
         expect(await textOpacity()).toBeLessThan(1);   // still entering
-        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'rest');
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'default');
         expect((await pose(page)).lift).toBeGreaterThanOrEqual(0);   // not lifted (it is still rising into place, never up past rest)
         // Once it has arrived, a fresh pointer movement lifts it.
         await page.mouse.move(2, 2);
@@ -240,16 +240,16 @@ test.describe('Interactions: entrance, then hover and press on the card', () => 
         await entranceDone(page, runtime);
         await settledPose(page, { lift: 0, opacity: 1 });
         await page.hover(CARD);
-        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'hover');
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'hovered');
         await settledPose(page, { lift: -4, scale: 1 });
         await page.mouse.down();
         await expect(page.locator(CARD)).toHaveAttribute('data-state', 'pressed');
-        await settledPose(page, { lift: -4, scale: 0.98 });
+        await settledPose(page, { lift: -4, scale: 0.95 });
         await page.mouse.up();
-        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'hover');
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'hovered');
         await settledPose(page, { lift: -4, scale: 1 });
         await page.mouse.move(2, 2);
-        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'rest');
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'default');
         await settledPose(page, { lift: 0, scale: 1, opacity: 1 });
       });
 
@@ -258,11 +258,11 @@ test.describe('Interactions: entrance, then hover and press on the card', () => 
         await entranceDone(page, runtime);
         await page.click('[data-state-btn="pressed"]');
         await expect(page.locator(CARD)).toHaveAttribute('data-state', 'pressed');
-        await settledPose(page, { lift: -4, scale: 0.98 });
-        await page.click('[data-state-btn="rest"]');
-        await expect(stateNow(page)).toHaveText(/State: (rest|moving to rest)/);
+        await settledPose(page, { lift: -4, scale: 0.95 });
+        await page.click('[data-state-btn="default"]');
+        await expect(stateNow(page)).toHaveText(/State: (default|moving to default)/);
         await page.hover(CARD);
-        await expect(stateNow(page)).toContainText('hover');
+        await expect(stateNow(page)).toContainText('hovered');
       });
 
       test('Replay plays the entrance again (it fades back in), then hover works again', async ({ page }) => {
@@ -276,7 +276,7 @@ test.describe('Interactions: entrance, then hover and press on the card', () => 
         await entranceDone(page, runtime);
         await page.mouse.move(2, 2);
         await page.hover(CARD);
-        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'hover');
+        await expect(page.locator(CARD)).toHaveAttribute('data-state', 'hovered');
         await settledPose(page, { lift: -4 });
         await page.mouse.move(2, 2);
         await settledPose(page, { lift: 0, opacity: 1 });
@@ -287,13 +287,13 @@ test.describe('Interactions: entrance, then hover and press on the card', () => 
   test('Playback and Tokens used list the entrance first, then the states', async ({ page }) => {
     await page.goto(cardUrl('css'));
     const row = playbackRow(page);
-    await expect(row).toContainText('appear: Easing · productive-entrance, 220ms');
-    await expect(row).toContainText('title appear: Easing · productive-entrance, 300ms');
-    await expect(row).toContainText('into hover: Easing · productive-standard, 220ms');
-    await expect(row).toContainText('into rest: Easing · productive-exit, 140ms (authored as a spring; CSS plays its easing)');
+    await expect(row).toContainText('appear: Easing · productive-entrance, 200ms');
+    await expect(row).toContainText('title appear: Easing · productive-entrance, 250ms');
+    await expect(row).toContainText('into hovered: Easing · productive-standard, 200ms');
+    await expect(row).toContainText('into default: Easing · productive-exit, 150ms (authored as a spring; CSS plays its easing)');
     const tokens = page.locator('#tokens-used-list');
-    await expect(tokens).toContainText('into hover duration');
-    await expect(tokens).toContainText('hover transform');
+    await expect(tokens).toContainText('into hovered duration');
+    await expect(tokens).toContainText('hovered transform');
     await expect(tokens).toContainText('pressed transform');
     await expect(tokens).not.toContainText('image');
   });
@@ -333,7 +333,7 @@ test.describe('Interactions: the exported CSS works on its own', () => {
     await page.hover('#plain');
     await expect.poll(pose).toEqual({ lift: -4, scale: 1 });
     await page.mouse.down();
-    await expect.poll(pose).toEqual({ lift: -4, scale: 0.98 });
+    await expect.poll(pose).toEqual({ lift: -4, scale: 0.95 });
     await page.mouse.up();
     await page.mouse.move(600, 100);
     await expect.poll(pose).toEqual({ lift: 0, scale: 1 });

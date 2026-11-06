@@ -1,8 +1,8 @@
 // Stagger at the page level: the delay between one component and the next as a page plays. It is a
-// delay token (`delay.70`), never a free number, and there is a default setting like the global
-// bounce: `delay.70` until another delay token is chosen.
+// delay token (`delay.80`), never a free number, and there is a default setting like the global
+// bounce: `delay.80` until another delay token is chosen.
 
-export const DEFAULT_STAGGER = 'delay.70';
+export const DEFAULT_STAGGER = 'delay.80';
 
 // How a page picks its stagger: the default setting, none at all, or one delay token.
 export const PAGE_STAGGER_DEFAULT = 'default';
@@ -14,7 +14,7 @@ export function delayTokenPaths(raw: Record<string, unknown>): string[] {
   return Object.keys(raw).filter(k => k.startsWith('delay.')).sort((a, b) => ms(a) - ms(b));
 }
 
-// A URL value (`70`) as a delay token path (`delay.70`), when it names one; otherwise `fallback`.
+// A URL value (`80`) as a delay token path (`delay.80`), when it names one; otherwise `fallback`.
 export function staggerFromParam(value: string | null | undefined, tokens: string[], fallback: string): string {
   const path = value ? `delay.${value}` : '';
   return tokens.includes(path) ? path : fallback;

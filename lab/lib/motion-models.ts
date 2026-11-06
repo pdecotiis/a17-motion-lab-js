@@ -127,7 +127,7 @@ export function stepsOf(version: MotionVersion): StepEntry[] {
   ];
 }
 
-// A tween's keyframes with token references ("{distance.16}") replaced by their values.
+// A tween's keyframes with token references ("{distance.20}") replaced by their values.
 export function resolveKeyframes(keyframes: Keyframe[] | undefined, raw: Record<string, unknown>): Keyframe[] {
   return (keyframes ?? []).map(kf =>
     Object.fromEntries(

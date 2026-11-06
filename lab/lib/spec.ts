@@ -37,7 +37,7 @@ function describeValue(value: string | undefined, raw: Record<string, unknown>, 
   return value in raw ? `${value} (${literal(raw[value])})` : `${value} (hard-coded, not a token)`;
 }
 
-// "delay.70 (70ms)" for a token, the literal as it is otherwise.
+// "delay.80 (70ms)" for a token, the literal as it is otherwise.
 function stagger(value: string, raw: Record<string, unknown>): string {
   return value in raw ? `${value} (${literal(raw[value])})` : value;
 }
@@ -83,7 +83,7 @@ function stateLines(version: MotionVersion, raw: Record<string, unknown>): strin
       const v = Object.entries(resolveState(partValues(i, part, n), raw)).map(([k, val]) => `${k} ${String(val)}`).join(', ');
       return `  - layer \`${part}\` (the element marked data-motion="${part}"): ${v}`;
     });
-    return [`- ${n}${n === i.initial ? ' (rest, where it starts)' : ''}: ${values}`, ...layerValues];
+    return [`- ${n}${n === i.initial ? ' (default, where it starts)' : ''}: ${values}`, ...layerValues];
   });
 }
 
@@ -121,7 +121,7 @@ function triggerLines(version: MotionVersion): string[] {
       return `| click | ${where} | ${TRIGGER_WORDS['click']} | ${what} |`;
     }
     led.add(t.state);
-    return `| ${t.on} | ${where} | ${TRIGGER_WORDS[t.on]} | holds **${t.state}** while it lasts, then goes back to where it was (rest, or what a click set) |`;
+    return `| ${t.on} | ${where} | ${TRIGGER_WORDS[t.on]} | holds **${t.state}** while it lasts, then goes back to where it was (default, or what a click set) |`;
   });
   const outside = stateNames(i).filter(n => n !== i.initial && !led.has(n));
   return [
@@ -295,7 +295,7 @@ export function buildVersionExport(
     combined
       ? `2. Add the class \`.${name}\` to the element when the entrance trigger fires (and each layer's class, above, to its element). The entrance plays; from then on hover, press and focus are in the CSS already, and \`data-state="<state>"\` (${stateNames(version.interaction!).join(', ')}) is for a click or anything a script decides.`
       : version.interaction
-      ? `2. Add the class \`.${name}\` to the element, and keep it there for good: it is the resting state. Hover, press and focus are in the CSS already; set \`data-state="<state>"\` on it (${stateNames(version.interaction).join(', ')}) for a click or anything a script decides, and the CSS transitions do the rest.`
+      ? `2. Add the class \`.${name}\` to the element, and keep it there for good: it is the default state. Hover, press and focus are in the CSS already; set \`data-state="<state>"\` on it (${stateNames(version.interaction).join(', ')}) for a click or anything a script decides, and the CSS transitions do the rest.`
       : `2. Add the class \`.${name}\` to the animated element when the trigger fires${layers.length ? ', and each layer\'s class (above) to its element' : ''}.`,
     ...(version.stagger ? [`3. Set \`--motion-index: 0, 1, 2…\` on each sibling to stagger them.`] : []),
     '',

@@ -11,12 +11,12 @@ export const v2: MotionVersion = {
   interaction: {
     initial: 'closed',
     states: {
-      closed: { opacity: 0, transform: 'translateX({distance.48})' },
+      closed: { opacity: 0, transform: 'translateX({distance.52})' },
       open: { opacity: 1, transform: 'translateX(0px)' },
     },
     transitions: {
-      open: { model: 'spring', duration: 'duration.560', easing: 'easing.expressive-entrance', bounce: 'bounce.50' },
-      closed: { model: 'spring', duration: 'duration.300', easing: 'easing.productive-exit', bounce: 'bounce.0' },
+      open: { model: 'spring', duration: 'duration.700', easing: 'easing.expressive-entrance', bounce: 'bounce.50' },
+      closed: { model: 'spring', duration: 'duration.250', easing: 'easing.productive-exit', bounce: 'bounce.0' },
     },
     triggers: [{ on: 'click', target: 'close', set: 'closed' }],
   },

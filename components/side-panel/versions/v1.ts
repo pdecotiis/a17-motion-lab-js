@@ -7,7 +7,7 @@ export const v1: MotionVersion = {
   label: 'Spring, Content Follows',
   model: {
     model: 'spring',
-    duration: 'duration.560',
+    duration: 'duration.700',
     easing: 'easing.expressive-entrance',
     bounce: 'bounce.50',
     properties: [
@@ -17,21 +17,21 @@ export const v1: MotionVersion = {
   },
   layers: {
     title: {
-      model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' },
+      model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance', delay: 'delay.80' },
       keyframes: [
         { opacity: 0, transform: 'translateY({distance.8})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px)', offset: 1 },
       ],
     },
     list: {
-      model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.120' },
+      model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance', delay: 'delay.120' },
       keyframes: [
         { opacity: 0, transform: 'translateY({distance.8})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px)', offset: 1 },
       ],
     },
     actions: {
-      model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.120' },
+      model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance', delay: 'delay.120' },
       keyframes: [
         { opacity: 0, transform: 'translateY({distance.8})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px)', offset: 1 },

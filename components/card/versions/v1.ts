@@ -8,31 +8,31 @@ export const v1: MotionVersion = {
   label: 'Fade Up, Text Follows',
   model: {
     model: 'tween',
-    duration: 'duration.220',
+    duration: 'duration.200',
     easing: 'easing.productive-entrance',
     delay: '0ms',
   },
   keyframes: [
-    { opacity: 0, transform: 'translateY({distance.16})', offset: 0 },
+    { opacity: 0, transform: 'translateY({distance.20})', offset: 0 },
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
   layers: {
     title: {
-      model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.70' },
+      model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance', delay: 'delay.80' },
       keyframes: [
         { opacity: 0, transform: 'translateY({distance.8})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px)', offset: 1 },
       ],
     },
     text: {
-      model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance', delay: 'delay.120' },
+      model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance', delay: 'delay.120' },
       keyframes: [
         { opacity: 0, transform: 'translateY({distance.8})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px)', offset: 1 },
       ],
     },
   },
-  stagger: 'delay.70',
+  stagger: 'delay.80',
   lineage: 'kept from the earlier explorations (older versions removed)',
 };
 

@@ -38,9 +38,9 @@ test.describe('Component view', () => {
   test('a version with layers plays each layer on its element with its own timing', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
     const inner = '#preview-inner-primary';
-    expect(await timingOf(page, `${inner} [data-motion-target]`)).toMatchObject({ duration: 220, delay: 0 });
-    expect(await timingOf(page, `${inner} [data-motion="title"]`)).toMatchObject({ duration: 300, delay: 70 });
-    expect(await timingOf(page, `${inner} [data-motion="text"]`)).toMatchObject({ duration: 300, delay: 120 });
+    expect(await timingOf(page, `${inner} [data-motion-target]`)).toMatchObject({ duration: 200, delay: 0 });
+    expect(await timingOf(page, `${inner} [data-motion="title"]`)).toMatchObject({ duration: 250, delay: 80 });
+    expect(await timingOf(page, `${inner} [data-motion="text"]`)).toMatchObject({ duration: 250, delay: 120 });
   });
 
   test('replay restarts the layers too, and the speed control reaches them', async ({ page }) => {
@@ -101,8 +101,8 @@ test.describe('Component status and lineage', () => {
     await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
     const css = page.locator('#css-pre');
     await expect(css).toContainText('@keyframes motion-card-v1');
-    await expect(css).toContainText('var(--motion-duration-220, 220ms)');
-    await expect(css).toContainText('translateY(var(--motion-distance-16, 16px))');
+    await expect(css).toContainText('var(--motion-duration-200, 200ms)');
+    await expect(css).toContainText('translateY(var(--motion-distance-20, 20px))');
     await expect(css).toContainText('@media (prefers-reduced-motion: reduce)');
   });
 });
@@ -208,14 +208,14 @@ test.describe('Playback (CSS runtime)', () => {
 
   test('a tween plays its easing curve over its duration', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
-    expect(await timing(page, ROOT)).toEqual({ duration: 220, easing: 'cubic-bezier(0, 0, 0.38, 0.9)' });
-    await expect(playbackRow(page)).toContainText('Easing · productive-entrance, 220ms');
+    expect(await timing(page, ROOT)).toEqual({ duration: 200, easing: 'cubic-bezier(0, 0, 0.38, 0.9)' });
+    await expect(playbackRow(page)).toContainText('Easing · productive-entrance, 200ms');
   });
 
   test('a version authored as a spring plays its easing, and says so', async ({ page }) => {
     await page.goto('/?view=component&component=side-panel&version=v1');
-    expect(await timing(page, ROOT)).toEqual({ duration: 560, easing: EXPRESSIVE_ENTRANCE });
-    await expect(playbackRow(page)).toContainText('Easing · expressive-entrance, 560ms (authored as a spring; CSS plays its easing)');
+    expect(await timing(page, ROOT)).toEqual({ duration: 700, easing: EXPRESSIVE_ENTRANCE });
+    await expect(playbackRow(page)).toContainText('Easing · expressive-entrance, 700ms (authored as a spring; CSS plays its easing)');
   });
 
   test('layers play their own easing, and the Playback row names each motion', async ({ page }) => {
@@ -224,9 +224,9 @@ test.describe('Playback (CSS runtime)', () => {
       expect((await timing(page, sel)).easing, sel).toMatch(/^cubic-bezier/);
     }
     await expect(playbackRow(page)).toHaveText([
-      'Easing · productive-entrance, 220ms',
-      'title: Easing · productive-entrance, 300ms',
-      'text: Easing · productive-entrance, 300ms',
+      'Easing · productive-entrance, 200ms',
+      'title: Easing · productive-entrance, 250ms',
+      'text: Easing · productive-entrance, 250ms',
     ].join('\n'));
   });
 
@@ -264,12 +264,12 @@ test.describe('Runtime (CSS / Motion)', () => {
     await page.goto('/?view=component&component=card&version=v1');
     await page.click('#runtime-motion');
     await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
-    await expect(playbackRow(page)).toContainText('Spring · bounce 0.25 (bounce.25), 220ms (authored as easing; bounce is the global setting)');
+    await expect(playbackRow(page)).toContainText('Spring · bounce 0.25 (bounce.25), 200ms (authored as easing; bounce is the global setting)');
 
     await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion');
-    await expect(playbackRow(page)).toContainText('Spring · bounce 0.5 (bounce.50), 560ms');
+    await expect(playbackRow(page)).toContainText('Spring · bounce 0.5 (bounce.50), 700ms');
     await page.click('#runtime-css');
-    await expect(playbackRow(page)).toContainText('Easing · expressive-entrance, 560ms (authored as a spring; CSS plays its easing)');
+    await expect(playbackRow(page)).toContainText('Easing · expressive-entrance, 700ms (authored as a spring; CSS plays its easing)');
   });
 
   test('Motion plays the motion: it starts away from the end state and arrives', async ({ page }) => {
@@ -322,7 +322,7 @@ test.describe('Runtime (CSS / Motion)', () => {
     await expect(page.locator('.lab-token-row', { hasText: 'bounce-25' })).toHaveAttribute('title', /Not used yet/);
 
     await page.click('.lab-nav__btn[data-view="component"]');
-    await expect(playbackRow(page)).toContainText('Spring · bounce 0 (bounce.0), 220ms (authored as easing; bounce is the global setting)');
+    await expect(playbackRow(page)).toContainText('Spring · bounce 0 (bounce.0), 200ms (authored as easing; bounce is the global setting)');
   });
 
   test('the global bounce holds across views, and a spring that names its own bounce ignores it', async ({ page }) => {
@@ -330,16 +330,16 @@ test.describe('Runtime (CSS / Motion)', () => {
     await page.locator('.lab-library-card').first().click();
     await expect(page.locator('#version-spec-meta dt:has-text("Playback") + dd')).toContainText('bounce 0.5 (bounce.50)');
     await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion&bounce=0');
-    await expect(playbackRow(page)).toContainText('Spring · bounce 0.5 (bounce.50), 560ms');
+    await expect(playbackRow(page)).toContainText('Spring · bounce 0.5 (bounce.50), 700ms');
   });
 
   test('layers are springs under Motion too, and the Playback row names each motion', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1&runtime=motion');
     const note = ' (authored as easing; bounce is the global setting)';
     await expect(playbackRow(page)).toHaveText([
-      `Spring · bounce 0.25 (bounce.25), 220ms${note}`,
-      `title: Spring · bounce 0.25 (bounce.25), 300ms${note}`,
-      `text: Spring · bounce 0.25 (bounce.25), 300ms${note}`,
+      `Spring · bounce 0.25 (bounce.25), 200ms${note}`,
+      `title: Spring · bounce 0.25 (bounce.25), 250ms${note}`,
+      `text: Spring · bounce 0.25 (bounce.25), 250ms${note}`,
     ].join('\n'));
     await expect.poll(() => page.evaluate(() =>
       Number(getComputedStyle(document.querySelector<HTMLElement>('#preview-inner-primary [data-motion="text"]')!).opacity)), { timeout: 3000 }).toBe(1);
@@ -388,7 +388,7 @@ test.describe('Export format', () => {
     await expect(pre).toContainText('import { gsap } from "gsap";');
     await expect(pre).toContainText('export function playCardV1(el, { index = 0 } = {})');
     await expect(pre).toContainText('CustomEase.create("productive-entrance", "0, 0, 0.38, 0.9"); // easing.productive-entrance');
-    await expect(pre).toContainText('duration: 0.22, ease: "productive-entrance"');
+    await expect(pre).toContainText('duration: 0.2, ease: "productive-entrance"');
     await expect(page.locator('#copy-css-btn')).toHaveText('Copy GSAP');
   });
 
@@ -397,7 +397,7 @@ test.describe('Export format', () => {
     await page.selectOption('#export-format', 'motion');
     const pre = page.locator('#css-pre');
     await expect(pre).toContainText('import { animate } from "motion";');
-    await expect(pre).toContainText('type: "spring", visualDuration: 0.56, bounce: 0.5');
+    await expect(pre).toContainText('type: "spring", visualDuration: 0.7, bounce: 0.5');
     await expect(pre).toContainText('// bounce.50');
     await expect(page.locator('#copy-css-btn')).toHaveText('Copy Motion');
   });

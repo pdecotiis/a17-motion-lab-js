@@ -29,11 +29,11 @@ export interface ScaleRunOptions {
   dryRun?: boolean;
 }
 
-// Everything is worked out before anything is written, so a scale that doesn't fit changes nothing.
-export function runScale({ root, kinds, scale, options = {}, dryRun = false }: ScaleRunOptions): ScaleRunResult {
-  const tokensFile = join(root, 'tokens/motion.json');
-  const run = applyScale(JSON.parse(readFileSync(tokensFile, 'utf8')) as Json, kinds, scale, options);
-
+/**
+ * The files in a project that name a renamed token, rewritten: every version file, and the presets table
+ * (tokens/presets.json, which names tokens too), and the page versions (their stagger is a delay token). Pure of writing: it returns the edits.
+ */
+export function projectEdits(root: string, renames: Record<string, string>): { path: string; relative: string; text: string }[] {
   const edits: { path: string; relative: string; text: string }[] = [];
   const componentsDir = join(root, 'components');
   if (existsSync(componentsDir)) {
@@ -43,11 +43,40 @@ export function runScale({ root, kinds, scale, options = {}, dryRun = false }: S
       for (const f of readdirSync(dir).filter(n => n.endsWith('.ts'))) {
         const path = join(dir, f);
         const before = readFileSync(path, 'utf8');
-        const after = remapReferences(before, run.renames);
+        const after = remapReferences(before, renames);
         if (after !== before) edits.push({ path, relative: `components/${component.name}/versions/${f}`, text: after });
       }
     }
   }
+  // A page version names a delay token as its stagger.
+  const pagesDir = join(root, 'pages');
+  if (existsSync(pagesDir)) {
+    for (const page of readdirSync(pagesDir, { withFileTypes: true }).filter(d => d.isDirectory())) {
+      const dir = join(pagesDir, page.name, 'versions');
+      if (!existsSync(dir)) continue;
+      for (const f of readdirSync(dir).filter(n => n.endsWith('.json'))) {
+        const path = join(dir, f);
+        const before = readFileSync(path, 'utf8');
+        const after = remapReferences(before, renames);
+        if (after !== before) edits.push({ path, relative: `pages/${page.name}/versions/${f}`, text: after });
+      }
+    }
+  }
+  const presets = join(root, 'tokens/presets.json');
+  if (existsSync(presets)) {
+    const before = readFileSync(presets, 'utf8');
+    const after = remapReferences(before, renames);
+    if (after !== before) edits.push({ path: presets, relative: 'tokens/presets.json', text: after });
+  }
+  return edits;
+}
+
+// Everything is worked out before anything is written, so a scale that doesn't fit changes nothing.
+export function runScale({ root, kinds, scale, options = {}, dryRun = false }: ScaleRunOptions): ScaleRunResult {
+  const tokensFile = join(root, 'tokens/motion.json');
+  const run = applyScale(JSON.parse(readFileSync(tokensFile, 'utf8')) as Json, kinds, scale, options);
+
+  const edits = projectEdits(root, run.renames);
 
   if (!dryRun) {
     for (const e of edits) writeFileSync(e.path, e.text);

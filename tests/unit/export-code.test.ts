@@ -17,7 +17,7 @@ gsap.registerPlugin(CustomEase);
 const tween = (over: Partial<MotionVersion> = {}): MotionVersion => ({
   id: 'v1',
   label: 'Test',
-  model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-standard' },
+  model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-standard' },
   keyframes: [{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'translateY(0px)' }],
   ...over,
 });
@@ -41,7 +41,7 @@ describe('buildGsapCode', () => {
     const code = buildGsapCode(tween(), raw, { component: 'side-panel' });
     expect(code).toContain('export function playSidePanelV1(el, { index = 0 } = {}) {');
     expect(code).toContain('CustomEase.create("productive-standard", "0.2, 0, 0.38, 0.9"); // easing.productive-standard');
-    expect(code).toContain('tl.fromTo(el, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.3, ease: "productive-standard" }, 0);');
+    expect(code).toContain('tl.fromTo(el, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.25, ease: "productive-standard" }, 0);');
     expect(code).toContain('GSAP has no springs, so this is easing only.');
   });
 
@@ -54,7 +54,7 @@ describe('buildGsapCode', () => {
     });
     const code = buildGsapCode(v, raw, { component: 'c' });
     expect(code).toContain('{ xPercent: 100, scale: 0.9, rotation: -5 }');
-    expect(code).toContain('{ x: 0, y: 4, scaleX: 1, scaleX: 1, scaleY: 0.5, duration: 0.3');
+    expect(code).toContain('{ x: 0, y: 4, scaleX: 1, scaleX: 1, scaleY: 0.5, duration: 0.25');
   });
 
   it('lists a transform it cannot convert, instead of dropping it silently', () => {
@@ -63,9 +63,9 @@ describe('buildGsapCode', () => {
   });
 
   it('puts a stagger on the timeline and a delay at the step\'s position', () => {
-    const v = tween({ stagger: 'delay.70', model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-standard', delay: 'delay.40' } });
+    const v = tween({ stagger: 'delay.80', model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-standard', delay: 'delay.40' } });
     const code = buildGsapCode(v, raw, { component: 'c' });
-    expect(code).toContain('const stagger = 0.07; // delay.70');
+    expect(code).toContain('const stagger = 0.08; // delay.80');
     expect(code).toContain('gsap.timeline({ delay: index * stagger })');
     expect(code).toContain('}, 0.04);');
   });
@@ -73,7 +73,7 @@ describe('buildGsapCode', () => {
   it('plays more than two frames as GSAP keyframes with easeEach', () => {
     const v = tween({ keyframes: [{ opacity: 0, offset: 0 }, { opacity: 0.6, offset: 0.4 }, { opacity: 1, offset: 1 }] });
     expect(buildGsapCode(v, raw, { component: 'c' }))
-      .toContain('tl.to(el, { keyframes: { "0%": { opacity: 0 }, "40%": { opacity: 0.6 }, "100%": { opacity: 1 }, easeEach: "productive-standard" }, duration: 0.3 }, 0);');
+      .toContain('tl.to(el, { keyframes: { "0%": { opacity: 0 }, "40%": { opacity: 0.6 }, "100%": { opacity: 1 }, easeEach: "productive-standard" }, duration: 0.25 }, 0);');
   });
 
   it('maps CSS keywords to GSAP eases and registers hard-coded curves', () => {
@@ -87,7 +87,7 @@ describe('buildGsapCode', () => {
   it('plays a spring version as its easing, and says GSAP has no springs', () => {
     const code = buildGsapCode(panelVersions.find(v => v.id === 'v1')!, raw, { component: 'side-panel' });
     expect(code).toContain('authored as a spring (GSAP has no springs, so the easing plays)');
-    expect(code).toContain('{ opacity: 0, x: 48 }, { opacity: 1, x: 0, duration: 0.56, ease: "expressive-entrance" }');
+    expect(code).toContain('{ opacity: 0, x: 48 }, { opacity: 1, x: 0, duration: 0.7, ease: "expressive-entrance" }');
     expect(code).not.toContain('bounce');
   });
 
@@ -127,13 +127,13 @@ describe('buildMotionCode', () => {
   });
 
   it('lists no easing token: nothing plays an easing under Motion', () => {
-    expect(buildMotionCode(tween(), raw, { component: 'c' })).toContain('// Tokens: duration.300');
+    expect(buildMotionCode(tween(), raw, { component: 'c' })).toContain('// Tokens: duration.250');
     expect(buildMotionCode(tween(), raw, { component: 'c' })).not.toContain('easing.');
   });
 
   it('adds the stagger to each delay', () => {
-    const code = buildMotionCode(tween({ stagger: 'delay.70' }), raw, { component: 'c' });
-    expect(code).toContain('const stagger = 0.07; // delay.70');
+    const code = buildMotionCode(tween({ stagger: 'delay.80' }), raw, { component: 'c' });
+    expect(code).toContain('const stagger = 0.08; // delay.80');
     expect(code).toContain('delay: index * stagger');
   });
 

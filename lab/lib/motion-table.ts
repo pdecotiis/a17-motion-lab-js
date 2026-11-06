@@ -1,4 +1,4 @@
-import type { MotionModel, MotionVersion, StateValues, TransitionTiming } from './types.js';
+import type { Interaction, MotionModel, MotionVersion, StateValues, TransitionTiming } from './types.js';
 import { hasEntrance, resolveKeyframes, stepsOf, type StepEntry } from './motion-models.js';
 import { presetTracks } from './entrance-presets.js';
 import { interactionParts, partProps, partValues, resolveState, stateNames, timingFor } from './interaction.js';
@@ -179,12 +179,37 @@ function entranceSection(version: MotionVersion, raw: Raw, rootLabel: string): M
   return section('entrance', tables, tracks);
 }
 
+/**
+ * What a state's section is called, in the words of the kit's button sheet: "hover on", "hover off", "pressed".
+ * Arriving at a state a hover or focus trigger holds is "hover on" or "focus on"; any other state is called by its
+ * name ("pressed", "open"). Going back to the initial state is "hover off" when a hover trigger leads away from it
+ * (else "focus off" for a focus trigger), and has no section otherwise: there is no "back to default", and a click
+ * that closes something will be an "exit" when exits are documented. Null means the state has no section.
+ */
+export function stateHeading(interaction: Interaction, state: string): string | null {
+  const triggers = interaction.triggers ?? [];
+  if (state !== interaction.initial) {
+    const t = triggers.find(x => x.on !== 'click' && 'state' in x && x.state === state);
+    if (t?.on === 'hover') return 'hover on';
+    if (t?.on === 'focus') return 'focus on';
+    return state;
+  }
+  if (triggers.some(t => t.on === 'hover')) return 'hover off';
+  if (triggers.some(t => t.on === 'focus')) return 'focus off';
+  return null;
+}
+
 /** Going to a state: what each part (the component, then each layer) changes, from the state it comes from. */
 function stateSections(version: MotionVersion, raw: Raw, rootLabel: string): MotionTableSection[] {
   const interaction = version.interaction;
   if (!interaction) return [];
-  const states = stateNames(interaction);
-  return states.map(state => {
+  // The order a designer reads them in: the way back ("hover off") right after the state that leads away ("hover on").
+  const others = stateNames(interaction).filter(n => n !== interaction.initial);
+  const away = others.findIndex(n => /^(hover|focus) on$/.test(stateHeading(interaction, n) ?? ''));
+  const states = away === -1 ? [...others, interaction.initial] : [...others.slice(0, away + 1), interaction.initial, ...others.slice(away + 1)];
+  return states.flatMap(state => {
+    const title = stateHeading(interaction, state);
+    if (title === null) return [];
     const from = state === interaction.initial ? states.find(s => s !== interaction.initial) ?? interaction.initial : interaction.initial;
     const rows: MotionTableRow[] = [];
     const tracks: MotionTrack[] = [];
@@ -201,8 +226,8 @@ function stateSections(version: MotionVersion, raw: Raw, rootLabel: string): Mot
       rows.push(...motionRows(element, moves, t, [`from ${from}`]));
       tracks.push({ label: element, start: t.delay, end: t.delay + t.duration });
     }
-    return section(`into ${state}`, rows.length ? [{ columns: MOTION_COLUMNS, rows }] : [], tracks);
-  }).filter(s => s.tables.length > 0);
+    return rows.length ? [section(title, [{ columns: MOTION_COLUMNS, rows }], tracks)] : [];
+  });
 }
 
 /**

@@ -18,8 +18,8 @@ const withImage: MotionVersion = {
     ...cardV2.interaction!,
     layers: {
       image: {
-        states: { hover: { transform: 'scale({scale.103})' }, pressed: { transform: 'scale({scale.103})' } },
-        transitions: { hover: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-standard' } },
+        states: { hovered: { transform: 'scale(1.03)' }, pressed: { transform: 'scale(1.03)' } },
+        transitions: { hovered: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-standard' } },
       },
     },
   },
@@ -37,8 +37,8 @@ describe('trigger-aware CSS', () => {
     expect(outside).not.toMatch(/\.motion-card-v2:hover \{/);
   });
   it('gives the layer its own timing and the rest rule the way back', () => {
-    expect(css).toMatch(/\.motion-card-v2 \[data-motion="image"\] \{[\s\S]*?transition-duration: var\(--motion-duration-140/);
-    expect(css).toMatch(/\.motion-card-v2:hover \[data-motion="image"\] \{[\s\S]*?transition-duration: var\(--motion-duration-300/);
+    expect(css).toMatch(/\.motion-card-v2 \[data-motion="image"\] \{[\s\S]*?transition-duration: var\(--motion-duration-150/);
+    expect(css).toMatch(/\.motion-card-v2:hover \[data-motion="image"\] \{[\s\S]*?transition-duration: var\(--motion-duration-250/);
   });
   it('lists every trigger selector in the reduced-motion block', () => {
     const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion'));
@@ -47,7 +47,7 @@ describe('trigger-aware CSS', () => {
     expect(reduced).toContain('transition: none;');
   });
   it('a focus trigger uses :focus-visible and :has for the inside', () => {
-    const f = { ...withImage, interaction: { ...withImage.interaction!, triggers: [{ on: 'focus' as const, state: 'hover' }, { on: 'hover' as const, state: 'hover', target: 'image' }] } };
+    const f = { ...withImage, interaction: { ...withImage.interaction!, triggers: [{ on: 'focus' as const, state: 'hovered' }, { on: 'hover' as const, state: 'hovered', target: 'image' }] } };
     const out = buildVersionCss(f, raw, { component: 'card' });
     expect(out).toContain('.motion-card-v2:focus-visible');
     expect(out).toContain('.motion-card-v2:has(:focus-visible)');
@@ -73,7 +73,7 @@ describe('GSAP and Motion exports with layers and triggers', () => {
     const none = { ...cardV2, interaction: { ...cardV2.interaction!, triggers: undefined } };
     expect(buildGsapCode(none, raw, { component: 'card' })).not.toContain('export function attach');
   });
-  it('the generated attach wires and removes listeners, and hover goes to hover then back', () => {
+  it('the generated attach wires and removes listeners, and hover goes to hovered then back', () => {
     const code = buildGsapCode(cardV2, raw, { component: 'card' });
     const calls: string[] = [];
     const listeners: { node: unknown; type: string; fn: (e: unknown) => void }[] = [];
@@ -92,11 +92,11 @@ describe('GSAP and Motion exports with layers and triggers', () => {
     const stop = mod.attachCardV2(el);
     const on = (type: string, e: unknown = {}) => listeners.filter(l => l.type === type).forEach(l => l.fn(e));
     on('pointerenter', { pointerType: 'mouse' });
-    expect(el.dataset['state']).toBe('hover');
+    expect(el.dataset['state']).toBe('hovered');
     on('pointerleave');
-    expect(el.dataset['state']).toBe('rest');
+    expect(el.dataset['state']).toBe('default');
     on('pointerenter', { pointerType: 'touch' });
-    expect(el.dataset['state']).toBe('rest');
+    expect(el.dataset['state']).toBe('default');
     stop();
     expect(listeners.length).toBe(0);
   });

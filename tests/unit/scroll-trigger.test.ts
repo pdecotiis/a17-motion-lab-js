@@ -5,7 +5,7 @@ import type { MotionVersion } from '../../lab/lib/types.js';
 const version = (trigger?: MotionVersion['trigger']): MotionVersion => ({
   id: 'v1',
   label: 'v1',
-  model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' },
+  model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' },
   keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
   lineage: 'imported from test',
   ...(trigger ? { trigger } : {}),

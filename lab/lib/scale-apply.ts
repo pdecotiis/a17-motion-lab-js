@@ -24,28 +24,54 @@ function fromNumbers(kind: ScaleKind, values: number[]): DerivedToken[] {
   return values.map(v => ({ name: String(v), $type: type, $value: `${v}${unit}` }));
 }
 
+// How an old token finds its new one. `rank` (what a scale does): step i takes over from old step i, so a different
+// spacing moves a token's value. `nearest`: each old token goes to the new token with the closest value (a tie goes up),
+// so a value keeps its feel when the set of values changes; `overrides` (old name → new name) say where that is not wanted.
+export type Match = 'rank' | 'nearest';
+export interface KindMatch { match?: Match; overrides?: Record<string, string> }
+
 // The kind regenerated from `derived` (tokens, or plain numbers for distance, duration and delay).
 // `renames` maps each old path to its new one.
-export function scaleKind(tokens: Json, kind: ScaleKind, derived: number[] | DerivedToken[]): { tokens: Json; renames: Record<string, string> } {
+export function scaleKind(tokens: Json, kind: ScaleKind, derived: number[] | DerivedToken[], how: KindMatch = {}): { tokens: Json; renames: Record<string, string> } {
   const next = typeof derived[0] === 'number' ? fromNumbers(kind, derived as number[]) : (derived as DerivedToken[]);
   const group = (tokens[kind] ?? {}) as Record<string, TokenJson>;
   const old = Object.entries(group).sort(([, a], [, b]) => valueOf(a) - valueOf(b));
   if (old.length === 0) throw new Error(`There is no "${kind}" group in the token file`);
   const rank = (s?: string): number => (s === 'system' ? 1 : 0);
 
+  // The old tokens each new token takes over from.
+  const takeOver: [string, TokenJson][][] = next.map(() => []);
+  if (how.match === 'nearest') {
+    const values = next.map(d => parseFloat(String(d.$value)));
+    for (const entry of old) {
+      const forced = how.overrides?.[entry[0]];
+      let at = forced === undefined ? -1 : next.findIndex(d => d.name === forced);
+      if (forced !== undefined && at === -1) throw new Error(`The override sends ${kind}.${entry[0]} to ${kind}.${forced}, which is not one of the new tokens`);
+      if (at === -1) {
+        const v = valueOf(entry[1]);
+        at = values.reduce((best, x, i) => (Math.abs(x - v) < Math.abs(values[best]! - v) || (Math.abs(x - v) === Math.abs(values[best]! - v) && x > values[best]!) ? i : best), 0);
+      }
+      takeOver[at]!.push(entry);
+    }
+  } else {
+    next.forEach((_, i) => { takeOver[i] = i === next.length - 1 ? old.slice(i) : old[i] ? [old[i]!] : []; });
+  }
+
   const out: Record<string, TokenJson> = {};
   const renames: Record<string, string> = {};
   next.forEach((d, i) => {
     const name = d.name;
-    const same = old[i];
-    // The old steps that fold into this one: just step i, or all the leftovers into the last step.
-    const folded = i === next.length - 1 ? old.slice(i) : same ? [same] : [];
+    const folded = takeOver[i]!;
     const status = folded.length
       ? folded.reduce((best, [, t]) => (rank(t.$extensions?.status) > rank(best) ? (t.$extensions?.status as string) : best), 'experimental')
       : 'experimental';
-    const oldNames = [...new Set([...(same?.[1].$extensions?.oldNames ?? []), ...folded.map(([n]) => n).filter(n => n !== name)])];
+    const oldNames = [...new Set([
+      ...(how.match === 'nearest' ? folded : old[i] ? [old[i]!] : []).flatMap(([, t]) => t.$extensions?.oldNames ?? []),
+      ...folded.map(([n]) => n).filter(n => n !== name),
+    ])].filter(n => n !== name);
     const token: TokenJson = { $type: d.$type, $value: d.$value };
-    if (same?.[1].$description) token.$description = same[1].$description;
+    const described = folded.find(([, t]) => t.$description);
+    if (described) token.$description = described[1].$description!;
     token.$extensions = { status, ...(oldNames.length ? { oldNames } : {}) };
     out[name] = token;
     folded.forEach(([n]) => { renames[`${kind}.${n}`] = `${kind}.${name}`; });

@@ -168,7 +168,7 @@ export const v1: MotionVersion = {
     delay: '0ms',
   },
   keyframes: [
-    { opacity: 0, transform: 'translateY({distance.16})', offset: 0 },
+    { opacity: 0, transform: 'translateY({distance.20})', offset: 0 },
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
   lineage: ${JSON.stringify(`imported from ${figmaUrl}`)},

@@ -26,7 +26,7 @@ const demo: MotionVersion = {
   label: 'Preset demo',
   entrance: { preset: 'card' },
   layers: {
-    title: { preset: 'title', delay: 'delay.70', stagger: 'delay.40' },
+    title: { preset: 'title', delay: 'delay.80', stagger: 'delay.40' },
     text: { preset: 'text', delay: 'delay.120' },
   },
   lineage: 'test',
@@ -38,16 +38,16 @@ describe.skipIf(!TEMPLATE_PRESETS)('the presets table', () => {
   });
 
   it('matches the spec: values per preset', () => {
-    const fade = { duration: 'duration.300', easing: 'easing.productive-entrance' };
-    const move = { duration: 'duration.560', easing: 'easing.expressive-entrance' };
+    const fade = { duration: 'duration.250', easing: 'easing.productive-entrance' };
+    const move = { duration: 'duration.700', easing: 'easing.expressive-entrance' };
     for (const name of ['eyebrow', 'title', 'text'] as const) {
-      expect(PRESETS[name], name).toEqual({ rise: 'distance.16', move, fade, status: 'experimental' });
+      expect(PRESETS[name], name).toEqual({ rise: 'distance.20', move, fade, status: 'experimental' });
     }
-    expect(PRESETS.card).toEqual({ rise: 'distance.24', scale: 'scale.95', move, fade, status: 'experimental' });
-    expect(PRESETS.media).toEqual({ rise: 'distance.24', scale: 'scale.98', move, fade, status: 'experimental' });
+    expect(PRESETS.card).toEqual({ rise: 'distance.20', scale: 'scale.95', move, fade, status: 'experimental' });
+    expect(PRESETS.media).toEqual({ rise: 'distance.20', scale: 'scale.95', move, fade, status: 'experimental' });
     expect(PRESETS.ui).toEqual({
       rise: 'distance.8',
-      move: { duration: 'duration.140', easing: 'easing.productive-standard' },
+      move: { duration: 'duration.150', easing: 'easing.productive-standard' },
       fade: { duration: 'duration.100', easing: 'easing.productive-entrance' },
       status: 'experimental',
     });
@@ -61,13 +61,11 @@ describe.skipIf(!TEMPLATE_PRESETS)('the presets table', () => {
     }
   });
 
-  it('resolves to the values in the spec (16/24/8 px, 0.95/0.98, 300/560/100/140 ms)', () => {
-    expect(raw['distance.16']).toBe('16px');
-    expect(raw['distance.24']).toBe('24px');
+  it('resolves to the values in the spec (20/8 px, 0.95, 250/700/100/150 ms)', () => {
+    expect(raw['distance.20']).toBe('20px');
     expect(raw['distance.8']).toBe('8px');
     expect(raw['scale.95']).toBe(0.95);
-    expect(raw['scale.98']).toBe(0.98);
-    for (const [t, ms] of [['duration.300', '300ms'], ['duration.560', '560ms'], ['duration.100', '100ms'], ['duration.140', '140ms']] as [string, string][]) expect(raw[t]).toBe(ms);
+    for (const [t, ms] of [['duration.250', '250ms'], ['duration.700', '700ms'], ['duration.100', '100ms'], ['duration.150', '150ms']] as [string, string][]) expect(raw[t]).toBe(ms);
   });
 
   it('every track of every preset follows the pairing rules', () => {
@@ -83,25 +81,25 @@ describe.skipIf(!TEMPLATE_PRESETS)('presetTracks', () => {
     expect(SEPARATE_FADE).toBe(true);
     const [fade, move] = presetTracks('title');
     expect(fade!.track).toBe('fade');
-    expect(fade!.model).toMatchObject({ model: 'spring', duration: 'duration.300', easing: 'easing.productive-entrance', bounce: 'bounce.0', properties: [{ property: 'opacity', from: 0, to: 1 }] });
+    expect(fade!.model).toMatchObject({ model: 'spring', duration: 'duration.250', easing: 'easing.productive-entrance', bounce: 'bounce.0', properties: [{ property: 'opacity', from: 0, to: 1 }] });
     expect(move!.track).toBe('move');
-    expect(move!.model).toMatchObject({ model: 'tween', duration: 'duration.560', easing: 'easing.expressive-entrance' });
+    expect(move!.model).toMatchObject({ model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance' });
     expect(move!.keyframes).toEqual([
-      { transform: 'translateY({distance.16})', offset: 0 },
+      { transform: 'translateY({distance.20})', offset: 0 },
       { transform: 'translateY(0px)', offset: 1 },
     ]);
   });
 
   it('card and media scale up from their scale token as part of the move', () => {
     expect(presetTracks('card')[1]!.keyframes).toEqual([
-      { transform: 'translateY({distance.24}) scale({scale.95})', offset: 0 },
+      { transform: 'translateY({distance.20}) scale({scale.95})', offset: 0 },
       { transform: 'translateY(0px) scale(1)', offset: 1 },
     ]);
-    expect(presetTracks('media')[1]!.keyframes![0]!['transform']).toBe('translateY({distance.24}) scale({scale.98})');
+    expect(presetTracks('media')[1]!.keyframes![0]!['transform']).toBe('translateY({distance.20}) scale({scale.95})');
   });
 
   it('a delay goes on every track', () => {
-    for (const t of presetTracks('text', 'delay.70')) expect(t.model.delay).toBe('delay.70');
+    for (const t of presetTracks('text', 'delay.80')) expect(t.model.delay).toBe('delay.80');
   });
 
   it('one track ("all") when a preset has no fade timing: opacity and transform together, the move\'s timing', () => {
@@ -116,9 +114,9 @@ describe.skipIf(!TEMPLATE_PRESETS)('presetTracks', () => {
       const tracks = presetTracks('eyebrow');
       expect(tracks).toHaveLength(1);
       expect(tracks[0]!.track).toBe('all');
-      expect(tracks[0]!.model).toMatchObject({ model: 'tween', duration: 'duration.560', easing: 'easing.expressive-entrance' });
+      expect(tracks[0]!.model).toMatchObject({ model: 'tween', duration: 'duration.700', easing: 'easing.expressive-entrance' });
       expect(tracks[0]!.keyframes).toEqual([
-        { opacity: 0, transform: 'translateY({distance.16})', offset: 0 },
+        { opacity: 0, transform: 'translateY({distance.20})', offset: 0 },
         { opacity: 1, transform: 'translateY(0px)', offset: 1 },
       ]);
     } finally {
@@ -131,7 +129,7 @@ describe.skipIf(!TEMPLATE_PRESETS)('a preset in a version', () => {
   it('hasEntrance is true for an entrance preset, and isPresetStep tells the layers apart', () => {
     expect(hasEntrance(demo)).toBe(true);
     expect(isPresetStep(demo.layers!['title']!)).toBe(true);
-    expect(isPresetStep({ model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' }, keyframes: [] })).toBe(false);
+    expect(isPresetStep({ model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' }, keyframes: [] })).toBe(false);
   });
 
   it('validates', () => {
@@ -150,7 +148,7 @@ describe.skipIf(!TEMPLATE_PRESETS)('a preset in a version', () => {
 
   it('the layer\'s delay is on its tracks, and its stagger is carried on the entry as elementStagger', () => {
     const title = stepsOf(demo).filter(s => s.name === 'title');
-    expect(title.every(s => s.version.model.delay === 'delay.70')).toBe(true);
+    expect(title.every(s => s.version.model.delay === 'delay.80')).toBe(true);
     expect(title.every(s => s.elementStagger === 'delay.40')).toBe(true);
     expect(stepsOf(demo).filter(s => s.name === 'text').every(s => s.elementStagger === undefined)).toBe(true);
   });
@@ -158,7 +156,7 @@ describe.skipIf(!TEMPLATE_PRESETS)('a preset in a version', () => {
   it('mixes with a layer that has its own model and keyframes', () => {
     const mixed: MotionVersion = {
       ...demo,
-      layers: { ...demo.layers, badge: { model: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-entrance' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }] } },
+      layers: { ...demo.layers, badge: { model: { model: 'tween', duration: 'duration.200', easing: 'easing.productive-entrance' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }] } },
     };
     expect(() => validateMotionVersion(mixed)).not.toThrow();
     const badge = stepsOf(mixed).filter(s => s.name === 'badge');
@@ -168,8 +166,8 @@ describe.skipIf(!TEMPLATE_PRESETS)('a preset in a version', () => {
 
   it('refuses an unknown preset, an entrance together with a model, extra keys and a non-string delay', () => {
     expect(() => validateMotionVersion({ ...demo, entrance: { preset: 'banner' as never } })).toThrow('unknown preset "banner"');
-    expect(() => validateMotionVersion({ ...demo, model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' } })).toThrow('an entrance preset and a model');
-    expect(() => validateMotionVersion({ ...demo, entrance: { preset: 'card', duration: 'duration.300' } as never })).toThrow('takes only preset, delay and stagger');
+    expect(() => validateMotionVersion({ ...demo, model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' } })).toThrow('an entrance preset and a model');
+    expect(() => validateMotionVersion({ ...demo, entrance: { preset: 'card', duration: 'duration.250' } as never })).toThrow('takes only preset, delay and stagger');
     expect(() => validateMotionVersion({ ...demo, layers: { title: { preset: 'title', delay: 70 as never } } })).toThrow('delay must be');
     expect(() => validateMotionVersion({ ...demo, layers: { title: { preset: 'nope' as never } } })).toThrow('layer "title" names an unknown preset');
   });
@@ -184,8 +182,8 @@ describe.skipIf(!TEMPLATE_PRESETS)('tokens used and pairing for a preset version
   it('lists the preset\'s tokens (duration, easing, distance, scale, delay) with where they sit', () => {
     const groups: Record<string, StepRefs> = Object.fromEntries(getStepRefs(demo, raw).map(s => [String(s.layer), s]));
     const tokensOf = (label: string) => groups[label]!.uses.map(u => u.token);
-    expect(tokensOf('root move')).toEqual(expect.arrayContaining(['duration.560', 'easing.expressive-entrance', 'distance.24', 'scale.95']));
-    expect(tokensOf('title fade')).toEqual(expect.arrayContaining(['duration.300', 'easing.productive-entrance', 'delay.70']));
+    expect(tokensOf('root move')).toEqual(expect.arrayContaining(['duration.700', 'easing.expressive-entrance', 'distance.20', 'scale.95']));
+    expect(tokensOf('title fade')).toEqual(expect.arrayContaining(['duration.250', 'easing.productive-entrance', 'delay.80']));
   });
 
   it('under Motion no easing is listed, and the fade lists bounce.0', () => {
@@ -203,8 +201,8 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.css and the component CSS', () => {
     expect(css).toContain('@keyframes motion-preset-title-fade');
     expect(css).toContain('@keyframes motion-preset-title-move');
     expect(css).toMatch(/\.motion-preset-title \{[\s\S]*?animation-name: motion-preset-title-fade, motion-preset-title-move;/);
-    expect(css).toContain('animation-duration: var(--motion-duration-300, 300ms), var(--motion-duration-560, 560ms);');
-    expect(css).toContain('translateY(var(--motion-distance-16, 16px))');
+    expect(css).toContain('animation-duration: var(--motion-duration-250, 250ms), var(--motion-duration-700, 700ms);');
+    expect(css).toContain('translateY(var(--motion-distance-20, 20px))');
     expect(css).toContain('scale(var(--motion-scale-95, 0.95))');
     for (const name of PRESET_NAMES) expect(css, name).toContain(`.motion-preset-${name} {`);
   });
@@ -231,7 +229,7 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.css and the component CSS', () => {
     expect(c).not.toContain('@keyframes');
     expect(c).toContain('Add .motion-preset-card to the element');
     expect(c).toMatch(/\.motion-card-v1-title \{[^}]*Set --motion-item[^}]*--motion-stagger: var\(--motion-delay-40, 40ms\);/);
-    expect(c).toContain('--motion-delay: var(--motion-delay-70, 70ms);');
+    expect(c).toContain('--motion-delay: var(--motion-delay-80, 80ms);');
     expect(c).toContain('--motion-delay: var(--motion-delay-120, 120ms);');
   });
 
@@ -243,7 +241,7 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.css and the component CSS', () => {
   });
 
   it('a version with states keeps the entrance from holding its last frame over them', () => {
-    const withStates: MotionVersion = { ...demo, interaction: { initial: 'rest', states: { rest: { transform: 'none' }, hover: { transform: 'translateY(-{distance.4})' } }, transitions: { rest: { model: 'tween', duration: 'duration.140', easing: 'easing.productive-exit' }, hover: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-standard' } }, triggers: [{ on: 'hover', state: 'hover' }] } };
+    const withStates: MotionVersion = { ...demo, interaction: { initial: 'rest', states: { rest: { transform: 'none' }, hover: { transform: 'translateY(-{distance.4})' } }, transitions: { rest: { model: 'tween', duration: 'duration.150', easing: 'easing.productive-exit' }, hover: { model: 'tween', duration: 'duration.200', easing: 'easing.productive-standard' } }, triggers: [{ on: 'hover', state: 'hover' }] } };
     const c = buildVersionCss(withStates, raw, { component: 'card' });
     expect(c).toContain('.motion-preset-card.motion-card-v1 {');
     expect(c).toContain('animation-fill-mode: backwards;');
@@ -261,9 +259,9 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.gsap.js and presets.motion.js', () =
   it('GSAP: a presets table in seconds and pixels with the easings registered, and playPreset', () => {
     expect(gsapShared).toContain('CustomEase.create("expressive-entrance", "0, 0, 0.3, 1")');
     expect(gsapShared).toContain('CustomEase.create("productive-entrance"');
-    expect(gsapShared).toContain('title: { rise: 16, move: { duration: 0.56, ease: "expressive-entrance" }, fade: { duration: 0.3, ease: "productive-entrance" } }');
-    expect(gsapShared).toContain('card: { rise: 24, scale: 0.95,');
-    expect(gsapShared).toContain('ui: { rise: 8, move: { duration: 0.14, ease: "productive-standard" }, fade: { duration: 0.1, ease: "productive-entrance" } }');
+    expect(gsapShared).toContain('title: { rise: 20, move: { duration: 0.7, ease: "expressive-entrance" }, fade: { duration: 0.25, ease: "productive-entrance" } }');
+    expect(gsapShared).toContain('card: { rise: 20, scale: 0.95,');
+    expect(gsapShared).toContain('ui: { rise: 8, move: { duration: 0.15, ease: "productive-standard" }, fade: { duration: 0.1, ease: "productive-entrance" } }');
     expect(gsapShared).toContain('export function playPreset(target, name, { delay = 0, stagger = 0 } = {})');
   });
 
@@ -280,18 +278,18 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.gsap.js and presets.motion.js', () =
     const g = buildGsapCode(demo, raw, { component: 'card' });
     expect(g).toContain('import { playPreset } from "./presets.gsap.js";');
     expect(g).toContain('tl.add(playPreset(el, "card", { delay: 0 }), 0);');
-    expect(g).toContain('playPreset(el.querySelectorAll("[data-motion=\\"title\\"]"), "title", { delay: 0.07, stagger: 0.04 }), 0);');
+    expect(g).toContain('playPreset(el.querySelectorAll("[data-motion=\\"title\\"]"), "title", { delay: 0.08, stagger: 0.04 }), 0);');
     expect(g).toContain('"text", { delay: 0.12 }');
     expect(g).not.toContain('CustomEase.create'); // the easings live in the shared file
 
     const m = buildMotionCode(demo, raw, { component: 'card' });
     expect(m).toContain('import { playPreset } from "./presets.motion.js";');
     expect(m).toContain('controls.push(...playPreset(el, "card", { delay: 0 }));');
-    expect(m).toContain('"title", { delay: 0.07, stagger: 0.04 }');
+    expect(m).toContain('"title", { delay: 0.08, stagger: 0.04 }');
   });
 
   it('page stagger adds index * stagger under Motion and a timeline delay under GSAP', () => {
-    const staggered: MotionVersion = { ...demo, stagger: 'delay.70' };
+    const staggered: MotionVersion = { ...demo, stagger: 'delay.80' };
     expect(buildMotionCode(staggered, raw, { component: 'card' })).toContain('{ delay: 0 + index * stagger }');
     expect(buildGsapCode(staggered, raw, { component: 'card' })).toContain('gsap.timeline({ delay: index * stagger })');
   });
@@ -310,7 +308,7 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.gsap.js and presets.motion.js', () =
   });
 
   it('a version with no presets is left as it was', () => {
-    const plain = buildGsapCode({ id: 'v1', label: 'x', model: { model: 'tween', duration: 'duration.300', easing: 'easing.productive-entrance' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }], lineage: 'test' }, raw, { component: 'x', includePresets: true });
+    const plain = buildGsapCode({ id: 'v1', label: 'x', model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }], lineage: 'test' }, raw, { component: 'x', includePresets: true });
     expect(plain).not.toContain('playPreset');
   });
 
@@ -328,13 +326,13 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.gsap.js and presets.motion.js', () =
       const { playPreset } = new Function('gsap', 'CustomEase', 'window', `${code}\nreturn { playPreset };`)(
         fakeGsap, { create() {} }, { matchMedia: () => ({ matches: reduced }) },
       ) as { playPreset: (target: unknown, name: string, o?: { delay?: number; stagger?: number }) => unknown };
-      playPreset({}, 'card', { delay: 0.07, stagger: 0.04 });
+      playPreset({}, 'card', { delay: 0.08, stagger: 0.04 });
       return calls;
     };
     const full = run(false);
     expect(full).toHaveLength(2);
-    expect(full[0]).toMatchObject({ from: { opacity: 0 }, to: { opacity: 1, duration: 0.3, ease: 'productive-entrance', stagger: 0.04 }, position: 0.07 });
-    expect(full[1]).toMatchObject({ from: { y: 24, scale: 0.95 }, to: { y: 0, scale: 1, duration: 0.56, ease: 'expressive-entrance', stagger: 0.04 }, position: 0.07 });
+    expect(full[0]).toMatchObject({ from: { opacity: 0 }, to: { opacity: 1, duration: 0.25, ease: 'productive-entrance', stagger: 0.04 }, position: 0.08 });
+    expect(full[1]).toMatchObject({ from: { y: 20, scale: 0.95 }, to: { y: 0, scale: 1, duration: 0.7, ease: 'expressive-entrance', stagger: 0.04 }, position: 0.08 });
     const reduced = run(true);
     expect(reduced).toHaveLength(1);
     expect(reduced[0]!.to['duration']).toBe(0.15);

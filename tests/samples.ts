@@ -54,12 +54,12 @@ export const SAMPLE_E2E_FILES = [
 export const TEMPLATE_DEFAULT_PRESETS = {
   separateFade: true,
   presets: {
-    eyebrow: { rise: 'distance.16', move: { duration: 'duration.560', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.300', easing: 'easing.productive-entrance' }, status: 'experimental' },
-    title: { rise: 'distance.16', move: { duration: 'duration.560', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.300', easing: 'easing.productive-entrance' }, status: 'experimental' },
-    text: { rise: 'distance.16', move: { duration: 'duration.560', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.300', easing: 'easing.productive-entrance' }, status: 'experimental' },
-    card: { rise: 'distance.24', scale: 'scale.95', move: { duration: 'duration.560', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.300', easing: 'easing.productive-entrance' }, status: 'experimental' },
-    media: { rise: 'distance.24', scale: 'scale.98', move: { duration: 'duration.560', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.300', easing: 'easing.productive-entrance' }, status: 'experimental' },
-    ui: { rise: 'distance.8', move: { duration: 'duration.140', easing: 'easing.productive-standard' }, fade: { duration: 'duration.100', easing: 'easing.productive-entrance' }, status: 'experimental' },
+    eyebrow: { rise: 'distance.20', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, status: 'experimental' },
+    title: { rise: 'distance.20', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, status: 'experimental' },
+    text: { rise: 'distance.20', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, status: 'experimental' },
+    card: { rise: 'distance.20', scale: 'scale.95', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, status: 'experimental' },
+    media: { rise: 'distance.20', scale: 'scale.95', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, status: 'experimental' },
+    ui: { rise: 'distance.8', move: { duration: 'duration.150', easing: 'easing.productive-standard' }, fade: { duration: 'duration.100', easing: 'easing.productive-entrance' }, status: 'experimental' },
   },
 };
 
