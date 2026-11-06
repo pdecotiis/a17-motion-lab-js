@@ -22,7 +22,8 @@ function testFiles(dir: string): string[] {
 // A test "uses a sample" when it opens one by URL (component=card, page=home) or imports one. A test that
 // writes a `components/card/` into a temporary folder for itself does not. (A unit test that runs the CLI on
 // a sample is not caught here: list it, or guard it, by hand.)
-const USES_SAMPLE = /component=(card|side-panel)\b|page=home\b|from '[./]*components\/(card|side-panel)\//;
+// The name must end there: a project's own `card-feature` or `home-news` is not the sample `card` or `home`.
+export const USES_SAMPLE = /component=(card|side-panel)(?![\w-])|page=home(?![\w-])|from '[./]*components\/(card|side-panel)\//;
 
 const files = [...testFiles('tests/unit'), ...testFiles('tests/e2e')].filter(f => !f.endsWith('samples.test.ts'));
 const listed = new Set([...SAMPLE_UNIT_FILES, ...SAMPLE_E2E_FILES]);
@@ -44,5 +45,23 @@ describe('sample content in tests', () => {
 
   it('names sample files that are paths inside the repo', () => {
     for (const f of SAMPLE_FILES) expect(relative(root, join(root, f)).startsWith('..')).toBe(false);
+  });
+});
+
+describe('what counts as using a sample', () => {
+  it('is the sample itself, by URL or import', () => {
+    expect(USES_SAMPLE.test('/?view=component&component=card')).toBe(true);
+    expect(USES_SAMPLE.test('/?view=component&component=card&version=v1')).toBe(true);
+    expect(USES_SAMPLE.test('/?view=component&component=side-panel')).toBe(true);
+    expect(USES_SAMPLE.test('/?view=page&page=home')).toBe(true);
+    expect(USES_SAMPLE.test('/?view=page&page=home&pv=v2')).toBe(true);
+    expect(USES_SAMPLE.test("import { v1 } from '../../components/card/versions/v1.js'")).toBe(true);
+  });
+  it('is not a project\'s own component or page whose name starts with the sample\'s', () => {
+    expect(USES_SAMPLE.test('/?view=component&component=card-feature')).toBe(false);
+    expect(USES_SAMPLE.test('/?view=component&component=card-feature&version=v1')).toBe(false);
+    expect(USES_SAMPLE.test('/?view=component&component=side-panel-wide')).toBe(false);
+    expect(USES_SAMPLE.test('/?view=page&page=homepage')).toBe(false);
+    expect(USES_SAMPLE.test('/?view=page&page=home-news')).toBe(false);
   });
 });
