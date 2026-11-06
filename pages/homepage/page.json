@@ -1,0 +1,23 @@
+{
+  "id": "homepage",
+  "title": "Homepage",
+  "width": 1136,
+  "components": [
+    {
+      "id": "page-header-title",
+      "component": "page-header-title"
+    },
+    {
+      "id": "grid-container-mosaic-routing",
+      "component": "grid-container-mosaic-routing"
+    },
+    {
+      "id": "card-feature",
+      "component": "card-feature"
+    },
+    {
+      "id": "prompts-footer-section",
+      "component": "prompts-footer-section"
+    }
+  ]
+}

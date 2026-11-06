@@ -1,0 +1,111 @@
+.grid-container-mosaic-routing {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: flex-start;
+  gap: var(--layout-gutter);
+  width: var(--grid-xl-container);
+  padding: var(--space-7) var(--grid-xl-margin) 0;
+  background: var(--background-default);
+  box-sizing: border-box;
+  font-feature-settings: "lnum" 1, "pnum" 1;
+}
+
+.grid-container-mosaic-routing__slot {
+  display: flex;
+  flex: 1 0 0;
+  gap: var(--grid-xl-gutter);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.grid-container-mosaic-routing__bar {
+  flex: none;
+  width: 40px;
+  height: 600px;
+  border-radius: var(--size-12);
+}
+
+.grid-container-mosaic-routing__bar--green { background: var(--background-accent-2); }
+.grid-container-mosaic-routing__bar--yellow { background: var(--background-accent-1); }
+
+.grid-container-mosaic-routing__grid {
+  display: grid;
+  flex: 1 0 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-self: stretch;
+  height: 600px;
+  min-width: 0;
+  border-radius: var(--size-12);
+}
+
+.grid-container-mosaic-routing__span-2 { grid-column: span 2; }
+
+.grid-container-mosaic-routing__tile {
+  border-radius: var(--size-24);
+}
+
+.grid-container-mosaic-routing__tile--orange {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px;
+  overflow: hidden;
+  background: var(--background-accent-primary);
+}
+
+.grid-container-mosaic-routing__tile--lilac { background: var(--background-accent-3); }
+
+.grid-container-mosaic-routing__heading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.grid-container-mosaic-routing__title {
+  margin: 0;
+  width: 100%;
+  font-family: var(--heading-family);
+  font-weight: var(--heading-weight);
+  font-size: var(--font-size-28);
+  line-height: 1.3;
+  color: var(--text-on-accent-1);
+}
+
+.grid-container-mosaic-routing__actions {
+  display: flex;
+  align-items: flex-end;
+  width: 214px;
+}
+
+.grid-container-mosaic-routing__arrow {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.grid-container-mosaic-routing__image {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-2xl);
+}
+
+.grid-container-mosaic-routing__texture {
+  position: absolute;
+  inset: 0;
+  background: url("assets/texture.png") top left / 240px 240px;
+  opacity: 0.75;
+}
+
+.grid-container-mosaic-routing__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+}

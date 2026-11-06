@@ -1,0 +1,64 @@
+{
+  "name": "card-feature",
+  "layerName": "grid container/uniform",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23535-9734",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23535:9734"
+  },
+  "importedAt": "2026-11-06",
+  "frame": {
+    "width": 1136,
+    "height": 517
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/accent",
+    "background/default",
+    "background/secondary",
+    "body/family",
+    "body/weight",
+    "font-size/14",
+    "font-size/16",
+    "font-size/32",
+    "grid/xl/col-12",
+    "grid/xl/col-5",
+    "grid/xl/col-7",
+    "grid/xl/columns",
+    "grid/xl/container",
+    "grid/xl/gutter",
+    "grid/xl/margin",
+    "heading/family",
+    "heading/weight",
+    "interactive/height-lg",
+    "label/family",
+    "label/weight",
+    "layout/gutter",
+    "neutral/gray-5",
+    "neutral/gray-90",
+    "radius/full",
+    "radius/lg",
+    "size/16",
+    "size/24",
+    "size/48",
+    "size/8",
+    "space/12",
+    "space/3",
+    "space/6",
+    "space/7",
+    "space/9",
+    "text/default",
+    "text/secondary-alpha"
+  ],
+  "assets": [
+    "arrow-right.svg",
+    "chart.png",
+    "text-protection-1.svg",
+    "text-protection-2.svg"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "The Figma layer is named \"grid container/uniform\", the same as the Read Next section already in the lab (prompts-footer-section). This one is a single full-width feature card (eyebrow, heading, text, arrow) over a chart, so it is its own component, named for the card. The chart is a raster fill drawn darker onto the card colour (multiply, 25%) with two soft blobs of the card colour over it to keep the text clear; both are approximated from the frame, so check them against Figma.",
+    "The card has an image slot (a wireframe placeholder in the Figma component) that this import fills with the chart seen in the frame."
+  ]
+}

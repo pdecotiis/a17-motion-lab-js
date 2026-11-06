@@ -1,0 +1,46 @@
+{
+  "name": "grid-container-mosaic-routing",
+  "layerName": "grid container/mosaic <slot>",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23568-110178",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23568:110178"
+  },
+  "importedAt": "2026-11-06",
+  "frame": {
+    "width": 1136,
+    "height": 648
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/accent/1",
+    "background/accent/2",
+    "background/accent/3",
+    "background/accent/primary",
+    "background/default",
+    "font-size/28",
+    "grid/xl/columns",
+    "grid/xl/container",
+    "grid/xl/gutter",
+    "grid/xl/margin",
+    "heading/family",
+    "heading/weight",
+    "layout/gutter",
+    "radius/2xl",
+    "size/12",
+    "size/24",
+    "space/7",
+    "text/on-accent/1"
+  ],
+  "assets": [
+    "arrow-right.svg",
+    "photo-1.png",
+    "photo-2.png",
+    "photo-3.png",
+    "texture.png"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "The Figma layer is named \"grid container/mosaic <slot>\", the same family as the photo mosaic already in the lab (grid-container-mosaic). This one is a different shape: two thin accent bars, then a 4 x 2 grid of a text tile, three photos and an accent tile (the \"card routing\" frames), so it is its own component. The three \"card routing\" frames carry the same layer name, so the layers are named here by what they are."
+  ]
+}

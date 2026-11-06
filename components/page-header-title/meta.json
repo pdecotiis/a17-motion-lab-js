@@ -1,0 +1,34 @@
+{
+  "name": "page-header-title",
+  "layerName": "page header",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23568-110521",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23568:110521"
+  },
+  "importedAt": "2026-11-06",
+  "frame": {
+    "width": 1136,
+    "height": 252
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/default",
+    "font-size/48",
+    "grid/xl/container",
+    "heading/family",
+    "heading/weight",
+    "layout/columns",
+    "layout/gutter",
+    "layout/margin",
+    "size/16",
+    "space/11",
+    "space/5",
+    "text/default"
+  ],
+  "assets": [],
+  "fontFallbacks": [],
+  "issues": [
+    "The Figma layer is named \"page header\", the same as the two other page headers in the lab (page-header, page-header-simple). This one is the title-only shape: a heading in a title lockup, with no breadcrumb and no description."
+  ]
+}

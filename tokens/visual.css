@@ -3,6 +3,7 @@
   --background-accent: #8c97f1;
   --background-accent-1: #d6de65;
   --background-accent-2: #2e7560;
+  --background-accent-3: #8c97f1;
   --background-accent-primary: #f57853;
   --background-default: #f5f4f2;
   --background-inverse: #141414;
@@ -31,16 +32,20 @@
   --grid-xl-margin: 32px;
   --heading-family: "TWK Everett", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --heading-weight: 400;
+  --interactive-height-lg: 48px;
   --label-family: "TWK Everett Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --label-weight: 400;
   --layout-columns: 12;
   --layout-container: 1136px;
   --layout-gutter: 8px;
   --layout-margin: 32px;
+  --neutral-gray-5: #F2F2F2;
+  --neutral-gray-90: #1A1A1A;
   --numeral-family: "TWK Everett", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --numeral-weight: 400;
   --quote-family: "TWK Everett", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --quote-weight: 400;
+  --radius-2xl: 32px;
   --radius-full: 9999px;
   --radius-lg: 16px;
   --radius-xl: 24px;
@@ -62,6 +67,7 @@
   --space-6: 32px;
   --space-7: 48px;
   --space-8: 64px;
+  --space-9: 80px;
   --text-default: #141414;
   --text-inverse: #f5f4f2;
   --text-inverse-secondary-alpha: #ffffff8f;

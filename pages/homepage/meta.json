@@ -1,0 +1,55 @@
+{
+  "id": "homepage",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23535-9728",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23535:9728"
+  },
+  "importedAt": "2026-11-06",
+  "frame": {
+    "width": 1440,
+    "height": 2351
+  },
+  "sections": [
+    {
+      "id": "page-header-title",
+      "component": "page-header-title",
+      "figmaName": "page header"
+    },
+    {
+      "id": "grid-container-mosaic-routing",
+      "component": "grid-container-mosaic-routing",
+      "figmaName": "grid container/mosaic <slot>"
+    },
+    {
+      "id": "card-feature",
+      "component": "card-feature",
+      "figmaName": "grid container/uniform"
+    },
+    {
+      "id": "prompts-footer-section",
+      "component": "prompts-footer-section",
+      "figmaName": "grid container/uniform"
+    }
+  ],
+  "notImported": [
+    {
+      "name": "menu",
+      "reason": "the side menu, shown open at this breakpoint (304px): chrome, an interaction of its own"
+    },
+    {
+      "name": "header",
+      "reason": "the global header: chrome, not part of the page flow"
+    },
+    {
+      "name": "footer",
+      "reason": "the global footer: chrome"
+    }
+  ],
+  "issues": [
+    "The frame is the xl breakpoint with the side menu open (\"xl · open\"): the page content is the 1136px container to the right of the 304px menu.",
+    "Two sections carry the same Figma layer name, \"grid container/uniform\": the Partner with us feature card (card-feature) and the Read Next prompts card (prompts-footer-section, imported earlier for the who-we-are page). They were told apart by what they contain.",
+    "prompts-footer-section shows the copy it was imported with (Learn more about Technology at Jane Street and its prompts), not this frame's (What are you interested in knowing more about?). The structure and motion are the same; only the words differ.",
+    "The mosaic's three tiles that Figma calls \"card routing\" share one layer name; the lab layers are named by what they are (bar-1, bar-2, tile-1, image-1…)."
+  ]
+}
