@@ -144,3 +144,49 @@ test.describe('Presets view', () => {
     await settled(page, 'card');
   });
 });
+
+// The Presets page follows the other views: one primary button, the recipe off the cards, 16px names.
+test.describe('Presets page', () => {
+  test('Replay all is the page\'s one primary (black) button, and the cards\' Replay buttons are the lighter ones', async ({ page }) => {
+    await page.goto('/?view=presets');
+    await expect(page.locator('.lab-btn--primary:visible')).toHaveCount(1);
+    await expect(page.locator('#presets-replay-all')).toHaveClass(/lab-btn--primary/);
+    await expect(page.locator('#presets-replay-all')).toHaveText('Replay all');
+    await expect.poll(() => page.locator('#presets-replay-all').evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(23, 23, 23)');
+    await expect(page.locator('[data-replay]').first()).not.toHaveClass(/lab-btn--primary/);
+  });
+
+  test('the cards do not print the recipe: it is the tooltip on the name', async ({ page }) => {
+    await page.goto('/?view=presets');
+    await expect(page.locator('.lab-preset__recipe')).toHaveCount(0);
+    const first = page.locator('.lab-preset__name').first();
+    await expect(first).toHaveAttribute('title', /rise .*move .*duration/);
+    // nothing on a card but the name, its Replay and the example
+    const text = (await page.locator('.lab-preset').first().innerText()).replace(/\s+/g, ' ');
+    expect(text).not.toMatch(/rise |move |fade /);
+  });
+
+  test('the names are 16px, the kit\'s large label', async ({ page }) => {
+    await page.goto('/?view=presets');
+    expect(await page.locator('.lab-preset__name').first().evaluate(el => getComputedStyle(el).fontSize)).toBe('16px');
+    expect(await page.locator('.lab-presets__lead').evaluate(el => getComputedStyle(el).fontSize)).toBe('16px');
+  });
+
+  test('the top bar has what the page is on the left and Replay all on the right, as the other views do', async ({ page }) => {
+    await page.goto('/?view=presets');
+    const lead = (await page.locator('.lab-presets__lead').boundingBox())!;
+    const button = (await page.locator('#presets-replay-all').boundingBox())!;
+    expect(lead.x).toBeLessThan(button.x);
+    await expect(page.locator('.lab-viewbar')).toHaveCount(1);
+  });
+
+  test('the cards are surfaces on the page colour, with the example on the lighter canvas', async ({ page }) => {
+    await page.goto('/?view=presets');
+    const colours = await page.evaluate(() => {
+      const bg = (sel: string) => getComputedStyle(document.querySelector(sel)!).backgroundColor;
+      return { card: bg('.lab-preset'), stage: bg('.lab-preset__stage'), page: getComputedStyle(document.body).backgroundColor };
+    });
+    expect(colours.card).toBe('rgb(255, 255, 255)');
+    expect(colours.stage).toBe(colours.page);
+  });
+});
