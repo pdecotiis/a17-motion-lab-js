@@ -329,18 +329,24 @@ for (const btn of runtimeButtons) {
 
 // ── Speed control ──────────────────────────────────────────────────────────
 
-// The playback bar sits above the example, on the views that play one (component and page): the speed motion plays at,
-// and, when the lab is playing with Motion rather than CSS, a chip that says so and opens Settings to change it.
+// The top bar of the views that play an example (component and page): one full-width row above the example and the
+// rail. On the left, where you are (the component view's breadcrumb); on the right, the playback controls: the speed
+// motion plays at, a chip that says so when the lab is playing with Motion rather than CSS (it opens Settings), and
+// Replay.
 const SPEEDS: [string, string][] = [['0.25', '0.25×'], ['0.5', '0.5×'], ['1', '1×'], ['2', '2×']];
 
-function playbackBarHtml(): string {
+function viewBarHtml(replay: { id: string; label: string }, leading = ''): string {
   const options = SPEEDS.map(([value, label]) => `<option value="${value}"${Number(value) === playbackRate ? ' selected' : ''}>${label}</option>`).join('');
   const chip = runtime === 'motion'
     ? '<button type="button" class="lab-runtime-chip" id="runtime-chip" title="Change the motion library in Settings">Playing with Motion (springs)</button>'
     : '';
-  return `<div class="lab-toolbar" role="group" aria-label="Playback">
-      <label class="lab-control-label">Speed <select id="speed-control" class="lab-select">${options}</select></label>
-      ${chip}
+  return `<div class="lab-viewbar">
+      ${leading}
+      <div class="lab-toolbar" role="group" aria-label="Playback">
+        <label class="lab-control-label">Speed <select id="speed-control" class="lab-select">${options}</select></label>
+        ${chip}
+        <button class="lab-btn lab-btn--primary" id="${replay.id}">${replay.label}</button>
+      </div>
     </div>`;
 }
 
@@ -695,15 +701,14 @@ function renderComponentView(params: URLSearchParams): void {
   const framed = Boolean(metaModules[`../components/${componentName}/meta.json`]);
 
   main.innerHTML = `
-    <nav class="lab-breadcrumb" aria-label="Breadcrumb">
-      <ol>
-        <li><a href="${libraryHref()}" id="breadcrumb-library">Library</a></li>
-        <li aria-current="page" id="breadcrumb-current"></li>
-      </ol>
-    </nav>
+    ${viewBarHtml({ id: 'replay-btn', label: 'Replay' }, `<nav class="lab-breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="${libraryHref()}" id="breadcrumb-library">Library</a></li>
+          <li aria-current="page" id="breadcrumb-current"></li>
+        </ol>
+      </nav>`)}
     <div class="lab-component-layout">
       <div class="lab-preview-area${framed ? ' lab-preview-area--framed' : ''}">
-        ${playbackBarHtml()}
         <div class="lab-preview" id="preview-primary">
           <div class="lab-preview__inner" id="preview-inner-primary"></div>
         </div>
@@ -720,7 +725,6 @@ function renderComponentView(params: URLSearchParams): void {
           <div class="lab-accordion__body">
             <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
             <p class="lab-lineage" id="version-lineage"></p>
-            <button class="lab-btn lab-btn--primary" id="replay-btn">Replay</button>
             <div class="lab-states" id="interaction-controls" hidden></div>
           </div>
         </details>
@@ -1168,11 +1172,9 @@ function renderPageView(params: URLSearchParams): void {
   const fit = Boolean(compareWith) && !actualSize;
 
   main.innerHTML = `
+    ${viewBarHtml({ id: 'replay-all-btn', label: 'Replay All' }, '<h2 class="lab-viewbar__title" id="viewbar-title"></h2>')}
     <div class="lab-page-layout">
-      <div class="lab-page-main">
-        ${playbackBarHtml()}
-        <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
-      </div>
+      <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
       <aside class="lab-sidebar">
         <section class="lab-controls" aria-label="Page versions">
           <h3 class="lab-controls__title">Page versions</h3>
@@ -1197,7 +1199,6 @@ function renderPageView(params: URLSearchParams): void {
         <section class="lab-controls" aria-label="Motion map">
           <h3 class="lab-controls__title">Motion Map</h3>
           <div id="motion-map-panel" class="lab-motion-map-panel"></div>
-          <button class="lab-btn lab-btn--primary" id="replay-all-btn">Replay All</button>
           <p class="lab-text-muted lab-controls__hint">The page is a fixed-height window: scroll it. A section whose version plays on scroll waits until it enters the window; Replay All scrolls back to the top.</p>
         </section>
         <section class="lab-controls" aria-label="Stagger">
@@ -1216,6 +1217,7 @@ function renderPageView(params: URLSearchParams): void {
   `;
 
   bindPlaybackBar();
+  document.getElementById('viewbar-title')!.textContent = pageName;
   const stage = document.getElementById('page-stage')!;
   const motionMapPanel = document.getElementById('motion-map-panel')!;
 

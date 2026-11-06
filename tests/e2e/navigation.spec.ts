@@ -315,3 +315,54 @@ test.describe('Icons', () => {
     expect(dark.stroke).toBe(dark.text);
   });
 });
+
+// One full-width bar above the example and the rail: where you are on the left, the playback controls on the right.
+test.describe('Top bar of the component and page views', () => {
+  const box = async (page: import('@playwright/test').Page, selector: string) => (await page.locator(selector).first().boundingBox())!;
+
+  test('the component view\'s bar spans the width above both the example and the rail, so they line up', async ({ page }) => {
+    await page.goto('/?view=component');
+    const bar = await box(page, '.lab-viewbar');
+    const preview = await box(page, '#preview-primary');
+    const rail = await box(page, '.lab-sidebar');
+    expect(bar.y + bar.height).toBeLessThanOrEqual(preview.y);
+    expect(bar.y + bar.height).toBeLessThanOrEqual(rail.y);
+    expect(Math.abs(preview.y - rail.y)).toBeLessThanOrEqual(1);
+    const main = await box(page, '#main-content');
+    expect(bar.width).toBeGreaterThan(main.width - 40);
+  });
+
+  test('has the breadcrumb on the left and the speed and Replay on the right', async ({ page }) => {
+    await page.goto('/?view=component');
+    const crumb = await box(page, '.lab-breadcrumb');
+    const toolbar = await box(page, '.lab-toolbar');
+    expect(crumb.x).toBeLessThan(toolbar.x);
+    await expect(page.locator('.lab-viewbar #speed-control')).toHaveCount(1);
+    await expect(page.locator('.lab-viewbar #replay-btn')).toHaveText('Replay');
+  });
+
+  test('Replay is not in the Version panel any more', async ({ page }) => {
+    await page.goto('/?view=component');
+    await expect(page.locator('.lab-sidebar #replay-btn')).toHaveCount(0);
+  });
+
+  test('Replay still replays the version', async ({ page }) => {
+    await page.goto('/?view=component');
+    await page.selectOption('#speed-control', '0.25');
+    await page.click('#replay-btn');
+    await expect.poll(() => page.locator('[data-motion-target]').first().evaluate(el => el.getAnimations().length)).toBeGreaterThan(0);
+  });
+
+  test('the page view has the same bar: the page name on the left, speed and Replay All on the right, above the page and the rail', async ({ page }) => {
+    await page.goto('/?view=page');
+    const bar = await box(page, '.lab-viewbar');
+    const stage = await box(page, '#page-stage');
+    const rail = await box(page, '.lab-sidebar');
+    expect(bar.y + bar.height).toBeLessThanOrEqual(stage.y);
+    expect(Math.abs(stage.y - rail.y)).toBeLessThanOrEqual(1);
+    await expect(page.locator('#viewbar-title')).not.toBeEmpty();
+    await expect(page.locator('.lab-viewbar #replay-all-btn')).toHaveText('Replay All');
+    await expect(page.locator('.lab-sidebar #replay-all-btn')).toHaveCount(0);
+    await expect(page.locator('.lab-viewbar #speed-control')).toHaveCount(1);
+  });
+});
