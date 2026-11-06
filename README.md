@@ -6,7 +6,7 @@ This repo is the **template**. All lab features are built here, and it stays cli
 
 ## Quick start
 
-Requires Node 22 (see `.nvmrc`).
+Requires **Node 22.12 or newer** (see `.nvmrc`; `package.json` says it too, so `npm install` stops with a clear message on an older one). Not sure the computer is ready? `npm run doctor` checks Node, the packages, Git, the test browsers and the client fonts, and says in plain words what to do about each. `npm run dev` and `npm run check` run the part they need first.
 
 ```bash
 nvm use

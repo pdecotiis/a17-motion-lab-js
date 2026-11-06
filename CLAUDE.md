@@ -268,6 +268,20 @@ The component's static end state (after all animations finish) must match the Fi
 
 Designers do not know git and work only through Claude. Handle version control for them, silently. **Never use git jargon** (branch, commit, merge, rebase, conflict, PR, push, pull, stash, diff) in replies unless the designer uses the word first; then mirror their vocabulary. Don't mention git at all unless asked.
 
+### First run on a new machine
+
+On a computer you have not set up yet in this conversation, or whenever the lab will not start, **before Session start** check that the machine is ready. Designers should not have to know what Node, npm or Playwright are.
+
+1. Run `npm run doctor -- --json` (plain Node, so it works even on an old one; if `npm` itself is missing, tell them Node is not installed). Read `ready` and each result's `status` (`ok`, `warn`, `fail`, `info`), `title` and `fix`.
+2. Say what is wrong in plain words and why it matters ("The lab needs a newer version of Node, the engine that runs it"), never the error text. Ask before you install anything, and do one thing at a time, in this order:
+   - **Node** (`fail`): with nvm, `nvm install` in the project folder (its `.nvmrc` says which); with no nvm, install nvm first (`https://github.com/nvm-sh/nvm`, with their OK) and open a new shell. Never use `sudo`.
+   - **Packages** (`fail`): `npm install`. It also sets the merge protection for the token files.
+   - **Git** (`fail`, a Mac): `git --version` makes macOS offer the Apple command line tools; they accept and wait.
+   - **Test browsers** (`warn`, a `fail` for `npm run check`): `npx playwright install chromium webkit`, a download of a few hundred MB once per computer. They are needed before "Ready for review", so do it early, not at the end.
+3. What you cannot fix yourself, say who can: the **client fonts** (`warn`; the lab works with a fallback typeface, but it will not look like the client's, so ask whoever holds the files and put them in `/fonts`), the **Figma connector** (`info`; check that it is connected in Claude Code and signed in with access to the client's file, and if not, send them to connect it), **GitHub access** to the project repo, and the **project name** (`project.json`).
+4. Run the doctor again until `ready` is true. Warnings do not block the work. Then Session start.
+5. If `npm install` stops with "Unsupported engine" or `npm run dev` prints "The lab can't start yet", that is this: fix the cause (Node), never edit `.npmrc` or `engines` to get past it.
+
 ### Session start
 
 1. Learn the designer's first name (ask once if unknown) and what they want to explore.

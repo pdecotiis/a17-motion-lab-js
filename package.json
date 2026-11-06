@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "doctor": "node scripts/doctor.mjs",
+    "predev": "node scripts/doctor.mjs --quick",
     "dev": "vite",
     "build": "vite build",
     "typecheck": "vite-node scripts/typecheck.ts",
@@ -16,6 +18,7 @@
     "spec": "vite-node scripts/export-spec.ts --",
     "tokens:scale": "vite-node scripts/scale-tokens.ts --",
     "tokens:remap": "vite-node scripts/tokens-remap.ts --",
+    "precheck": "node scripts/doctor.mjs --for check",
     "check": "npm run typecheck && npm run test && npm run build && npm run test:e2e",
     "check:fast": "npm run typecheck && npm run test && npm run test:e2e:fast"
   },
@@ -36,5 +39,8 @@
   },
   "dependencies": {
     "motion": "^14.9.0"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }
