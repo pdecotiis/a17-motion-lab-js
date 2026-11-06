@@ -1,43 +1,50 @@
 {
   "separateFade": true,
   "presets": {
-    "eyebrow": {
-      "rise": "distance.24",
-      "move": { "duration": "duration.800", "easing": "easing.expressive-entrance" },
-      "fade": { "duration": "duration.220", "easing": "easing.productive-entrance" },
-      "status": "experimental"
-    },
-    "title": {
-      "rise": "distance.24",
-      "move": { "duration": "duration.800", "easing": "easing.expressive-entrance" },
-      "fade": { "duration": "duration.220", "easing": "easing.productive-entrance" },
-      "status": "experimental"
-    },
     "text": {
+      "rise": "distance.16",
+      "move": { "duration": "duration.560", "easing": "easing.expressive-entrance" },
+      "fade": { "duration": "duration.300", "easing": "easing.productive-entrance" },
+      "status": "system",
+      "description": "Eyebrows, titles (by line), body text, section text."
+    },
+    "media": {
+      "rise": "distance.16",
+      "scale": "scale.98",
+      "move": { "duration": "duration.560", "easing": "easing.expressive-entrance" },
+      "fade": { "duration": "duration.300", "easing": "easing.productive-entrance" },
+      "status": "system",
+      "description": "Section headers with an image, image blocks."
+    },
+    "media-large": {
       "rise": "distance.24",
-      "move": { "duration": "duration.800", "easing": "easing.expressive-entrance" },
-      "fade": { "duration": "duration.220", "easing": "easing.productive-entrance" },
-      "status": "experimental"
+      "scale": "scale.98",
+      "move": { "duration": "duration.560", "easing": "easing.expressive-entrance" },
+      "fade": { "duration": "duration.300", "easing": "easing.productive-entrance" },
+      "status": "system",
+      "description": "Header images and caption."
+    },
+    "block": {
+      "rise": "distance.16",
+      "move": { "duration": "duration.560", "easing": "easing.expressive-entrance" },
+      "fade": { "duration": "duration.300", "easing": "easing.productive-entrance" },
+      "status": "system",
+      "description": "Text blocks."
     },
     "card": {
       "rise": "distance.24",
       "scale": "scale.95",
-      "move": { "duration": "duration.800", "easing": "easing.expressive-entrance" },
-      "fade": { "duration": "duration.220", "easing": "easing.productive-entrance" },
-      "status": "experimental"
+      "move": { "duration": "duration.300", "easing": "easing.productive-entrance" },
+      "fade": { "duration": "duration.300", "easing": "easing.productive-entrance" },
+      "status": "system",
+      "description": "All cards: editorial, feature, quote, bento, mosaic tiles. In Figma the scale uses expressive-entrance; a preset has one move easing for the rise and the scale, so both take productive-entrance."
     },
-    "media": {
-      "rise": "distance.24",
-      "scale": "scale.95",
-      "move": { "duration": "duration.800", "easing": "easing.expressive-entrance" },
-      "fade": { "duration": "duration.220", "easing": "easing.productive-entrance" },
-      "status": "experimental"
-    },
-    "ui": {
+    "button": {
       "rise": "distance.8",
       "move": { "duration": "duration.140", "easing": "easing.productive-standard" },
       "fade": { "duration": "duration.100", "easing": "easing.productive-entrance" },
-      "status": "experimental"
+      "status": "system",
+      "description": "Header buttons, pagination, recirculation."
     }
   }
 }

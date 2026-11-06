@@ -5,11 +5,11 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 export const v2: MotionVersion = {
   id: 'v2',
   label: 'Layered',
-  entrance: { preset: 'ui' },
+  entrance: { preset: 'button' },
   layers: {
     'quote-card-1': { preset: 'card', delay: 'delay.40' },
     'quote-card-2': { preset: 'card', delay: 'delay.120' },
-    'pagination': { preset: 'ui', delay: 'duration.220' },
+    'pagination': { preset: 'button', delay: 'duration.220' },
   },
   trigger: { on: 'in-view', threshold: 0.2, once: true },
   forkedFrom: 'v1',

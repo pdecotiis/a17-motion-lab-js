@@ -5,10 +5,10 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 export const v2: MotionVersion = {
   id: 'v2',
   label: 'Layered',
-  entrance: { preset: 'ui' },
+  entrance: { preset: 'button' },
   layers: {
-    'label-row': { preset: 'eyebrow', delay: 'delay.40' },
-    'title': { preset: 'title', delay: 'delay.70' },
+    'label-row': { preset: 'text', delay: 'delay.40' },
+    'title': { preset: 'text', delay: 'delay.70' },
     'description': { preset: 'text', delay: 'delay.120' },
     'media': { preset: 'media', delay: 'duration.220' },
     'caption': { preset: 'text', delay: 'duration.220' },

@@ -5,7 +5,7 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 export const v2: MotionVersion = {
   id: 'v2',
   label: 'Layered',
-  entrance: { preset: 'ui' },
+  entrance: { preset: 'button' },
   layers: {
     'image-1': { preset: 'media', delay: 'delay.40' },
     'image-2': { preset: 'media', delay: 'delay.70' },
