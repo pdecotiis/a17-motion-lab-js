@@ -3,38 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>A17 Motion Lab</title>
+  <title>Motion Lab</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div id="app">
     <header class="lab-header">
-      <div class="lab-header__brand">
+      <a class="lab-header__brand" href="?view=library" aria-label="Motion Lab, all components">
+        <span class="lab-header__project" id="header-project" hidden></span>
         <span class="lab-header__logo">Motion Lab</span>
-      </div>
+      </a>
       <nav class="lab-nav" role="navigation" aria-label="View navigation">
-        <button class="lab-nav__btn" data-view="library" aria-pressed="false">Library</button>
-        <button class="lab-nav__btn" data-view="component" aria-pressed="false">Component</button>
-        <button class="lab-nav__btn" data-view="page" aria-pressed="false">Page</button>
-        <button class="lab-nav__btn" data-view="tokens" aria-pressed="false">Tokens</button>
-        <button class="lab-nav__btn" data-view="presets" aria-pressed="false">Presets</button>
+        <a class="lab-nav__btn" data-view="library" href="?view=library">Library</a>
+        <a class="lab-nav__btn" data-view="page" href="?view=page">Page</a>
+        <a class="lab-nav__btn" data-view="tokens" href="?view=tokens">Tokens</a>
+        <a class="lab-nav__btn" data-view="presets" href="?view=presets">Presets</a>
       </nav>
       <div class="lab-header__controls">
-        <div class="lab-segmented" role="group" aria-label="Runtime">
-          <button type="button" class="lab-segmented__btn" id="runtime-css" aria-pressed="true" title="Play with CSS: each version's easing curve">CSS</button>
-          <button type="button" class="lab-segmented__btn" id="runtime-motion" aria-pressed="false" title="Play with Motion (motion.dev), with real springs">Motion</button>
-        </div>
-        <label class="lab-control-label">
-          Speed
-          <select id="speed-control" class="lab-select">
-            <option value="0.25">0.25×</option>
-            <option value="0.5">0.5×</option>
-            <option value="1" selected>1×</option>
-            <option value="2">2×</option>
-          </select>
-        </label>
-        <button class="lab-btn lab-btn--icon" id="settings-btn" aria-label="Settings" aria-haspopup="dialog" title="Settings">⚙</button>
-        <button class="lab-btn lab-btn--icon" id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">☀</button>
+        <button class="lab-btn lab-btn--icon" id="settings-btn" aria-label="Settings" aria-haspopup="dialog" title="Settings"></button>
+        <button class="lab-btn lab-btn--icon" id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark"></button>
       </div>
     </header>
 
@@ -50,8 +37,16 @@
   <dialog id="settings-dialog" class="lab-settings" aria-labelledby="settings-title">
     <header class="lab-settings__header">
       <h2 id="settings-title" class="lab-settings__title">Settings</h2>
-      <button type="button" class="lab-btn lab-btn--icon" id="settings-close" aria-label="Close settings">×</button>
+      <button type="button" class="lab-btn lab-btn--icon" id="settings-close" aria-label="Close settings"></button>
     </header>
+    <section class="lab-settings__section" aria-labelledby="settings-runtime-title">
+      <h3 id="settings-runtime-title" class="lab-settings__heading">Motion library</h3>
+      <p class="lab-settings__intro">What plays the motion in the lab. CSS plays each version's easing curve. Motion (motion.dev) plays every motion as a real spring, to see what a spring would feel like. Exports never change with this.</p>
+      <div class="lab-segmented" role="group" aria-label="Motion library">
+        <button type="button" class="lab-segmented__btn" id="runtime-css" aria-pressed="true" title="Play with CSS: each version's easing curve">CSS</button>
+        <button type="button" class="lab-segmented__btn" id="runtime-motion" aria-pressed="false" title="Play with Motion (motion.dev), with real springs">Motion</button>
+      </div>
+    </section>
     <section class="lab-settings__section" aria-labelledby="settings-scale-title">
       <h3 id="settings-scale-title" class="lab-settings__heading">Global scale</h3>
       <p class="lab-settings__intro">How the distance, duration, delay, opacity and scale tokens get their values. You won't change this often: pick a scale, see what it would do to the tokens, then apply it.</p>

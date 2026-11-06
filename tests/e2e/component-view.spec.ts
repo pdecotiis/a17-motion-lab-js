@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { setRuntime } from './lab.js';
 
 test.describe('Component view', () => {
   test.beforeEach(async ({ page }) => {
@@ -262,13 +263,13 @@ test.describe('Runtime (CSS / Motion)', () => {
 
   test('under Motion everything plays as a spring: a tween with the global bounce, a spring version with its own', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
-    await page.click('#runtime-motion');
+    await setRuntime(page, 'motion');
     await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
     await expect(playbackRow(page)).toContainText('Spring · bounce 0.25 (bounce.25), 200ms (authored as easing; bounce is the global setting)');
 
     await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion');
     await expect(playbackRow(page)).toContainText('Spring · bounce 0.5 (bounce.50), 700ms');
-    await page.click('#runtime-css');
+    await setRuntime(page, 'css');
     await expect(playbackRow(page)).toContainText('Easing · expressive-entrance, 700ms (authored as a spring; CSS plays its easing)');
   });
 
@@ -289,9 +290,9 @@ test.describe('Runtime (CSS / Motion)', () => {
 
   test('the choice is in the URL, and leaves it again under CSS', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
-    await page.click('#runtime-motion');
+    await setRuntime(page, 'motion');
     await expect(page).toHaveURL(/runtime=motion/);
-    await page.click('#runtime-css');
+    await setRuntime(page, 'css');
     await expect(page).not.toHaveURL(/runtime=/);
     const native = await page.evaluate((sel) => document.querySelector<HTMLElement>(sel)!.getAnimations().length, ROOT);
     expect(native).toBe(1);
@@ -299,7 +300,7 @@ test.describe('Runtime (CSS / Motion)', () => {
 
   test('it holds across the nav and across links between views', async ({ page }) => {
     await page.goto('/?view=library');
-    await page.click('#runtime-motion');
+    await setRuntime(page, 'motion');
     await page.locator('.lab-library-card').first().click();
     await expect(page).toHaveURL(/view=component/);
     await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
@@ -321,7 +322,7 @@ test.describe('Runtime (CSS / Motion)', () => {
     await expect(page.locator('.lab-token-row', { hasText: 'bounce-0' })).toHaveAttribute('title', /Used by: .*the global bounce setting/);
     await expect(page.locator('.lab-token-row', { hasText: 'bounce-25' })).toHaveAttribute('title', /Not used yet/);
 
-    await page.click('.lab-nav__btn[data-view="component"]');
+    await page.goBack();
     await expect(playbackRow(page)).toContainText('Spring · bounce 0 (bounce.0), 200ms (authored as easing; bounce is the global setting)');
   });
 
@@ -416,7 +417,7 @@ test.describe('Export format', () => {
     await expect(page.locator('#css-pre')).toContainText('global bounce setting (bounce.0)');
     await page.selectOption('#export-format', 'gsap');
     const underMotion = await page.locator('#css-pre').textContent();
-    await page.click('#runtime-css');
+    await setRuntime(page, 'css');
     await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
     await page.selectOption('#export-format', 'gsap');
     expect(await page.locator('#css-pre').textContent()).toBe(underMotion);

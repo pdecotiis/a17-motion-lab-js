@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { setRuntime } from './lab.js';
 
 // "Tokens used" lists what each motion of a version uses, and where in the motion each token sits:
 // its duration, easing and delay, a stagger that is a token, the tokens its keyframes name, and for a
@@ -38,7 +39,7 @@ test.describe('Tokens used', () => {
     await expect(page.locator('#tokens-used-list')).not.toContainText(/(productive|expressive)-/);
     await expect(chips(page).first()).toHaveText('duration-700');
     await expect(page.locator('#tokens-used-list')).toContainText('bounce-50');
-    await page.click('#runtime-css');
+    await setRuntime(page, 'css');
     await expect(page.locator('#tokens-used-list')).toContainText('expressive-entrance');
     await expect(page.locator('#tokens-used-list')).not.toContainText('bounce-');
   });

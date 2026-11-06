@@ -146,12 +146,12 @@ function buildApplySection(scaleId: string, renamed: number, versionCount: numbe
   actions.className = 'lab-scale-apply__actions';
 
   const apply = document.createElement('button');
-  apply.className = 'lab-btn';
+  apply.className = 'lab-btn lab-btn--primary';
   apply.id = 'scale-apply-btn';
   apply.textContent = `Apply ${SCALES.find(s => s.id === scaleId)?.label ?? scaleId}`;
   apply.disabled = true;
   const confirm = document.createElement('button');
-  confirm.className = 'lab-btn';
+  confirm.className = 'lab-btn lab-btn--primary';
   confirm.id = 'scale-apply-confirm';
   confirm.textContent = 'Yes, apply';
   const cancel = document.createElement('button');

@@ -6,6 +6,8 @@ import { scrollTriggerOf, staggerIndex } from './lib/scroll-trigger.js';
 import { compileTokens, applyTokensToDom, tokenLabel } from './lib/token-compiler.js';
 import { motionTableOf } from './lib/motion-table.js';
 import { tokenDisplayName, tokenValueText, VALUE_HEADERS, EXAMPLE_KINDS } from './lib/token-names.js';
+import { projectNameOf, brandText, titleFor } from './lib/project.js';
+import { ICONS } from './lib/icons.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
 import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
@@ -74,6 +76,16 @@ const pageModules = import.meta.glob<PageConfig>(
   '../pages/*/page.json',
   { eager: true, import: 'default' }
 );
+
+// The project's own name (project.json at the repo root, if it has one) for the header and the tab title.
+const projectName = projectNameOf(Object.values(import.meta.glob<unknown>('../project.json', { eager: true, import: 'default' }))[0]);
+const brandEl = document.querySelector<HTMLElement>('.lab-header__brand');
+if (projectName && brandEl) {
+  const nameEl = document.getElementById('header-project')!;
+  nameEl.textContent = projectName;
+  nameEl.hidden = false;
+  brandEl.setAttribute('aria-label', `${brandText(projectName)}, all components`);
+}
 
 // Saved page versions: pages/<page>/versions/v1.json, v2.json, …
 const pageVersionModules = import.meta.glob<unknown>(
@@ -182,11 +194,19 @@ if (reducedMotion) notice.classList.remove('lab-notice--hidden');
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 
+// The button shows what it will switch to: the moon in the light theme, the sun in the dark one.
 const themeToggle = document.getElementById('theme-toggle')!;
+function renderThemeToggle(): void {
+  themeToggle.innerHTML = currentTheme === 'dark' ? ICONS.sun : ICONS.moon;
+  const label = currentTheme === 'dark' ? 'Switch to the light theme' : 'Switch to the dark theme';
+  themeToggle.setAttribute('aria-label', label);
+  themeToggle.title = label;
+}
+renderThemeToggle();
 themeToggle.addEventListener('click', () => {
   currentTheme = currentTheme === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', currentTheme);
-  themeToggle.textContent = currentTheme === 'dark' ? '☾' : '☀';
+  renderThemeToggle();
 });
 
 // ── Settings ───────────────────────────────────────────────────────────────
@@ -205,6 +225,8 @@ function openSettings(): void {
   });
   if (!settingsDialog.open) settingsDialog.showModal();
 }
+settingsButton.innerHTML = ICONS.settings;
+document.getElementById('settings-close')!.innerHTML = ICONS.close;
 settingsButton.addEventListener('click', openSettings);
 document.getElementById('settings-close')!.addEventListener('click', () => settingsDialog.close());
 // A click on the backdrop (the dialog itself, outside its content) closes it, as Escape does.
@@ -307,23 +329,59 @@ for (const btn of runtimeButtons) {
 
 // ── Speed control ──────────────────────────────────────────────────────────
 
-const speedControl = document.getElementById('speed-control') as HTMLSelectElement;
-speedControl.addEventListener('change', () => {
-  playbackRate = parseFloat(speedControl.value);
-  activeAnimations.forEach(a => { a.speed = playbackRate; });
-});
+// The playback bar sits above the example, on the views that play one (component and page): the speed motion plays at,
+// and, when the lab is playing with Motion rather than CSS, a chip that says so and opens Settings to change it.
+const SPEEDS: [string, string][] = [['0.25', '0.25×'], ['0.5', '0.5×'], ['1', '1×'], ['2', '2×']];
+
+function playbackBarHtml(): string {
+  const options = SPEEDS.map(([value, label]) => `<option value="${value}"${Number(value) === playbackRate ? ' selected' : ''}>${label}</option>`).join('');
+  const chip = runtime === 'motion'
+    ? '<button type="button" class="lab-runtime-chip" id="runtime-chip" title="Change the motion library in Settings">Playing with Motion (springs)</button>'
+    : '';
+  return `<div class="lab-toolbar" role="group" aria-label="Playback">
+      <label class="lab-control-label">Speed <select id="speed-control" class="lab-select">${options}</select></label>
+      ${chip}
+    </div>`;
+}
+
+function bindPlaybackBar(): void {
+  const speed = document.getElementById('speed-control') as HTMLSelectElement | null;
+  speed?.addEventListener('change', () => {
+    playbackRate = parseFloat(speed.value);
+    activeAnimations.forEach(a => { a.speed = playbackRate; });
+  });
+  document.getElementById('runtime-chip')?.addEventListener('click', openSettings);
+}
 
 // ── Nav ────────────────────────────────────────────────────────────────────
 
-const navBtns = document.querySelectorAll<HTMLButtonElement>('.lab-nav__btn');
-navBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const view = btn.dataset['view']!;
-    const params = new URLSearchParams(window.location.search);
-    params.set('view', view);
-    window.location.search = params.toString();
-  });
+// The nav items are real links (so a new tab, copy link and the keyboard all work); a plain click switches the view in
+// place instead of reloading the page: the URL changes with history.pushState and route() draws the new view.
+const navBtns = document.querySelectorAll<HTMLAnchorElement>('.lab-nav__btn');
+
+// What the view on screen has to let go of before the next one is drawn (observers watching its elements).
+let viewCleanups: (() => void)[] = [];
+function onViewLeave(cleanup: () => void): void { viewCleanups.push(cleanup); }
+
+function navigate(href: string): void {
+  const url = new URL(href, window.location.href);
+  if (url.origin !== window.location.origin) { window.location.href = url.href; return; }
+  const next = `${url.pathname}${url.search}`;
+  if (next !== `${window.location.pathname}${window.location.search}`) window.history.pushState(null, '', next);
+  route();
+  document.getElementById('main-content')?.scrollTo(0, 0);
+}
+
+// Any link that goes to another view of the lab (an href that starts with "?") is followed in place; a click with a
+// modifier key, a middle click or a link that opens elsewhere keeps its browser behaviour.
+document.addEventListener('click', event => {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const link = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[href^="?"]');
+  if (!link || (link.target && link.target !== '_self') || link.hasAttribute('download')) return;
+  event.preventDefault();
+  navigate(link.getAttribute('href')!);
 });
+window.addEventListener('popstate', () => route());
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -637,8 +695,15 @@ function renderComponentView(params: URLSearchParams): void {
   const framed = Boolean(metaModules[`../components/${componentName}/meta.json`]);
 
   main.innerHTML = `
+    <nav class="lab-breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="${libraryHref()}" id="breadcrumb-library">Library</a></li>
+        <li aria-current="page" id="breadcrumb-current"></li>
+      </ol>
+    </nav>
     <div class="lab-component-layout">
       <div class="lab-preview-area${framed ? ' lab-preview-area--framed' : ''}">
+        ${playbackBarHtml()}
         <div class="lab-preview" id="preview-primary">
           <div class="lab-preview__inner" id="preview-inner-primary"></div>
         </div>
@@ -655,7 +720,7 @@ function renderComponentView(params: URLSearchParams): void {
           <div class="lab-accordion__body">
             <div class="lab-version-tabs" id="version-tabs" role="tablist"></div>
             <p class="lab-lineage" id="version-lineage"></p>
-            <button class="lab-btn" id="replay-btn">Replay</button>
+            <button class="lab-btn lab-btn--primary" id="replay-btn">Replay</button>
             <div class="lab-states" id="interaction-controls" hidden></div>
           </div>
         </details>
@@ -701,6 +766,9 @@ function renderComponentView(params: URLSearchParams): void {
     </div>
     <section class="lab-motion-table" id="motion-table" aria-label="Motion table"></section>
   `;
+
+  document.getElementById('breadcrumb-current')!.textContent = componentName;
+  bindPlaybackBar();
 
   // Version tabs
   const versionTabs = document.getElementById('version-tabs')!;
@@ -1101,7 +1169,10 @@ function renderPageView(params: URLSearchParams): void {
 
   main.innerHTML = `
     <div class="lab-page-layout">
-      <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
+      <div class="lab-page-main">
+        ${playbackBarHtml()}
+        <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
+      </div>
       <aside class="lab-sidebar">
         <section class="lab-controls" aria-label="Page versions">
           <h3 class="lab-controls__title">Page versions</h3>
@@ -1120,13 +1191,13 @@ function renderPageView(params: URLSearchParams): void {
           </div>
           ${compareWith ? `<label class="lab-check"><input type="checkbox" id="page-actual-size"${actualSize ? ' checked' : ''}> Actual size (scroll sideways)</label>` : ''}
           <p class="lab-lineage" id="page-version-note"></p>
-          <button class="lab-btn" id="save-page-version-btn">Save as new version</button>
+          <button class="lab-btn lab-btn--primary" id="save-page-version-btn">Save as new version</button>
           <p class="lab-text-muted lab-controls__hint" id="page-version-status"></p>
         </section>
         <section class="lab-controls" aria-label="Motion map">
           <h3 class="lab-controls__title">Motion Map</h3>
           <div id="motion-map-panel" class="lab-motion-map-panel"></div>
-          <button class="lab-btn" id="replay-all-btn">Replay All</button>
+          <button class="lab-btn lab-btn--primary" id="replay-all-btn">Replay All</button>
           <p class="lab-text-muted lab-controls__hint">The page is a fixed-height window: scroll it. A section whose version plays on scroll waits until it enters the window; Replay All scrolls back to the top.</p>
         </section>
         <section class="lab-controls" aria-label="Stagger">
@@ -1144,6 +1215,7 @@ function renderPageView(params: URLSearchParams): void {
     </div>
   `;
 
+  bindPlaybackBar();
   const stage = document.getElementById('page-stage')!;
   const motionMapPanel = document.getElementById('motion-map-panel')!;
 
@@ -1267,6 +1339,7 @@ function renderPageView(params: URLSearchParams): void {
     }, { root: column.viewport, threshold: trigger.threshold });
     observer.observe(wrapper);
     slot.observer = observer;
+    onViewLeave(() => observer.disconnect());
   }
 
   // Starts the page over: scrolled back to the top, every section back to where it waits or plays.
@@ -1851,6 +1924,25 @@ function fitLibraryPreview(box: HTMLElement, scaler: HTMLElement, width: number,
   scaler.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
 }
 
+// The Library's filters (status, archived, search), kept for the way back from a component: the breadcrumb returns to
+// the Library the way it was left.
+const LIBRARY_SEARCH_KEY = 'lab-library-search';
+function rememberLibrarySearch(): void {
+  try { sessionStorage.setItem(LIBRARY_SEARCH_KEY, window.location.search); } catch { /* storage can be blocked */ }
+}
+// Where the breadcrumb's Library link goes: the Library with its last filters (and nothing else from that URL).
+function libraryHref(): string {
+  const out = new URLSearchParams({ view: 'library' });
+  try {
+    const saved = new URLSearchParams(sessionStorage.getItem(LIBRARY_SEARCH_KEY) ?? '');
+    for (const key of ['status', 'archived', 'q']) {
+      const value = saved.get(key);
+      if (value) out.set(key, value);
+    }
+  } catch { /* storage can be blocked */ }
+  return `?${out.toString()}`;
+}
+
 function renderLibraryView(params: URLSearchParams): void {
   const main = document.getElementById('main-content')!;
   main.innerHTML = '';
@@ -1932,6 +2024,7 @@ function renderLibraryView(params: URLSearchParams): void {
       footer.append(name, ...(entry.status === 'in-progress' ? [] : [statusBadge(entry.status)]), versions);
 
       card.append(preview, footer);
+      card.addEventListener('click', rememberLibrarySearch);
       grid.appendChild(card);
 
       // Figma frames know their size; hand-built components are measured once the card is in the DOM.
@@ -1960,11 +2053,30 @@ function renderLibraryView(params: URLSearchParams): void {
 
 function route(): void {
   const params = new URLSearchParams(window.location.search);
-  const view = params.get('view') ?? 'component';
+  // The Library is home. A component opens from it, so while one is open the Library stays the lit item.
+  const view = params.get('view') ?? 'library';
+  const navView = view === 'component' ? 'library' : view;
+
+  // Let go of the view on screen: what it observed, and the motions still playing on its elements.
+  viewCleanups.forEach(cleanup => cleanup());
+  viewCleanups = [];
+  pageObserver?.disconnect();
+  libraryObserver?.disconnect();
+  activeAnimations.forEach(handle => handle.cancel());
+  activeAnimations = [];
+
+  // The tab says what is on screen: "card – Jane Street · Motion Lab".
+  const what: Record<string, string> = {
+    library: 'Library', tokens: 'Tokens', presets: 'Presets',
+    component: params.get('component') ?? defaultComponentName(),
+    page: params.get('page') ?? defaultPageName(),
+    frame: `${params.get('component') ?? defaultComponentName()} frame`,
+  };
+  document.title = titleFor(what[view] ?? '', projectName);
 
   navBtns.forEach(btn => {
-    const isActive = btn.dataset['view'] === view;
-    btn.setAttribute('aria-pressed', String(isActive));
+    const isActive = btn.dataset['view'] === navView;
+    if (isActive) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current');
     btn.classList.toggle('lab-nav__btn--active', isActive);
   });
 

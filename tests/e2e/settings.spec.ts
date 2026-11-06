@@ -28,7 +28,11 @@ test.describe('Settings', () => {
 
   test('the gear sits in the top nav beside the theme toggle, and opens the settings', async ({ page }) => {
     const buttons = page.locator('.lab-header__controls > button');
-    await expect(buttons).toHaveText(['⚙', '☀']);
+    // Two icon buttons, in this order (the icons are SVG, so the buttons have no text).
+    await expect(buttons).toHaveCount(2);
+    await expect(buttons.nth(0)).toHaveAttribute('id', 'settings-btn');
+    await expect(buttons.nth(1)).toHaveAttribute('id', 'theme-toggle');
+    await expect(buttons.locator('svg.lab-icon')).toHaveCount(2);
     await expect(page.locator('#settings-btn')).toHaveAttribute('aria-label', 'Settings');
     await expect(dialog(page)).toBeHidden();
     await openSettings(page);

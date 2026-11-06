@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { setRuntime } from './lab.js';
 
 // The side panel is the example for comparing CSS and Motion: v2 and v3 are springs, so under Motion
 // the panel overshoots its resting position, and under CSS it never does.
@@ -45,7 +46,7 @@ test.describe('Side panel', () => {
     await page.click('#replay-btn');
     expect(await done).toBeLessThan(1);
 
-    await page.click('#runtime-motion');
+    await setRuntime(page, 'motion');
     await expect(page.locator(ROOT)).toBeVisible();
     done = overshootPx(page);
     await page.click('#replay-btn');

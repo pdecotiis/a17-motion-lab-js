@@ -32,8 +32,8 @@ test.describe('Presets view', () => {
     await page.goto('/?view=presets');
     const nav = page.locator('.lab-nav__btn[data-view="presets"]');
     await expect(nav).toHaveText('Presets');
-    await expect(nav).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.lab-nav__btn[data-view="tokens"]')).toHaveAttribute('aria-pressed', 'false');
+    await expect(nav).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('.lab-nav__btn[data-view="tokens"]')).not.toHaveAttribute('aria-current', 'page');
     await expect(page.locator('[data-preset]')).toHaveCount(6);
     expect(await page.locator('[data-preset]').evaluateAll(els => els.map(e => (e as HTMLElement).dataset['preset']))).toEqual(NAMES);
   });

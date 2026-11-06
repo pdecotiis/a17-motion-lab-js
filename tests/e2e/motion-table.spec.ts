@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { setRuntime } from './lab.js';
 
 // The motion table under the preview in the component view (lab/lib/motion-table.ts). It opens on the lab's default
 // component, so it runs in a project as well as in the template.
@@ -21,7 +22,7 @@ test.describe('Motion table', () => {
   test('is the version as authored: it does not change with the runtime', async ({ page }) => {
     await page.goto('/?view=component');
     const before = await page.locator('#motion-table').innerText();
-    await page.click('#runtime-motion');
+    await setRuntime(page, 'motion');
     await expect(page.locator('#motion-table .lab-mt-title')).not.toBeEmpty();
     expect(await page.locator('#motion-table').innerText()).toBe(before);
   });
