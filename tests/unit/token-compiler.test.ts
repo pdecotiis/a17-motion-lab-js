@@ -4,6 +4,7 @@ import {
 } from '../../lab/lib/token-compiler.js';
 import type { DtcgGroup } from '../../lab/lib/types.js';
 import tokensJson from '../../tokens/motion.json';
+import { SAMPLES_PRESENT } from '../samples.js';
 
 const sample = (over: Partial<Record<string, unknown>> = {}): DtcgGroup => ({
   duration: {
@@ -107,7 +108,8 @@ describe('references in keyframes', () => {
   });
 });
 
-describe('tokenCss and tokenLabel', () => {
+// These read the template's own token file and pin its values; a project's tokens are its own.
+describe.skipIf(!SAMPLES_PRESENT)('tokenCss and tokenLabel', () => {
   const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
 
   it('tokenCss returns durations as strings and easings as cubic-bezier()', () => {
@@ -126,7 +128,7 @@ describe('tokenCss and tokenLabel', () => {
   });
 });
 
-describe('the real token file', () => {
+describe.skipIf(!SAMPLES_PRESENT)('the real token file', () => {
   const { raw, meta } = compileTokens(tokensJson as unknown as DtcgGroup);
   // In token-file order. JS puts whole-number keys first, so the scales are compared smallest to largest.
   const names = (kind: string): string[] => Object.keys(raw).filter(k => k.startsWith(`${kind}.`)).map(k => k.slice(kind.length + 1));

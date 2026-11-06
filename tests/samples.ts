@@ -46,6 +46,21 @@ export const SAMPLE_E2E_FILES = [
 ];
 
 /**
+ * Test files that build on the template's own token values (duration.250, delay.80, the default presets' timings),
+ * which a project is free to change once the token files are its own. They run in the template and are left out of
+ * a project (where the samples are gone), so a project's `npm run check` tests its own tokens and versions.
+ * Tests that pin a value but sit in a file that is otherwise generic start with `test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED)`.
+ */
+export const TEMPLATE_TOKEN_UNIT_FILES = [
+  'tests/unit/motion-table.test.ts',
+  'tests/unit/stagger.test.ts',
+  'tests/unit/entrance-presets.test.ts',
+];
+export const TEMPLATE_TOKEN_E2E_FILES = [
+  'tests/e2e/presets.spec.ts',
+];
+
+/**
  * The template's default presets, as shipped in tokens/presets.json. A project edits that file (its own
  * presets, its own names), so the tests that pin these exact presets (their names, values and the CSS and
  * code written from them) run only while the file is still the default; everything about the file's shape,

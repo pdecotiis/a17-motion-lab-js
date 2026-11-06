@@ -29,7 +29,7 @@ import { getStepRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex, typ
 import { buildVersionCss } from './lib/css-output.js';
 import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
 import type { Json } from './lib/scale-apply.js';
-import { DEFAULT_STAGGER, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken } from './lib/stagger.js';
+import { defaultStaggerOf, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken } from './lib/stagger.js';
 import { buildExportCode, EXPORT_FORMATS, EXPORT_LABELS, type ExportFormat } from './lib/export-code.js';
 import { buildLibraryEntries, libraryFilterFromParams } from './lib/library.js';
 import { bezierCurve, springCurve, curvePath, curveYAt, toX, toY, type Curve } from './lib/curve.js';
@@ -248,6 +248,7 @@ function readRuntime(): Runtime {
 
 const runtimeButtons = RUNTIMES.map(r => document.getElementById(`runtime-${r}`) as HTMLButtonElement);
 function readStagger(): string {
+  const DEFAULT_STAGGER = defaultStaggerOf(delayTokens);
   const fromUrl = new URLSearchParams(window.location.search).get('stagger');
   if (fromUrl !== null) {
     const chosen = staggerFromParam(fromUrl, delayTokens, DEFAULT_STAGGER);

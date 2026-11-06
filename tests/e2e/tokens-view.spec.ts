@@ -22,6 +22,7 @@ test.describe('Tokens view', () => {
   });
 
   test('the spacing is the kit\'s: a 160px header, 96px sub-headers, 56px rows, equal columns, 240px curves', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     const height = (selector: string): Promise<number> => page.locator(selector).first().evaluate(e => Math.round(e.getBoundingClientRect().height));
     expect(await height('.lab-tokens-hero')).toBe(160);
     expect(await height('.lab-tokens-group')).toBe(96);
@@ -36,6 +37,7 @@ test.describe('Tokens view', () => {
   });
 
   test('tokens run smallest to largest within each kind', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     expect(await names(page)).toEqual(['50', '100', '150', '200', '250', '400', '700', '1200'].map(n => `duration-${n}`));
     await open(page, 'Distance');
     expect(await names(page)).toEqual(['4', '8', '12', '20', '32', '52', '84', '136'].map(n => `distance-${n}`));
@@ -48,6 +50,7 @@ test.describe('Tokens view', () => {
   });
 
   test('token names use hyphens, and an easing drops its group word', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     expect((await names(page))[0]).toBe('duration-50');
     expect((await names(page)).some(n => n.includes('.'))).toBe(false);
     await open(page, 'Easing');
@@ -78,6 +81,7 @@ test.describe('Tokens view', () => {
   });
 
   test('a row is the name, the value and an example: usage, status and notes are in the tooltip', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     await expect(page.locator('.lab-token-used-by, .lab-token-badge, .lab-token-desc')).toHaveCount(0);
     const cells = page.locator('.lab-token-row').first().locator('td');
     await expect(cells.nth(0)).toHaveText('duration-50');
@@ -152,6 +156,7 @@ test.describe('Tokens view', () => {
   });
 
   test('a duration is a bar as long as it is against the longest, and a distance a square that moves on click', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     const widths = await page.locator('.lab-token-example--duration .lab-token-preview').evaluateAll(els => els.map(e => e.getBoundingClientRect().width));
     expect(widths).toHaveLength(8);
     expect([...widths].sort((a, b) => a - b)).toEqual(widths);

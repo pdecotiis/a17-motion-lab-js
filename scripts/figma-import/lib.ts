@@ -8,6 +8,9 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, basename, extname } from 'node:path';
+import { compileTokens } from '../../lab/lib/token-compiler.js';
+import { nearestToken } from '../../lab/lib/token-names.js';
+import type { DtcgGroup } from '../../lab/lib/types.js';
 
 export interface ImportInput {
   /** kebab-case component name, derived from the Figma layer name */
@@ -154,7 +157,14 @@ export function buildFontsCss(root: string, variables: Record<string, string>): 
 
 // ── Version scaffold (first import only) ───────────────────────────────────
 
-export function scaffoldV1(figmaUrl: string): string {
+// The scaffold names tokens by what it wants (about 400ms, about a 16px rise, an expressive entrance), found in the
+// project's own tokens, so a project that tweaked its token set still gets a version that resolves. Without a token
+// file (a bare folder) it falls back to the template's names.
+export function scaffoldV1(figmaUrl: string, raw: Record<string, unknown> = {}): string {
+  const duration = nearestToken(raw, 'duration', 400) ?? 'duration.400';
+  const rise = nearestToken(raw, 'distance', 16) ?? 'distance.20';
+  const easing = ['easing.expressive-entrance', 'easing.productive-entrance'].find(k => k in raw)
+    ?? Object.keys(raw).find(k => k.startsWith('easing.')) ?? 'easing.expressive-entrance';
   return `import type { MotionVersion } from '../../../lab/lib/types.js';
 
 // Default entrance scaffolded by the Figma import. Edit freely: re-imports never touch this file.
@@ -163,12 +173,12 @@ export const v1: MotionVersion = {
   label: 'Default Entrance',
   model: {
     model: 'tween',
-    duration: 'duration.400',
-    easing: 'easing.expressive-entrance',
+    duration: '${duration}',
+    easing: '${easing}',
     delay: '0ms',
   },
   keyframes: [
-    { opacity: 0, transform: 'translateY({distance.20})', offset: 0 },
+    { opacity: 0, transform: 'translateY({${rise}})', offset: 0 },
     { opacity: 1, transform: 'translateY(0px)', offset: 1 },
   ],
   lineage: ${JSON.stringify(`imported from ${figmaUrl}`)},
@@ -176,6 +186,12 @@ export const v1: MotionVersion = {
 
 export default v1;
 `;
+}
+
+// The project's token values by path, or nothing when it has no token file yet.
+function projectTokens(root: string): Record<string, unknown> {
+  const file = join(root, 'tokens/motion.json');
+  return existsSync(file) ? compileTokens(JSON.parse(readFileSync(file, 'utf8')) as DtcgGroup).raw : {};
 }
 
 export function scaffoldMotionIndex(): string {
@@ -253,7 +269,7 @@ export function importComponent(root: string, input: ImportInput): ImportResult 
   let scaffoldedVersion = false;
   if (!existsSync(motionPath) && !existsSync(versionsDir)) {
     mkdirSync(versionsDir, { recursive: true });
-    writeFileSync(join(versionsDir, 'v1.ts'), scaffoldV1(input.figmaUrl));
+    writeFileSync(join(versionsDir, 'v1.ts'), scaffoldV1(input.figmaUrl, projectTokens(root)));
     writeFileSync(motionPath, scaffoldMotionIndex());
     scaffoldedVersion = true;
   }
