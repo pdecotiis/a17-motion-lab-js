@@ -4,6 +4,8 @@ import type {
 } from './lib/types.js';
 import { scrollTriggerOf, staggerIndex } from './lib/scroll-trigger.js';
 import { compileTokens, applyTokensToDom, tokenLabel } from './lib/token-compiler.js';
+import { motionTableOf } from './lib/motion-table.js';
+import { tokenDisplayName, tokenValueText, VALUE_HEADERS, EXAMPLE_KINDS } from './lib/token-names.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
 import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
@@ -541,6 +543,86 @@ const SHOW_WHAT_IT_DOES = false;
 // How long into a transition the "Interrupt" button cuts it short.
 const INTERRUPT_MS = 150;
 
+// ── Motion table ───────────────────────────────────────────────────────────
+// The open version written out as a designer documents it (see lab/lib/motion-table.ts): a page header with the
+// component's name, then for each part of the motion (the entrance, each state it goes to) a table and a timeline.
+
+function mtEl<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function renderMotionTable(container: HTMLElement, version: MotionVersion, componentName: string): void {
+  container.replaceChildren();
+  const sections = motionTableOf(version, raw, componentName);
+  if (sections.length === 0) return;
+
+  const hero = mtEl('header', 'lab-mt-hero');
+  hero.append(mtEl('h2', 'lab-mt-title', componentName), mtEl('span', 'lab-mt-version', `${version.id}: ${version.label}`));
+  container.appendChild(hero);
+
+  for (const sec of sections) {
+    container.appendChild(mtEl('h3', 'lab-mt-heading', sec.title));
+
+    for (const data of sec.tables) {
+      const table = mtEl('table', 'lab-mt-table');
+      const headRow = table.createTHead().insertRow();
+      for (const text of data.columns) headRow.appendChild(mtEl('th', undefined, text));
+      const body = table.createTBody();
+      for (const row of data.rows) {
+        const tr = body.insertRow();
+        row.cells.forEach((text, i) => {
+          const td = tr.insertCell();
+          if (i === 0) {
+            td.className = 'lab-mt-element';
+            td.textContent = text;
+          } else if (i === data.columns.length - 1) {
+            td.className = 'lab-mt-also';
+            td.textContent = text;
+          } else if (text) {
+            const chip = mtEl('span', 'lab-mt-chip', text);
+            const hint = row.hints[i];
+            if (hint) chip.title = hint;
+            td.appendChild(chip);
+          }
+        });
+      }
+      container.appendChild(table);
+    }
+
+    // The timeline: a bar per element from its delay to where it ends, on a ruler in ms.
+    const { max, step } = sec.scale;
+    const pct = (ms: number): string => `${(ms / max) * 100}%`;
+    const timeline = mtEl('div', 'lab-mt-timeline');
+    const plot = mtEl('div', 'lab-mt-plot');
+    const lines = mtEl('div', 'lab-mt-lines');
+    const ruler = mtEl('div', 'lab-mt-ruler');
+    for (let t = 0; t <= max; t += step) {
+      const line = mtEl('span', 'lab-mt-line');
+      line.style.left = pct(t);
+      lines.appendChild(line);
+      const tick = mtEl('span', 'lab-mt-tick', String(t));
+      tick.style.left = pct(t);
+      ruler.appendChild(tick);
+    }
+    plot.appendChild(lines);
+    for (const track of sec.tracks) {
+      const row = mtEl('div', 'lab-mt-track');
+      const bar = mtEl('span', 'lab-mt-bar', track.label);
+      bar.style.left = pct(track.start);
+      bar.style.width = pct(track.end - track.start);
+      bar.title = `${track.label}: ${track.start}–${track.end}ms`;
+      row.appendChild(bar);
+      plot.appendChild(row);
+    }
+    plot.appendChild(ruler);
+    timeline.appendChild(plot);
+    container.appendChild(timeline);
+  }
+}
+
 function renderComponentView(params: URLSearchParams): void {
   const componentName = params.get('component') ?? defaultComponentName();
   const versionId = params.get('version') ?? 'v1';
@@ -616,6 +698,7 @@ function renderComponentView(params: URLSearchParams): void {
         </section>
       </aside>
     </div>
+    <section class="lab-motion-table" id="motion-table" aria-label="Motion table"></section>
   `;
 
   // Version tabs
@@ -831,7 +914,8 @@ function renderComponentView(params: URLSearchParams): void {
       const chip = document.createElement('div');
       chip.className = 'lab-token-chip';
       const code = document.createElement('code');
-      code.textContent = use.token;
+      code.textContent = tokenDisplayName(use.token);
+      code.title = use.token;
       const where = document.createElement('span');
       where.className = 'lab-token-chip-where';
       where.textContent = use.where.join(', ');
@@ -871,6 +955,8 @@ function renderComponentView(params: URLSearchParams): void {
     }
     tokensList.appendChild(warn);
   }
+
+  renderMotionTable(document.getElementById('motion-table')!, version, componentName);
 
   // Generated code section
   const cssPre = document.getElementById('css-pre')!;
@@ -1399,7 +1485,7 @@ function renderTokensView(): void {
   // What hovering a row says: notes, status, value, usage and old names.
   function tooltipFor(key: string): string {
     const m = meta[key];
-    const lines = [key];
+    const lines = [tokenDisplayName(key), `Path: ${key}`];
     if (m?.description) lines.push(m.description);
     if (m) lines.push(`Status: ${m.status}`);
     lines.push(`Value: ${valueText(raw[key])}`);
@@ -1414,7 +1500,7 @@ function renderTokensView(): void {
     return lines.join('\n');
   }
 
-  // The curve for an easing.
+  // The curve for an easing or a bounce.
   function curveFor(kind: string, _key: string, value: unknown): Curve | null {
     if (kind === 'bounce' && typeof value === 'number') return springCurve(value, PREVIEW_MS);
     return kind === 'easing' && Array.isArray(value) && value.length === 4
@@ -1422,26 +1508,50 @@ function renderTokensView(): void {
       : null;
   }
 
-  // Bar preview for the kinds with no curve: a duration fills the bar over that time, a distance grows it.
-  function previewBar(el: HTMLElement, kind: string, value: unknown): void {
-    el.getAnimations().forEach(a => a.cancel());
+  // The longest duration: the full width of a duration's track, so the bars read against each other.
+  const longestDuration = Math.max(...tokensOf('duration').map(t => numeric(t.value)));
+
+  // An example for a value that plays on click: a duration fills its track over that time (the bar's length
+  // is the duration, against the longest), a distance moves a square across that many pixels.
+  function buildBarExample(kind: 'duration' | 'distance', value: unknown): HTMLElement {
+    const amount = numeric(value);
+    const wrap = document.createElement('div');
+    wrap.className = `lab-token-example lab-token-example--${kind}`;
+    const mover = document.createElement('div');
+    mover.className = 'lab-token-preview';
+    const play = (): void => {
+      mover.getAnimations().forEach(a => a.cancel());
+      if (kind === 'duration') {
+        mover.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: amount, easing: 'linear', fill: 'forwards' });
+      } else {
+        mover.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${amount}px)` }], { duration: 400, easing: 'ease-out', fill: 'forwards' });
+      }
+    };
     if (kind === 'duration') {
-      el.animate(
-        [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
-        { duration: parseMsLocal(String(value)), easing: 'linear', fill: 'forwards' },
-      );
-    } else if (kind === 'distance') {
-      el.animate(
-        [{ width: '4px' }, { width: String(value) }],
-        { duration: 400, easing: 'ease-out', fill: 'forwards' },
-      );
+      const track = document.createElement('div');
+      track.className = 'lab-token-track';
+      mover.style.width = `${(amount / longestDuration) * 100}%`;
+      track.appendChild(mover);
+      wrap.appendChild(track);
+    } else {
+      const ghost = document.createElement('div');
+      ghost.className = 'lab-dist-ghost';
+      ghost.style.left = `${amount}px`;
+      mover.classList.add('lab-dist-box');
+      wrap.append(ghost, mover);
     }
+    wrap.addEventListener('click', play);
+    return wrap;
   }
 
-  // The classic easing graph: progress over time, with 0 and 1 marked. Click to run a dot along it.
-  function buildCurvePreview(curve: Curve): SVGSVGElement {
+  // The easing graph, drawn as the kit's easing sheet does: progress over time in a dashed box, the straight
+  // line a linear motion would take, the curve, and for a cubic-bezier its two handles. Click to run a dot along it.
+  function buildCurvePreview(curve: Curve, handles: readonly number[] | null): SVGSVGElement {
     const NS = 'http://www.w3.org/2000/svg';
-    const W = 112, H = 84, PAD = 8;
+    const W = 240, H = 240, PAD = 20;
+    // The box always holds the handles too, even when they reach past the curve (an overshoot).
+    const ys = handles ? [handles[1]!, handles[3]!] : [];
+    const c: Curve = { ...curve, yMin: Math.min(curve.yMin, ...ys), yMax: Math.max(curve.yMax, ...ys) };
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.setAttribute('width', String(W));
@@ -1450,34 +1560,38 @@ function renderTokensView(): void {
     svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label', 'Motion curve. Click to preview.');
 
-    for (const level of [0, 1]) {
-      const y = toY(curve, level, H, PAD);
-      const guide = document.createElementNS(NS, 'line');
-      guide.setAttribute('x1', String(PAD));
-      guide.setAttribute('x2', String(W - PAD));
-      guide.setAttribute('y1', String(y));
-      guide.setAttribute('y2', String(y));
-      guide.setAttribute('class', 'lab-curve__guide');
-      svg.appendChild(guide);
+    const el = (name: string, attrs: Record<string, string | number>): SVGElement => {
+      const node = document.createElementNS(NS, name);
+      for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
+      svg.appendChild(node);
+      return node;
+    };
+    const x = (t: number): number => toX(t, W, PAD);
+    const y = (level: number): number => toY(c, level, H, PAD);
+
+    el('rect', { class: 'lab-curve__box', x: x(0), y: y(c.yMax), width: x(1) - x(0), height: y(c.yMin) - y(c.yMax) });
+    el('line', { class: 'lab-curve__diagonal', x1: x(0), y1: y(0), x2: x(1), y2: y(1) });
+    if (handles) {
+      const [x1, y1, x2, y2] = handles as [number, number, number, number];
+      el('line', { class: 'lab-curve__handle', x1: x(0), y1: y(0), x2: x(x1), y2: y(y1) });
+      el('line', { class: 'lab-curve__handle', x1: x(1), y1: y(1), x2: x(x2), y2: y(y2) });
+      el('circle', { class: 'lab-curve__point', cx: x(x1), cy: y(y1), r: 3.5 });
+      el('circle', { class: 'lab-curve__point', cx: x(x2), cy: y(y2), r: 3.5 });
     }
-    const path = document.createElementNS(NS, 'path');
-    path.setAttribute('d', curvePath(curve, W, H, PAD));
-    path.setAttribute('class', 'lab-curve__line');
-    svg.appendChild(path);
-    const dot = document.createElementNS(NS, 'circle');
-    dot.setAttribute('r', '4');
-    dot.setAttribute('class', 'lab-curve__dot');
+    el('path', { class: 'lab-curve__line', d: curvePath(c, W, H, PAD) });
+    el('circle', { class: 'lab-curve__end', cx: x(0), cy: y(0), r: 2.5 });
+    el('circle', { class: 'lab-curve__end', cx: x(1), cy: y(1), r: 2.5 });
+    const dot = el('circle', { class: 'lab-curve__dot', r: 4 });
     const place = (t: number): void => {
-      dot.setAttribute('cx', String(toX(t, W, PAD)));
-      dot.setAttribute('cy', String(toY(curve, curveYAt(curve, t), H, PAD)));
+      dot.setAttribute('cx', String(x(t)));
+      dot.setAttribute('cy', String(y(curveYAt(c, t))));
     };
     place(0);
-    svg.appendChild(dot);
 
     let frame = 0;
     svg.addEventListener('click', () => {
       cancelAnimationFrame(frame);
-      const length = Math.max(curve.durationMs, 300);
+      const length = Math.max(c.durationMs, 300);
       const began = performance.now();
       const tick = (now: number): void => {
         const t = Math.min((now - began) / length, 1);
@@ -1489,47 +1603,66 @@ function renderTokensView(): void {
     return svg;
   }
 
-  // One table of a kind. Each row is just the token name and its preview; the rest is in the tooltip.
-  function buildTable(kind: string): HTMLTableElement {
-    const table = document.createElement('table');
-    table.className = 'lab-tokens-table';
-    const headerRow = table.createTHead().insertRow();
-    for (const text of ['Preview', 'Token']) {
-      const th = document.createElement('th');
-      th.textContent = text;
-      headerRow.appendChild(th);
+  // A kind as the spec sheets lay it out: a sub-header, then a table of Token, Value and an Example where the kind
+  // has one (a curve, a bar). An easing has one sub-header and table per group (productive, expressive, linear), as the
+  // kit's easing sheet does. Usage, status and notes are in each row's tooltip.
+  function buildSheet(kind: string): HTMLElement[] {
+    const withExample = EXAMPLE_KINDS.includes(kind);
+    const headers = ['Token', VALUE_HEADERS[kind] ?? 'Value', ...(withExample ? ['Example'] : [])];
+    const groups: { name: string; tokens: { key: string; value: unknown }[] }[] = [];
+    for (const token of tokensOf(kind)) {
+      const name = kind === 'easing' ? tokenLabel(token.key).split('-')[0]! : kind;
+      const last = groups[groups.length - 1];
+      if (last && last.name === name) last.tokens.push(token);
+      else groups.push({ name, tokens: [token] });
     }
-    const tbody = table.createTBody();
-    for (const { key, value } of tokensOf(kind)) {
-      const row = tbody.insertRow();
-      row.className = 'lab-token-row';
-      row.title = tooltipFor(key);
-
-      const previewCell = row.insertCell();
-      const curve = curveFor(kind, key, value);
-      if (curve) {
-        previewCell.appendChild(buildCurvePreview(curve));
-      } else if (kind === 'duration' || kind === 'distance') {
-        const bar = document.createElement('div');
-        bar.className = 'lab-token-preview';
-        bar.addEventListener('click', () => previewBar(bar, kind, value));
-        previewCell.appendChild(bar);
+    return groups.flatMap(group => {
+      const heading = document.createElement('h2');
+      heading.className = 'lab-tokens-group';
+      heading.textContent = group.name;
+      const table = document.createElement('table');
+      table.className = 'lab-tokens-table';
+      const headerRow = table.createTHead().insertRow();
+      for (const text of headers) {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headerRow.appendChild(th);
       }
+      const tbody = table.createTBody();
+      for (const { key, value } of group.tokens) {
+        const row = tbody.insertRow();
+        row.className = 'lab-token-row';
+        row.title = tooltipFor(key);
 
-      const code = document.createElement('code');
-      code.className = 'lab-token-name';
-      code.textContent = key;
-      row.insertCell().appendChild(code);
+        const code = document.createElement('code');
+        code.className = 'lab-token-name';
+        code.textContent = tokenDisplayName(key);
+        row.insertCell().appendChild(code);
 
-    }
-    return table;
+        row.insertCell().textContent = tokenValueText(kind, value);
+
+        if (withExample) {
+          const cell = row.insertCell();
+          const curve = curveFor(kind, key, value);
+          if (curve) cell.appendChild(buildCurvePreview(curve, kind === 'easing' && Array.isArray(value) ? value as number[] : null));
+          else if (kind === 'duration' || kind === 'distance') cell.appendChild(buildBarExample(kind, value));
+        }
+      }
+      return [heading, table];
+    });
   }
 
   const wrapper = document.createElement('div');
   wrapper.className = 'lab-tokens-view';
 
+  // The kit's page header: a black bar with the kind as a large title, the kinds as tabs beneath it.
+  const hero = document.createElement('div');
+  hero.className = 'lab-tokens-hero';
+  const title = document.createElement('h1');
+  title.className = 'lab-tokens-title';
   const subtabs = document.createElement('div');
   subtabs.className = 'lab-tokens-subtabs';
+  hero.append(title, subtabs);
   const tokenSetting = document.createElement('div');
   tokenSetting.className = 'lab-token-setting';
   const tableContainer = document.createElement('div');
@@ -1590,12 +1723,13 @@ function renderTokensView(): void {
   }
 
   function renderKind(kind: string): void {
+    title.textContent = kind;
     tableContainer.replaceChildren();
     renderSetting(kind);
-    tableContainer.appendChild(buildTable(kind));
+    tableContainer.append(...buildSheet(kind));
   }
 
-  wrapper.append(subtabs, tokenSetting, tableContainer);
+  wrapper.append(hero, tokenSetting, tableContainer);
   renderKind(activeKind);
   main.appendChild(wrapper);
 }

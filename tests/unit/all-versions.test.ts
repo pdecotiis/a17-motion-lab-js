@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { validateVersionMeta } from '../../lab/lib/version-meta.js';
 import { getTokenRefs, pairingWarnings } from '../../lab/lib/token-refs.js';
+import { motionTableOf } from '../../lab/lib/motion-table.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
 import type { ComponentModule, DtcgGroup } from '../../lab/lib/types.js';
@@ -35,6 +36,19 @@ describe('every version of every component', () => {
 
     it.each(module.versions.map(v => [v.id, v] as const))('%s names only tokens that exist', (_id, version) => {
       expect(getTokenRefs(version, raw).hardcoded).toEqual([]);
+    });
+
+    it.each(module.versions.map(v => [v.id, v] as const))('%s has a motion table: a row for every motion, nothing empty', (_id, version) => {
+      const sections = motionTableOf(version, raw, 'component');
+      expect(sections.length).toBeGreaterThan(0);
+      for (const section of sections) {
+        expect(section.tables.length).toBeGreaterThan(0);
+        for (const table of section.tables) {
+          expect(table.rows.length).toBeGreaterThan(0);
+          for (const row of table.rows) expect(row.cells).toHaveLength(table.columns.length);
+        }
+        expect(section.tracks.length).toBeGreaterThan(0);
+      }
     });
 
     it.each(module.versions.map(v => [v.id, v] as const))('%s follows the pairing rules', (_id, version) => {

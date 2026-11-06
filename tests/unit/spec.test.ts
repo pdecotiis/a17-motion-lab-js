@@ -439,3 +439,42 @@ describe('delay tokens in the CSS', () => {
     expect(buildVersionCss(byDuration, raw, { component: 'card' })).toContain('animation-delay: var(--motion-duration-300, 300ms);');
   });
 });
+
+describe('spec.md: the motion table', () => {
+  const md = buildVersionExport('demo', tween(), [tween()], tokens).markdown;
+
+  it('has a Motion table section, after when it plays and before the details', () => {
+    const at = (h: string): number => md.indexOf(h);
+    expect(at('## Motion table')).toBeGreaterThan(at('## When it plays'));
+    expect(at('## Motion table')).toBeLessThan(at('## What animates'));
+  });
+
+  it('has a row per property with the easing as its token name, the times in ms and a text timeline', () => {
+    expect(md).toContain('| Element | Property | From | To | Easing | Duration (ms) | Delay (ms) | Also |');
+    expect(md).toContain('| **demo** | `opacity` | `0` | `1` | `productive-entrance` | `220` | `0` |  |');
+    expect(md).toContain('`translateY(16px)`');
+    expect(md).toMatch(/demo +█+ +0–220ms/);
+  });
+
+  it('says how the names map to the CSS variables', () => {
+    expect(md).toContain('`duration-300` is `--motion-duration-300`');
+  });
+
+  it('has an "into <state>" section for each state of a version with states', () => {
+    const states: MotionVersion = {
+      id: 'v1', label: 'Hover', lineage: 'test',
+      interaction: {
+        initial: 'rest',
+        states: { rest: {}, hover: { transform: 'translateY(-{distance.4})' } },
+        transitions: {
+          rest: { model: 'tween', duration: 'duration.140', easing: 'easing.productive-exit' },
+          hover: { model: 'tween', duration: 'duration.220', easing: 'easing.productive-standard' },
+        },
+      },
+    };
+    const text = buildVersionExport('demo', states, [states], tokens).markdown;
+    expect(text).toContain('### into rest');
+    expect(text).toContain('### into hover');
+    expect(text).toContain('`translateY(-4px)`');
+  });
+});

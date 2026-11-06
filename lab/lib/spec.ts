@@ -4,6 +4,7 @@ import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getStepRefs, getTokenRefs } from './token-refs.js';
 import { interactionParts, partValues, resolveState, stateNames, timingFor } from './interaction.js';
 import { hasEntrance, resolveKeyframes, stepsOf } from './motion-models.js';
+import { motionTableMarkdown, motionTableOf } from './motion-table.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import {
   STATUS_LABELS, describeLineage, describeTrigger, getReducedMotionPolicy,
@@ -274,6 +275,12 @@ export function buildVersionExport(
     '## When it plays',
     '',
     trigger ?? '**Not specified.** The designer has not said what triggers this. Ask before wiring it up.',
+    '',
+    // The whole motion at a glance, as the lab's Motion table shows it; the sections below say how to wire it.
+    '## Motion table',
+    '',
+    ...motionTableMarkdown(motionTableOf(version, raw, component)),
+    'Token names are written as in the lab\'s Tokens view: `duration-300` is `--motion-duration-300` (see `tokens.css`), and an easing such as `productive-standard` is `--motion-easing-productive-standard`. Easing and times are the version as authored; a spring (Motion) uses the duration as its visual duration and ignores the easing.',
     '',
     ...(version.interaction ? ['## Triggers', '', ...triggerLines(version), ''] : []),
     ...(version.interaction && !hasEntrance(version) ? [] : entranceBlock),
