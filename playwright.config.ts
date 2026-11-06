@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { PRESET_E2E_FILES, SAMPLES_PRESENT, SAMPLE_E2E_FILES, TEMPLATE_PRESETS } from './tests/samples';
+import { PRESET_E2E_FILES, SAMPLES_PRESENT, SAMPLE_E2E_FILES, TEMPLATE_PRESETS, TEMPLATE_TOKEN_E2E_FILES } from './tests/samples';
 
 // The dev server's port. Set PORT when another checkout's server already holds 5173, e.g.
 // `PORT=5200 npm run test:e2e`, so these tests don't reuse that server.
@@ -10,7 +10,7 @@ export default defineConfig({
   // A project that removed the template's samples skips the specs that need them (tests/samples.ts).
   testIgnore: [
     '**/_template.spec.ts',
-    ...(SAMPLES_PRESENT ? [] : SAMPLE_E2E_FILES),
+    ...(SAMPLES_PRESENT ? [] : [...SAMPLE_E2E_FILES, ...TEMPLATE_TOKEN_E2E_FILES]),
     // Specs that pin the template's default presets (tokens/presets.json) are left out when a project customises them.
     ...(TEMPLATE_PRESETS ? [] : PRESET_E2E_FILES),
   ].map(f => `**/${f.replace('tests/e2e/', '')}`),

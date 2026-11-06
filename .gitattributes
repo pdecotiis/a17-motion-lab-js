@@ -1,0 +1,8 @@
+# Token files are the project's own once a project is made from the template: a merge from the template must
+# never overwrite them. `npm install` sets the merge driver below (scripts/setup-git.mjs).
+# To take a template token change on purpose, see "Template and project repos" in README.md.
+tokens/motion.json merge=project-owned
+tokens/presets.json merge=project-owned
+tokens/figma-variables.json merge=project-owned
+tokens/visual.css merge=project-owned
+tokens/fonts.css merge=project-owned

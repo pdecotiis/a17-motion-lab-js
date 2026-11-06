@@ -76,6 +76,7 @@ test.describe('Settings', () => {
   });
 
   test('another scale changes the preview and the command; the real tokens are untouched', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     await openSettings(page);
     await page.selectOption('#scale-preview-select', 'golden-ratio');
     await expect(page.locator('#scale-summary')).toContainText('Golden ratio would rename');
@@ -165,6 +166,7 @@ test.describe('Settings: apply a scale', () => {
   });
 
   test('the dev server answers, and a dry run through it writes nothing', async ({ page }) => {
+    test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     const info = await page.request.get('/__lab/scale');
     expect(await info.json()).toEqual({ available: true });
     const res = await page.request.post('/__lab/scale', { data: { scale: 'major-third', dryRun: true } });

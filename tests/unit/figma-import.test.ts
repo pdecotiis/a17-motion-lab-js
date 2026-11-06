@@ -110,6 +110,22 @@ describe('import', () => {
     expect(readFileSync(join(dir(), 'motion.ts'), 'utf8')).toContain("defaultVersion = 'v1'");
   });
 
+  it('scaffolds its tokens from the project\'s own token file, so a tweaked set still resolves', () => {
+    mkdirSync(join(root, 'tokens'), { recursive: true });
+    const token = (type: string, value: string | number) => ({ $type: type, $value: value });
+    writeFileSync(join(root, 'tokens/motion.json'), JSON.stringify({
+      duration: { 380: token('duration', '380ms'), 900: token('duration', '900ms') },
+      distance: { 10: token('dimension', '10px'), 18: token('dimension', '18px'), 30: token('dimension', '30px') },
+      easing: { smooth: token('cubicBezier', [0.2, 0, 0, 1] as unknown as number) },
+    }));
+    importComponent(root, input);
+    const v1 = readFileSync(join(dir(), 'versions/v1.ts'), 'utf8');
+    expect(v1).toContain("duration: 'duration.380'");
+    expect(v1).toContain("easing: 'easing.smooth'");
+    expect(v1).toContain('translateY({distance.18})');
+    expect(v1).not.toContain('duration.400');
+  });
+
   it('updates markup, styles, assets and metadata on re-import but leaves version files unchanged', () => {
     importComponent(root, input);
 

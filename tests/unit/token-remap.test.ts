@@ -9,6 +9,7 @@ import { compileTokens } from '../../lab/lib/token-compiler.js';
 import type { DtcgGroup } from '../../lab/lib/types.js';
 import tokensJson from '../../tokens/motion.json';
 import migration from '../../tokens/migrations/vitrine-base.json';
+import { SAMPLES_PRESENT } from '../samples.js';
 
 // Replacing the base tokens of a kind with a set of one's own choosing (lab/lib/token-remap.ts, scripts/tokens-remap.ts):
 // each old token goes to the new token with the closest value. These run on a fixed token file (the template's set
@@ -234,7 +235,8 @@ describe('runRemap and runRenames', () => {
 });
 
 // The migration the template shipped (tokens/migrations/vitrine-base.json) and the token file it produced.
-describe('tokens/migrations/vitrine-base.json', () => {
+// The template's own migration, checked against the template's own token file.
+describe.skipIf(!SAMPLES_PRESENT)('tokens/migrations/vitrine-base.json', () => {
   const names = (kind: string): string[] => Object.keys((tokensJson as unknown as Json)[kind] as object);
   const sorted = (kind: string): string[] => names(kind).sort((a, b) => Number(a) - Number(b));
   const spec = migration as unknown as RemapSpec;

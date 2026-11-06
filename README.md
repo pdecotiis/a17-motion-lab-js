@@ -48,7 +48,7 @@ Versions change **motion only** (`opacity`, `transform`, `filter`, `clip-path`),
 lab/            The Vite app shell (index.html, main.ts, styles.css, lib/)
 components/     One folder per component: markup.html, styles.css, motion.ts, versions/
 pages/          One folder per page: page.json, and versions/ with its page versions
-tokens/         motion.json (motion tokens) plus generated Figma variable files
+tokens/         motion.json (motion tokens), presets.json, generated Figma variable files; a project's own, a template merge never overwrites them
 scripts/        Figma importers (component and page), spec export, scale tools
 tests/          unit/ (Vitest) and e2e/ (Playwright)
 ```
@@ -83,7 +83,21 @@ git merge -X no-renames template/main
 
 `-X no-renames` matters in a project that deleted the sample content (step 4): without it git can mistake a deleted folder for a rename and apply the template's changes to the wrong component. If the template changed a sample file you deleted (`components/card`, `components/side-panel`, `pages/home`), git reports a conflict or adds the new file back; keep them deleted (`git rm -f <file>`), then `git commit`. Run `npm run check` afterwards.
 
-If `tokens/figma-variables.json`, `tokens/visual.css` or `tokens/fonts.css` conflict, don't merge them by hand. Take either side, then re-run `npm run figma:import` for each imported component to regenerate them.
+### The token files are the project's own
+
+The template's tokens (`tokens/motion.json`, the Vitrine starter set) and presets (`tokens/presets.json`) are a **starting point**. Once a project is made from the template they belong to it: change them freely. So a merge from the template never overwrites them: `.gitattributes` gives these files (`motion.json`, `presets.json`, `figma-variables.json`, `visual.css`, `fonts.css`) a merge driver that keeps the project's own version, and `npm install` switches the driver on (`scripts/setup-git.mjs`, run by `postinstall`). Run `npm install` once in a fresh clone before merging; in a project repo `npm run check` fails if the driver is not set, and a test proves the driver works on throwaway repos.
+
+Nothing in the lab names a token that a project might change: the default page stagger is the middle delay token, and the Figma import scaffolds its first version from the closest duration, distance and easing the project has. The template's own tests that pin its token values run only in the template (they skip in a project, like the sample content).
+
+To take a template token change on purpose (the template moved its starter set, say), do it by hand, so you decide:
+
+```bash
+git checkout template/main -- tokens/motion.json tokens/presets.json   # or just the file you want
+npm run tokens:remap -- --renames tokens/migrations/<name>.renames.json   # point your versions at the new names
+npm run check
+```
+
+`tokens/migrations/` in the template holds each such change (the spec and the renames it wrote). Without a renames file, `npm run tokens:remap -- <spec.json>` moves a project's own tokens to a new set by nearest value.
 
 ## Working as a designer
 

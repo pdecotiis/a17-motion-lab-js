@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tokenDisplayName, tokenValueText, VALUE_HEADERS, EXAMPLE_KINDS } from '../../lab/lib/token-names.js';
+import { tokenDisplayName, tokenValueText, nearestToken, VALUE_HEADERS, EXAMPLE_KINDS } from '../../lab/lib/token-names.js';
 
 describe('tokenDisplayName', () => {
   it('joins the group and the name with a hyphen', () => {
@@ -40,5 +40,19 @@ describe('tokenValueText', () => {
   });
   it('has an example for easing, duration, distance and bounce only', () => {
     expect([...EXAMPLE_KINDS].sort()).toEqual(['bounce', 'distance', 'duration', 'easing']);
+  });
+});
+
+describe('nearestToken', () => {
+  const raw = { 'distance.4': '4px', 'distance.12': '12px', 'distance.20': '20px', 'distance.32': '32px', 'duration.250': '250ms', 'duration.400': '400ms', 'easing.x': [0, 0, 1, 1] };
+  it('finds the token of a kind with the closest value, a tie going to the larger', () => {
+    expect(nearestToken(raw, 'distance', 16)).toBe('distance.20');
+    expect(nearestToken(raw, 'distance', 13)).toBe('distance.12');
+    expect(nearestToken(raw, 'duration', 400)).toBe('duration.400');
+    expect(nearestToken(raw, 'duration', 300)).toBe('duration.250');
+  });
+  it('is undefined for a kind with no tokens', () => {
+    expect(nearestToken(raw, 'delay', 80)).toBeUndefined();
+    expect(nearestToken({}, 'duration', 80)).toBeUndefined();
   });
 });

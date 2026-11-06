@@ -36,3 +36,18 @@ export function tokenValueText(kind: string, value: unknown): string {
   const n = parseFloat(String(value));
   return Number.isNaN(n) ? String(value) : trim(n);
 }
+
+// The token of a kind whose value is closest to `value` (ms or px): for code that wants "about 400ms" or "about a
+// 16px rise" without naming a token the project may have changed. A tie goes to the larger. Undefined when the kind has
+// no tokens.
+export function nearestToken(raw: Record<string, unknown>, kind: string, value: number): string | undefined {
+  const tokens = Object.keys(raw)
+    .filter(k => k.startsWith(`${kind}.`) && !Number.isNaN(parseFloat(String(raw[k]))))
+    .map(k => ({ k, v: parseFloat(String(raw[k])) }));
+  return tokens.reduce<{ k: string; v: number } | undefined>((best, t) => {
+    if (!best) return t;
+    const d = Math.abs(t.v - value);
+    const bd = Math.abs(best.v - value);
+    return d < bd || (d === bd && t.v > best.v) ? t : best;
+  }, undefined)?.k;
+}

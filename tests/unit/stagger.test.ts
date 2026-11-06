@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_STAGGER, delayTokenPaths, staggerFromParam, pageStaggerToken } from '../../lab/lib/stagger.js';
+import { defaultStaggerOf, delayTokenPaths, staggerFromParam, pageStaggerToken } from '../../lab/lib/stagger.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
 import type { DtcgGroup } from '../../lab/lib/types.js';
@@ -8,9 +8,18 @@ const { raw } = compileTokens(tokensJson as unknown as DtcgGroup);
 const tokens = delayTokenPaths(raw);
 
 describe('stagger', () => {
-  it('the default is delay.80, and it is a real delay token', () => {
+  const DEFAULT_STAGGER = defaultStaggerOf(tokens);
+
+  it('the default is the middle delay token, whatever the project\'s delay tokens are', () => {
     expect(DEFAULT_STAGGER).toBe('delay.80');
     expect(raw[DEFAULT_STAGGER]).toBe('80ms');
+    expect(defaultStaggerOf(['delay.30'])).toBe('delay.30');
+    expect(defaultStaggerOf(['delay.30', 'delay.60'])).toBe('delay.30');
+    expect(defaultStaggerOf(['delay.20', 'delay.50', 'delay.90', 'delay.200', 'delay.400'])).toBe('delay.90');
+  });
+
+  it('a project with no delay token has no default to give, and says so', () => {
+    expect(() => defaultStaggerOf([])).toThrow(/no delay tokens/);
   });
 
   it('delayTokenPaths lists the delay tokens, smallest first, and nothing else', () => {
