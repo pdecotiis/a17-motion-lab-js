@@ -87,10 +87,10 @@ test.describe('Header controls look like the kit\'s buttons', () => {
     return { height: Math.round(r.height), radius: s.borderTopLeftRadius, background: s.backgroundColor, color: s.color };
   });
 
-  test('nav items are 40px with 8px corners; the current one is near-black with light text', async ({ page }) => {
+  test('nav items are 40px with 8px corners; the current one is the light gray with full-strength text, not black', async ({ page }) => {
     await page.goto('/?view=tokens');
     // (the colours ease in for 120ms, so poll)
-    await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ height: 40, radius: '8px', background: 'rgb(23, 23, 23)', color: 'rgb(245, 245, 245)' });
+    await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ height: 40, radius: '8px', background: 'rgba(0, 0, 0, 0.08)', color: 'rgb(23, 23, 23)' });
     const other = await style(page, '.lab-nav__btn:not([aria-current="page"])');
     expect(other.height).toBe(40);
     expect(other.background).toBe('rgba(0, 0, 0, 0)');
@@ -114,18 +114,19 @@ test.describe('Header controls look like the kit\'s buttons', () => {
     expect((await style(page, '#speed-control')).radius).toBe('8px');
   });
 
-  test('the motion library switch is in Settings, 40px, with the active half near-black', async ({ page }) => {
+  test('the motion library switch is in Settings, 40px, with the active half a raised light segment', async ({ page }) => {
     await page.goto('/?view=component');
     await expect(page.locator('.lab-header .lab-segmented')).toHaveCount(0);
     await page.click('#settings-btn');
     expect((await style(page, '.lab-settings .lab-segmented')).height).toBe(40);
-    await expect.poll(() => style(page, '.lab-segmented__btn[aria-pressed="true"]')).toMatchObject({ background: 'rgb(23, 23, 23)' });
+    await expect.poll(() => style(page, '.lab-segmented__btn[aria-pressed="true"]')).toMatchObject({ background: 'rgb(255, 255, 255)', color: 'rgb(23, 23, 23)' });
   });
 
-  test('in the dark theme the primary button is the light one', async ({ page }) => {
-    await page.goto('/?view=tokens');
+  test('in the dark theme the current page is a light-on-dark gray, and the one primary button is the light one', async ({ page }) => {
+    await page.goto('/?view=component');
     await page.click('#theme-toggle');
-    await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ background: 'rgb(245, 245, 245)', color: 'rgb(23, 23, 23)' });
+    await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ background: 'rgba(255, 255, 255, 0.12)', color: 'rgb(245, 245, 245)' });
+    await expect.poll(() => style(page, '#replay-btn')).toMatchObject({ background: 'rgb(245, 245, 245)', color: 'rgb(23, 23, 23)' });
   });
 });
 
@@ -364,5 +365,42 @@ test.describe('Top bar of the component and page views', () => {
     await expect(page.locator('.lab-viewbar #replay-all-btn')).toHaveText('Replay All');
     await expect(page.locator('.lab-sidebar #replay-all-btn')).toHaveCount(0);
     await expect(page.locator('.lab-viewbar #speed-control')).toHaveCount(1);
+  });
+});
+
+// Near-black is for the one primary action of a page. Everything else, and anything that is "on", is the lighter gray.
+test.describe('One primary button per page', () => {
+  const primaries = (page: import('@playwright/test').Page) => page.locator('.lab-btn--primary:visible');
+
+  test('the component view has one, Replay', async ({ page }) => {
+    await page.goto('/?view=component');
+    await expect(primaries(page)).toHaveCount(1);
+    await expect(primaries(page)).toHaveText('Replay');
+  });
+
+  test('the page view has one, Replay All: Save as new version is a plain button', async ({ page }) => {
+    await page.goto('/?view=page');
+    await expect(primaries(page)).toHaveCount(1);
+    await expect(primaries(page)).toHaveText('Replay All');
+    await expect(page.locator('#save-page-version-btn')).not.toHaveClass(/lab-btn--primary/);
+  });
+
+  test('no other view has more than one', async ({ page }) => {
+    for (const view of ['library', 'tokens', 'presets']) {
+      await page.goto(`/?view=${view}`);
+      expect(await primaries(page).count(), view).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test('a version tab that is on is the light gray, not black', async ({ page }) => {
+    await page.goto('/?view=component');
+    const tab = page.locator('.lab-version-tab--active');
+    await expect.poll(() => tab.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0.08)');
+  });
+
+  test('Apply in Settings is a plain button', async ({ page }) => {
+    await page.goto('/?view=component');
+    await page.click('#settings-btn');
+    await expect(page.locator('#scale-apply-btn')).not.toHaveClass(/lab-btn--primary/);
   });
 });

@@ -146,7 +146,7 @@ function buildApplySection(scaleId: string, renamed: number, versionCount: numbe
   actions.className = 'lab-scale-apply__actions';
 
   const apply = document.createElement('button');
-  apply.className = 'lab-btn lab-btn--primary';
+  apply.className = 'lab-btn';
   apply.id = 'scale-apply-btn';
   apply.textContent = `Apply ${SCALES.find(s => s.id === scaleId)?.label ?? scaleId}`;
   apply.disabled = true;
