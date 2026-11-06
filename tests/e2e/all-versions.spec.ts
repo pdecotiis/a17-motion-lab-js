@@ -28,7 +28,8 @@ test.describe('every version plays', () => {
       page.on('pageerror', err => errors.push(err.message));
       await page.goto(`/?view=component&component=${component}&version=${id}`);
       await expect(page.locator('[data-motion-target]').first()).toBeVisible();
-      expect(await page.evaluate(() => document.getAnimations().length)).toBeGreaterThan(0);
+      // Polled: a version that plays its first move on open (a click-only one) starts it a moment after the page loads.
+      await expect.poll(() => page.evaluate(() => document.getAnimations().length), { timeout: 3000 }).toBeGreaterThan(0);
       await page.waitForLoadState('networkidle');
       expect(errors).toEqual([]);
     });
