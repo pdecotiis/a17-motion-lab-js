@@ -1833,13 +1833,14 @@ function renderPresetsView(): void {
   main.innerHTML = '';
   main.className = 'lab-main lab-main--presets';
 
+  // The same top bar as the other views: what this page is on the left, the page's one primary action on the right.
   const intro = document.createElement('div');
-  intro.className = 'lab-presets__intro';
+  intro.className = 'lab-viewbar lab-presets__intro';
   const text = document.createElement('p');
-  text.className = 'lab-text-muted';
+  text.className = 'lab-presets__lead';
   text.textContent = 'Named, standard entrances built from the existing tokens, defined in tokens/presets.json. A component writes its entrance as an element, a preset and a delay.';
   const replayAll = document.createElement('button');
-  replayAll.className = 'lab-btn';
+  replayAll.className = 'lab-btn lab-btn--primary';
   replayAll.id = 'presets-replay-all';
   replayAll.textContent = 'Replay all';
   intro.append(text, replayAll);
@@ -1865,17 +1866,16 @@ function renderPresetsView(): void {
     replay.textContent = 'Replay';
     head.append(title, replay);
 
-    // The recipe, in tokens: what the preset is made of, and whether it is approved.
+    // The recipe (what the preset is made of, in tokens, and whether it is approved) is not printed on the card: it is the
+    // tooltip on the name, for whoever wants it.
     const p = presetOf(name);
-    const recipe = document.createElement('p');
-    recipe.className = 'lab-text-muted lab-preset__recipe';
-    recipe.textContent = [
+    title.title = [
       `rise ${p.rise}${p.scale ? `, from ${p.scale}` : ''}`,
       `move ${p.move.duration}, ${p.move.easing}`,
       p.fade ? `fade ${p.fade.duration}, ${p.fade.easing}` : null,
       p.status === 'system' ? 'system' : 'experimental',
+      p.description ?? null,
     ].filter(Boolean).join(' · ');
-    recipe.title = p.description ?? '';
 
     const stage = document.createElement('div');
     stage.className = 'lab-preset__stage';
@@ -1885,7 +1885,7 @@ function renderPresetsView(): void {
     holder.innerHTML = PRESET_EXAMPLES[name] ?? PRESET_EXAMPLE_FALLBACK;
     stage.appendChild(holder);
 
-    card.append(head, recipe, stage);
+    card.append(head, stage);
     grid.appendChild(card);
     targets.push({ name, target: holder });
     replay.addEventListener('click', () => animateElement(holder, presetVersion(name)));
