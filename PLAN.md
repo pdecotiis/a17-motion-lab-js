@@ -7,6 +7,18 @@ Motion Lab is a reusable template for iterating on motion for components importe
 - **Template repo (a17-motion-lab):** all lab features are built here. It stays client-agnostic.
 - **Project repos (e.g. the pilot project repo):** made from the template. They hold client content only: components, versions, pages, presets, assets and baselines. They pull template updates and never build features.
 
+## The job (decided 2026-11-05)
+
+After a critical review of the tool, its job is three things, and every feature is judged against them:
+
+1. **Ideate** on motion across a system of pages and components.
+2. **Review** in a real browser, and share directly with clients.
+3. **Hand off** to a developer without ambiguity (tokens, spec, export).
+
+It is an animation studio for our own projects, and what makes it worth having is that the motion made in it **leaves the studio**: as a spec and code a developer builds from, or (later, the Storybook adapter) directly into the codebase. It does not try to out-feature Figma, Framer, Rive or After Effects at authoring. Tweaks stay as versions made through Claude; sliders and token tuning are a nice-to-have for later (tune a token and save it into the system). The Motion runtime and the global scale stay built but are de-emphasised: easing and GSAP are where the work is, and no new work goes into either.
+
+**Staying focused (a drift check, not a freeze).** Tweaks and fixes go on as needed. Before building anything bigger, ask: (1) which of the three jobs does it serve, and does something real (a designer's use, a client review, a developer's build) need it now? (2) Does it make the tool easier or harder to pick up? (3) Does it help motion leave the studio, or only make authoring richer? A feature that serves none of the three is parked under Optional, not built. Revisit the list when the designer trial reports back, which should answer: is a Figma frame to an approved version faster than today, where did the designer want to drag instead of ask, and did a developer trust the spec.
+
 ## Done
 
 - Shell: Vite + vanilla TS, Web Animations runtime, component view, compare, speed, stagger, light/dark, page view with motion map (URL state) and presets.
@@ -58,6 +70,8 @@ Motion Lab is a reusable template for iterating on motion for components importe
 - A version with no `trigger` is "not specified", never defaulted. The spec and CSS say so and tell the developer to ask. Imports never set a trigger.
 - **Pages are components assembled, never whole-page copies.** A page version is a saved combination of component versions plus the stagger (see Next steps), so one component is explored once however many pages use it, and what a developer receives is still the approved component.
 - **Source adapters, not modes.** Figma and (later) Storybook or a live URL are ways of producing a component; the lab, versions, pages and exports do not change with the source. A component records its source in `meta.json`.
+
+- **Priority order, to revisit after the designer trial:** (1) hosted, shareable review links for clients (step 4 of the earlier list, Twill); (2) the Storybook adapter (steps 3–6 of Refinement), so motion is judged on the real component, not a Figma replica; (3) the presets spike (propose presets from commonalities in authored motion, with a UI to adopt them into `tokens/presets.json`); (4) controls that tune tokens and save them into the system. The Motion runtime and the global scale get no new work.
 
 ## Current state
 
