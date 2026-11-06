@@ -72,7 +72,8 @@ To start a project:
    ```
 3. Add the client's fonts to `/fonts` (gitignored). Faces with no matching file fall back to a system font.
 4. Delete the template's sample content, which a project doesn't keep: `components/card`, `components/side-panel` and `pages/home`. The tests that need them skip themselves (see `tests/samples.ts`), and the lab opens your first component and page.
-5. Import components from Figma and start exploring.
+5. Name the project: add `project.json` at the repo root, `{ "name": "Jane Street" }`. The header then says "Jane Street · Motion Lab" and the tab title ends with it, which matters when you share the lab with the client. The template has none (it says just "Motion Lab"), so a merge never touches yours; restart the dev server once after adding it.
+6. Import components from Figma and start exploring.
 
 To get the latest template changes in a project repo:
 

@@ -244,3 +244,33 @@ test.describe('Playback bar', () => {
     await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
   });
 });
+
+// The tab says what is on screen, and the header says the project when it has named itself (project.json). The template
+// has no project.json, so these see the plain product name; the name itself is unit-tested (tests/unit/project.test.ts).
+test.describe('Title and project name', () => {
+  test('the header says Motion Lab and no project name when there is no project.json', async ({ page }) => {
+    await page.goto('/?view=library');
+    await expect(page.locator('.lab-header__logo')).toHaveText('Motion Lab');
+    await expect(page.locator('#header-project')).toBeHidden();
+  });
+
+  test('the tab title says what is on screen, then the brand', async ({ page }) => {
+    await page.goto('/?view=library');
+    await expect(page).toHaveTitle(/^Library – .*Motion Lab$/);
+    await page.click('a.lab-nav__btn[data-view="tokens"]');
+    await expect(page).toHaveTitle(/^Tokens – .*Motion Lab$/);
+    await page.click('a.lab-nav__btn[data-view="presets"]');
+    await expect(page).toHaveTitle(/^Presets – .*Motion Lab$/);
+    await page.click('a.lab-nav__btn[data-view="page"]');
+    await expect(page).toHaveTitle(/^[^–]+ – .*Motion Lab$/);
+  });
+
+  test('a component names itself in the title, and the title follows the breadcrumb', async ({ page }) => {
+    await page.goto('/?view=library');
+    const name = (await page.locator('.lab-library-card').first().getAttribute('data-component'))!;
+    await page.locator('.lab-library-card').first().click();
+    await expect(page).toHaveTitle(new RegExp(`^${name} – .*Motion Lab$`));
+    await page.click('#breadcrumb-library');
+    await expect(page).toHaveTitle(/^Library – /);
+  });
+});

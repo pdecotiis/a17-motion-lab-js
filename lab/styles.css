@@ -702,3 +702,9 @@ html, body {
 .lab-page-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 /* The runtime switch lives in Settings now. */
 .lab-settings .lab-segmented { width: fit-content; }
+
+/* The project's name before the product ("Jane Street · Motion Lab"), when the project has named itself. */
+.lab-header__brand { display: inline-flex; align-items: baseline; }
+.lab-header__project { font-weight: 500; font-size: var(--lab-text-large); letter-spacing: -0.01em; }
+.lab-header__project:not([hidden])::after { content: '·'; margin: 0 8px; color: var(--color-text-muted); font-weight: 400; }
+.lab-header__project:not([hidden]) + .lab-header__logo { color: var(--color-text-muted); font-weight: 400; }

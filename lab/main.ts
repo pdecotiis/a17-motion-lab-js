@@ -6,6 +6,7 @@ import { scrollTriggerOf, staggerIndex } from './lib/scroll-trigger.js';
 import { compileTokens, applyTokensToDom, tokenLabel } from './lib/token-compiler.js';
 import { motionTableOf } from './lib/motion-table.js';
 import { tokenDisplayName, tokenValueText, VALUE_HEADERS, EXAMPLE_KINDS } from './lib/token-names.js';
+import { projectNameOf, brandText, titleFor } from './lib/project.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
 import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
@@ -74,6 +75,16 @@ const pageModules = import.meta.glob<PageConfig>(
   '../pages/*/page.json',
   { eager: true, import: 'default' }
 );
+
+// The project's own name (project.json at the repo root, if it has one) for the header and the tab title.
+const projectName = projectNameOf(Object.values(import.meta.glob<unknown>('../project.json', { eager: true, import: 'default' }))[0]);
+const brandEl = document.querySelector<HTMLElement>('.lab-header__brand');
+if (projectName && brandEl) {
+  const nameEl = document.getElementById('header-project')!;
+  nameEl.textContent = projectName;
+  nameEl.hidden = false;
+  brandEl.setAttribute('aria-label', `${brandText(projectName)}, all components`);
+}
 
 // Saved page versions: pages/<page>/versions/v1.json, v2.json, …
 const pageVersionModules = import.meta.glob<unknown>(
@@ -2042,6 +2053,15 @@ function route(): void {
   libraryObserver?.disconnect();
   activeAnimations.forEach(handle => handle.cancel());
   activeAnimations = [];
+
+  // The tab says what is on screen: "card – Jane Street · Motion Lab".
+  const what: Record<string, string> = {
+    library: 'Library', tokens: 'Tokens', presets: 'Presets',
+    component: params.get('component') ?? defaultComponentName(),
+    page: params.get('page') ?? defaultPageName(),
+    frame: `${params.get('component') ?? defaultComponentName()} frame`,
+  };
+  document.title = titleFor(what[view] ?? '', projectName);
 
   navBtns.forEach(btn => {
     const isActive = btn.dataset['view'] === navView;
