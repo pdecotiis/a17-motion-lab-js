@@ -318,8 +318,8 @@ test.describe('Runtime (CSS / Motion)', () => {
     await expect(page.locator('#bounce-control option')).toHaveText(['bounce.0', 'bounce.25', 'bounce.50']);
     await page.selectOption('#bounce-control', 'bounce.0');
     await expect(page).toHaveURL(/bounce=0/);
-    await expect(page.locator('.lab-token-row', { hasText: 'bounce.0' })).toHaveAttribute('title', /Used by: .*the global bounce setting/);
-    await expect(page.locator('.lab-token-row', { hasText: 'bounce.25' })).toHaveAttribute('title', /Not used yet/);
+    await expect(page.locator('.lab-token-row', { hasText: 'bounce-0' })).toHaveAttribute('title', /Used by: .*the global bounce setting/);
+    await expect(page.locator('.lab-token-row', { hasText: 'bounce-25' })).toHaveAttribute('title', /Not used yet/);
 
     await page.click('.lab-nav__btn[data-view="component"]');
     await expect(playbackRow(page)).toContainText('Spring · bounce 0 (bounce.0), 220ms (authored as easing; bounce is the global setting)');

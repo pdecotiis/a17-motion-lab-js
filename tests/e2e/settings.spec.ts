@@ -85,7 +85,7 @@ test.describe('Settings', () => {
     await page.click('#settings-close');
     await page.goto('/?view=tokens');
     await page.click('.lab-tokens-subtab:has-text("Distance")');
-    await expect(page.locator('.lab-token-name')).toHaveText(['4', '8', '12', '16', '24', '32', '40', '48'].map(n => `distance.${n}`));
+    await expect(page.locator('.lab-token-name')).toHaveText(['4', '8', '12', '16', '24', '32', '40', '48'].map(n => `distance-${n}`));
   });
 
   test('the changes can be folded away, since the summary is often enough', async ({ page }) => {
@@ -172,6 +172,6 @@ test.describe('Settings: apply a scale', () => {
     expect(await res.json()).toMatchObject({ scale: 'major-third', dryRun: true, renamed: 29 });
     await page.goto('/?view=tokens');
     await page.click('.lab-tokens-subtab:has-text("Distance")');
-    await expect(page.locator('.lab-token-name')).toHaveText(['4', '8', '12', '16', '24', '32', '40', '48'].map(n => `distance.${n}`));
+    await expect(page.locator('.lab-token-name')).toHaveText(['4', '8', '12', '16', '24', '32', '40', '48'].map(n => `distance-${n}`));
   });
 });

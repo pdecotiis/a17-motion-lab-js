@@ -50,11 +50,11 @@ test.describe('Page view', () => {
     await page.click('.lab-tokens-subtab:has-text("Delay")');
     await expect(page.locator('#stagger-control')).toHaveValue('delay.70');
     await expect(page.locator('#stagger-control option')).toHaveText(['delay.40', 'delay.70', 'delay.120']);
-    await expect(page.locator('.lab-token-row', { hasText: 'delay.70' })).toHaveAttribute('title', /Used by: .*the default page stagger/);
+    await expect(page.locator('.lab-token-row', { hasText: 'delay-70' })).toHaveAttribute('title', /Used by: .*the default page stagger/);
     await page.selectOption('#stagger-control', 'delay.120');
     await expect(page).toHaveURL(/stagger=120/);
-    await expect(page.locator('.lab-token-row', { hasText: 'delay.120' })).toHaveAttribute('title', /the default page stagger/);
-    await expect(page.locator('.lab-token-row', { hasText: 'delay.70' })).not.toHaveAttribute('title', /the default page stagger/);
+    await expect(page.locator('.lab-token-row', { hasText: 'delay-120' })).toHaveAttribute('title', /the default page stagger/);
+    await expect(page.locator('.lab-token-row', { hasText: 'delay-70' })).not.toHaveAttribute('title', /the default page stagger/);
 
     await page.click('.lab-nav__btn[data-view="page"]');
     await expect(page.locator('#stagger-select option').first()).toHaveText('Default (delay.120)');

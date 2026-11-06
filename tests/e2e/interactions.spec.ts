@@ -159,7 +159,7 @@ test.describe('Interactions: tokens and exports', () => {
 
   test('Tokens used lists each transition\'s tokens and where in the states they sit', async ({ page }) => {
     await page.goto(url('css'));
-    await expect(chips(page).locator('code')).toContainText(['duration.560', 'easing.expressive-entrance', 'duration.300', 'easing.productive-exit', 'distance.48']);
+    await expect(chips(page).locator('code')).toContainText(['duration-560', 'expressive-entrance', 'duration-300', 'productive-exit', 'distance-48']);
     await expect(page.locator('#tokens-used-list')).toContainText('into open duration');
     await expect(page.locator('#tokens-used-list')).toContainText('closed transform');
     await expect(page.locator('#tokens-used-list')).not.toContainText('Pairing');
@@ -167,9 +167,9 @@ test.describe('Interactions: tokens and exports', () => {
 
   test('under Motion no easing is listed, and each transition lists its bounce token', async ({ page }) => {
     await page.goto(url('motion'));
-    await expect(page.locator('#tokens-used-list')).toContainText('bounce.50');
+    await expect(page.locator('#tokens-used-list')).toContainText('bounce-50');
     await expect(page.locator('#tokens-used-list')).toContainText('into closed bounce');
-    await expect(page.locator('#tokens-used-list')).not.toContainText('easing.');
+    await expect(page.locator('#tokens-used-list')).not.toContainText(/(productive|expressive)-/);
   });
 
   test('the code panel gives CSS transitions, and GSAP and Motion functions that go to a state', async ({ page }) => {
