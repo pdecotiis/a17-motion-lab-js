@@ -1,0 +1,9 @@
+{
+  "id": "home",
+  "title": "Home",
+  "components": [
+    { "id": "card-1", "component": "card", "layout": "full" },
+    { "id": "card-2", "component": "card", "layout": "full" },
+    { "id": "card-3", "component": "card", "layout": "full" }
+  ]
+}

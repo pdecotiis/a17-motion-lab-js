@@ -1,0 +1,11 @@
+{
+  "id": "v2",
+  "label": "Second card lifts, slower stagger",
+  "motionMap": {
+    "card-1": "v1",
+    "card-2": "v2",
+    "card-3": "v1"
+  },
+  "stagger": "delay.120",
+  "forkedFrom": "v1"
+}
