@@ -4,9 +4,9 @@ import { setRuntime } from './lab.js';
 // The top navigation: the Library is home and the way into a component, there is no Component item, and a component
 // has a breadcrumb back. Runs on the lab's own components, so it holds in a project as well as in the template.
 test.describe('Navigation', () => {
-  test('the items are Library, Page, Tokens and Presets: there is no Component item', async ({ page }) => {
+  test('the items are Tokens, Components, Page and Presets: there is no Component item', async ({ page }) => {
     await page.goto('/?view=library');
-    await expect(page.locator('.lab-nav__btn')).toHaveText(['Library', 'Page', 'Tokens', 'Presets']);
+    await expect(page.locator('.lab-nav__btn')).toHaveText(['Tokens', 'Components', 'Page', 'Presets']);
     await expect(page.locator('.lab-nav__btn[data-view="component"]')).toHaveCount(0);
   });
 
@@ -32,12 +32,12 @@ test.describe('Navigation', () => {
   });
 
   test.describe('the breadcrumb', () => {
-    test('says Library / <component>, and the current page is not a link', async ({ page }) => {
+    test('says Components / <component>, and the current page is not a link', async ({ page }) => {
       await page.goto('/?view=library');
       const name = await page.locator('.lab-library-card').first().getAttribute('data-component');
       await page.locator('.lab-library-card').first().click();
       const crumb = page.locator('nav[aria-label="Breadcrumb"]');
-      await expect(crumb.locator('li')).toHaveText(['Library', name!]);
+      await expect(crumb.locator('li')).toHaveText(['Components', name!]);
       await expect(crumb.locator('a')).toHaveCount(1);
       await expect(crumb.locator('[aria-current="page"]')).toHaveText(name!);
     });
@@ -263,7 +263,7 @@ test.describe('Title and project name', () => {
 
   test('the tab title says what is on screen, then the brand', async ({ page }) => {
     await page.goto('/?view=library');
-    await expect(page).toHaveTitle(/^Library – .*Motion Lab$/);
+    await expect(page).toHaveTitle(/^Components – .*Motion Lab$/);
     await page.click('a.lab-nav__btn[data-view="tokens"]');
     await expect(page).toHaveTitle(/^Tokens – .*Motion Lab$/);
     await page.click('a.lab-nav__btn[data-view="presets"]');
@@ -278,7 +278,7 @@ test.describe('Title and project name', () => {
     await page.locator('.lab-library-card').first().click();
     await expect(page).toHaveTitle(new RegExp(`^${name} – .*Motion Lab$`));
     await page.click('#breadcrumb-library');
-    await expect(page).toHaveTitle(/^Library – /);
+    await expect(page).toHaveTitle(/^Components – /);
   });
 });
 
@@ -354,13 +354,13 @@ test.describe('Top bar of the component and page views', () => {
     await expect.poll(() => page.locator('[data-motion-target]').first().evaluate(el => el.getAnimations().length)).toBeGreaterThan(0);
   });
 
-  test('the page view has the same bar: the page name on the left, speed and Replay All on the right, above the page and the rail', async ({ page }) => {
+  test('the page view has the same bar: the page name on the left, speed and Replay All on the right, above the page, with the controls under it', async ({ page }) => {
     await page.goto('/?view=page');
     const bar = await box(page, '.lab-viewbar');
     const stage = await box(page, '#page-stage');
     const rail = await box(page, '.lab-sidebar');
     expect(bar.y + bar.height).toBeLessThanOrEqual(stage.y);
-    expect(Math.abs(stage.y - rail.y)).toBeLessThanOrEqual(1);
+    expect(rail.y).toBeGreaterThanOrEqual(stage.y + stage.height - 1);   // the controls sit under the page window
     await expect(page.locator('#viewbar-title')).not.toBeEmpty();
     await expect(page.locator('.lab-viewbar #replay-all-btn')).toHaveText('Replay All');
     await expect(page.locator('.lab-sidebar #replay-all-btn')).toHaveCount(0);
