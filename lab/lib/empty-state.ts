@@ -18,14 +18,14 @@ export interface EmptyState {
 }
 
 // Each request does a different job: bring a design in, start from a whole page, or learn how it works. A frame is picked the same way
-// everywhere (the one selected in Figma, or a pasted link), so that is said inside the request, not as a separate one.
+// everywhere (a pasted link: Claude reads Figma by link, not by what is selected), so that is said inside the request, not as a separate one.
 export const EMPTY_STATES: Record<EmptyKind, EmptyState> = {
   components: {
     title: 'Nothing in the lab yet',
     lead: 'Motion Lab works through Claude. Ask in the chat beside this window, in your own words. Three ways to start:',
     prompts: [
-      { label: 'Bring in a design', text: 'Import my Figma frame as a component. Use the one I have selected, or this link: (paste it here)' },
-      { label: 'Start from a whole page', text: 'Import a whole Figma page as components and a page together. Use the frame I have selected, or this link: (paste it here)' },
+      { label: 'Bring in a design', text: 'Import my Figma frame as a component. Here is the link to the frame (in Figma, select it and press ⌘L): (paste it here)' },
+      { label: 'Start from a whole page', text: 'Import a whole Figma page as components and a page together. Here is the link to the frame (in Figma, select it and press ⌘L): (paste it here)' },
       { label: 'Learn how it works', text: 'Walk me through how Motion Lab works, using a small example I can try.' },
     ],
     tip: 'Select a frame in Figma first so Claude can see it. Nothing is changed in your Figma file.',
@@ -34,7 +34,7 @@ export const EMPTY_STATES: Record<EmptyKind, EmptyState> = {
     title: 'No pages yet',
     lead: 'A page puts your components in order, so you can review the motion of a whole page. Ask Claude in the chat beside this window. Three ways to start:',
     prompts: [
-      { label: 'Bring in a design', text: 'Import my Figma page as a page, with its sections as components. Use the frame I have selected, or this link: (paste it here)' },
+      { label: 'Bring in a design', text: 'Import my Figma page as a page, with its sections as components. Here is the link to the frame (in Figma, select it and press ⌘L): (paste it here)' },
       { label: 'Use what is already here', text: 'Make a page from the components that are already in the lab, in this order: (list them)' },
       { label: 'Learn how it works', text: 'Explain how a page, its versions and Compare work, using a small example I can try.' },
     ],

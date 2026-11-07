@@ -225,7 +225,7 @@ The template ships sample content so its own feature tests have something to run
 
 ## Figma import
 
-Components can be imported from a Figma frame instead of hand-built. The Figma MCP (design context, variables, screenshot, assets) is driven by the agent; the deterministic, file-writing half lives in `scripts/figma-import/lib.ts`. The agent writes a manifest JSON and runs `npm run figma:import -- <manifest.json>` (see the header of `scripts/figma-import/cli.ts` for the manifest shape).
+Components can be imported from a Figma frame instead of hand-built. The Figma MCP (design context, variables, screenshot, assets) is driven by the agent; the deterministic, file-writing half lives in `scripts/figma-import/lib.ts`. **Figma is read through the official Figma MCP/connector, always by link**: the designer pastes a frame link (⌘L in Figma; the `node-id` is in it), never "whatever is selected", which the connector can't see reliably. `get_variable_defs` returns only the variables one node uses, so a whole variable collection (the Motion tokens, a project's variables) is read or written with a `use_figma` script (`figma.variables.getLocalVariableCollectionsAsync()`). The agent writes a manifest JSON and runs `npm run figma:import -- <manifest.json>` (see the header of `scripts/figma-import/cli.ts` for the manifest shape).
 
 ### Import rules
 
