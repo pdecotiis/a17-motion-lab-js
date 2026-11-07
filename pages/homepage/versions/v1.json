@@ -3,7 +3,7 @@
   "label": "Default",
   "motionMap": {
     "menu": "v1",
-    "header": "v1",
+    "header": "v2",
     "page-header-title": "v1",
     "grid-container-mosaic-routing": "v1",
     "card-feature": "v1",
