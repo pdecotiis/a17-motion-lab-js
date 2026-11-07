@@ -32,7 +32,7 @@ You need three things. If one is missing, ask the person above.
    - **Node**, the engine the lab runs on. Claude installs the right version.
    - **The project's packages**, a download of a few hundred MB.
    - **Test browsers**, another few hundred MB. Claude does this early so you're not stopped at the end.
-5. The lab opens in the preview pane. If it does, you're done.
+5. The lab opens in the preview pane, at `motionlab.localhost` (a private address that only your own computer can reach), with a 🧪 in the tab. If it does, you're done.
 
 ## Every day
 

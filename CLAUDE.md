@@ -342,7 +342,7 @@ When a designer wants a standard entrance ("the eyebrow, title and text rise in 
 | `npm run figma:import-page -- <manifest.json>` | Write a page (and its first page version) from a Figma page frame whose sections are already imported |
 | `npm run spec -- <component> [version] [--format gsap\|motion\|all]` | Export motion.css, tokens.css and spec.md (plus GSAP or Motion code) for a developer; the project's shared presets go once to `export/presets/` (`npm run spec -- --presets` writes just those) |
 | `npm run tokens:scale -- <kind> <scale>` or `-- --all <scale>` | Regenerate distance, duration, delay, opacity and/or scale from a scale (`--dry-run` to preview) |
-| `npm run dev`        | Start Vite dev server (http://localhost:5173)   |
+| `npm run dev`        | Start Vite dev server (http://localhost:5173, also http://motionlab.localhost:5173: any `*.localhost` name reaches your own computer with no setup, which `.dev` or `.lab` would not; the desktop preview opens the `.localhost` one) |
 | `npm run build`      | Build to `dist/` with relative paths            |
 | `npm run typecheck`  | TypeScript type check (no emit)                 |
 | `npm run test`       | Run Vitest unit tests                           |
