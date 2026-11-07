@@ -74,7 +74,7 @@ Then `cd` into the project and read `CLAUDE.md` once: from here on it is your ru
 
 ## 5. Node and the project's packages
 
-1. **Node.** `.nvmrc` says which version. If `nvm` is missing, ask, then install it with the official script from `https://github.com/nvm-sh/nvm` (the install command in its README), and load it in this shell: `source ~/.nvm/nvm.sh`. Then `nvm install` (reads `.nvmrc`) and `nvm use`. Confirm with `node -v`.
+1. **Node.** `.nvmrc` says which version. If `nvm` is missing, ask, then install it with the official script from `https://github.com/nvm-sh/nvm` (the install command in its README), and load it in this shell: `source ~/.nvm/nvm.sh`. Then `nvm install` (reads `.nvmrc`) and `nvm use`, and make it the default for new windows so the lab's preview and later sessions find it: `nvm alias default "$(cat .nvmrc)"`. Confirm with `node -v`.
 2. **Packages.** Ask, then `npm install` (a few hundred MB; it also switches on the merge protection for the token files).
 3. **Test browsers.** Ask, then `npx playwright install chromium webkit` (a few hundred MB, once per computer). Do it now: they are needed before work is sent for review, and it is worse to stop at the end.
 
