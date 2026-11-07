@@ -14,6 +14,7 @@ test.describe('The empty lab', () => {
     await expect(page.locator('.lab-ask__title')).toHaveText('Nothing in the lab yet');
     await expect(page.locator('.lab-ask__lead')).toContainText('Claude');
     await expect(page.locator('.lab-ask__prompt')).toHaveCount(3);
+    await expect(page.locator('.lab-ask__label')).toHaveText(['Bring in a design', 'Start from a whole page', 'Learn how it works']);
     await expect(page.locator('.lab-ask__copy').first()).toHaveText('Copy');
   });
 
@@ -28,7 +29,7 @@ test.describe('The empty lab', () => {
   test('the pages one asks for a page frame', async ({ page }) => {
     await draw(page, 'pages');
     await expect(page.locator('.lab-ask__title')).toHaveText('No pages yet');
-    await expect(page.locator('.lab-ask__prompt')).toHaveCount(2);
+    await expect(page.locator('.lab-ask__prompt')).toHaveCount(3);
   });
 
   test('uses the lab\'s own look: the card is bordered, and nothing overflows the window', async ({ page }) => {

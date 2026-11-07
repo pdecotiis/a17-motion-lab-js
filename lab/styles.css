@@ -760,6 +760,8 @@ html, body {
 .lab-ask__lead { margin: 0 0 24px; color: var(--color-text-muted); }
 .lab-ask__prompts { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .lab-ask__prompt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
-.lab-ask__text { flex: 1; margin: 0; }
+.lab-ask__words { flex: 1; min-width: 0; }
+.lab-ask__label { margin: 0 0 2px; font-size: var(--lab-text-small); font-weight: 600; color: var(--color-text-muted); }
+.lab-ask__text { margin: 0; }
 .lab-ask__copy { width: auto; flex: none; margin: 0; }
 .lab-ask__tip { margin: 16px 0 0; font-size: var(--lab-text-small); color: var(--color-text-muted); }
