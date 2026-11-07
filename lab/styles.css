@@ -448,7 +448,8 @@ html, body {
    edges). The detail panels sit to the right of the window when the lab window is wide enough for both, and under it, in a row, when it is not,
    so a page as wide as a browser window still shows whole at its real size. */
 .lab-page-layout--single { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: start; gap: 16px; }
-.lab-page-layout--single .lab-page-stage { flex: 0 1 auto; margin-inline: -16px 0; max-width: calc(100% + 16px); }
+.lab-page-layout--single .lab-page-stage { flex: 0 1 auto; margin-inline: -16px; max-width: calc(100% + 32px); }
+.lab-page-layout--beside .lab-page-stage { margin-right: 0; max-width: calc(100% + 16px); }
 .lab-page-layout--single .lab-page-viewport { padding: 0; border: 0; border-radius: 0; }
 .lab-page-layout--single .lab-sidebar { flex: 1 1 340px; min-width: min(100%, 320px); display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; overflow-y: visible; }
 .lab-page-layout--beside .lab-sidebar { grid-template-columns: minmax(0, 1fr); max-width: 440px; }
