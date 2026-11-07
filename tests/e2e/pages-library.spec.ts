@@ -13,6 +13,10 @@ test.describe('the shared header and the Pages library', () => {
       const box = await page.locator('.lab-hero').boundingBox();
       expect(Math.round(box!.height)).toBe(160);
       expect(Math.round(box!.x)).toBe(0);
+      // The row under the header is the action bar: the same height and full width on every view.
+      const bar = await page.locator('.lab-actionbar').boundingBox();
+      expect(Math.round(bar!.height)).toBe(72);
+      expect(Math.round(bar!.x)).toBe(0);
     }
   });
 

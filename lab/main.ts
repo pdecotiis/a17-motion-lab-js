@@ -403,13 +403,19 @@ function viewBarHtml(replay: { id: string; label: string }, leading = '', extra 
 
 // The page header the top-level views share (Components, Pages, Presets, Tokens): the view's name large, on the page
 // colour, with a rule under it. Whatever the view has (tabs, a toolbar) follows it.
-function heroEl(title: string): HTMLElement {
+function heroEl(title: string, description?: string): HTMLElement {
   const hero = document.createElement('div');
   hero.className = 'lab-hero';
   const h1 = document.createElement('h1');
   h1.className = 'lab-hero__title';
   h1.textContent = title;
   hero.appendChild(h1);
+  if (description) {
+    const p = document.createElement('p');
+    p.className = 'lab-hero__text';
+    p.textContent = description;
+    hero.appendChild(p);
+  }
   return hero;
 }
 
@@ -1833,7 +1839,7 @@ function renderTokensView(): void {
   // The kit's page header: a black bar titled Tokens, then the kinds as pills tabs on a gray band.
   const hero = heroEl('Tokens');
   const subtabs = document.createElement('div');
-  subtabs.className = 'lab-tokens-subtabs';
+  subtabs.className = 'lab-tokens-subtabs lab-actionbar';
   subtabs.setAttribute('role', 'tablist');
   const tokenSetting = document.createElement('div');
   tokenSetting.className = 'lab-token-setting';
@@ -1935,15 +1941,12 @@ function renderPresetsView(): void {
 
   // The same top bar as the other views: what this page is on the left, the page's one primary action on the right.
   const intro = document.createElement('div');
-  intro.className = 'lab-viewbar lab-presets__intro';
-  const text = document.createElement('p');
-  text.className = 'lab-presets__lead';
-  text.textContent = 'Named, standard entrances built from the existing tokens, defined in tokens/presets.json. A component writes its entrance as an element, a preset and a delay.';
+  intro.className = 'lab-actionbar lab-presets__intro';
   const replayAll = document.createElement('button');
   replayAll.className = 'lab-btn lab-btn--primary';
   replayAll.id = 'presets-replay-all';
   replayAll.textContent = 'Replay all';
-  intro.append(text, replayAll);
+  intro.append(replayAll);
 
   const grid = document.createElement('div');
   grid.className = 'lab-presets__grid';
@@ -1993,8 +1996,8 @@ function renderPresetsView(): void {
 
   const body = document.createElement('div');
   body.className = 'lab-view-body';
-  body.append(intro, grid);
-  main.append(heroEl('Presets'), body);
+  body.append(grid);
+  main.append(heroEl('Presets', 'Named, standard entrances built from the existing tokens, defined in tokens/presets.json. A component writes its entrance as an element, a preset and a delay.'), intro, body);
   const playAll = (): void => targets.forEach(({ name, target }) => animateElement(target, presetVersion(name)));
   replayAll.addEventListener('click', playAll);
   playAll();
@@ -2054,7 +2057,7 @@ function renderLibraryView(params: URLSearchParams): void {
   const filter = libraryFilterFromParams(params);
 
   const toolbar = document.createElement('div');
-  toolbar.className = 'lab-library__toolbar';
+  toolbar.className = 'lab-library__toolbar lab-actionbar';
   const search = document.createElement('input');
   search.type = 'search';
   search.id = 'library-search';
@@ -2080,8 +2083,8 @@ function renderLibraryView(params: URLSearchParams): void {
   toolbar.append(filters, meta);
   const body = document.createElement('div');
   body.className = 'lab-view-body';
-  body.append(toolbar, grid);
-  main.append(heroEl('Components'), body);
+  body.append(grid);
+  main.append(heroEl('Components'), toolbar, body);
 
   search.addEventListener('input', () => {
     const sp = new URLSearchParams(window.location.search);
@@ -2173,7 +2176,7 @@ function renderPagesView(params: URLSearchParams): void {
   main.className = 'lab-main lab-main--pages';
 
   const toolbar = document.createElement('div');
-  toolbar.className = 'lab-library__toolbar';
+  toolbar.className = 'lab-library__toolbar lab-actionbar';
   const search = document.createElement('input');
   search.type = 'search';
   search.id = 'pages-search';
@@ -2196,8 +2199,8 @@ function renderPagesView(params: URLSearchParams): void {
   grid.id = 'pages-grid';
   const body = document.createElement('div');
   body.className = 'lab-view-body';
-  body.append(toolbar, grid);
-  main.append(heroEl('Pages'), body);
+  body.append(grid);
+  main.append(heroEl('Pages'), toolbar, body);
 
   search.addEventListener('input', () => {
     const sp = new URLSearchParams(window.location.search);
