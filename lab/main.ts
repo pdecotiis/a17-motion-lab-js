@@ -1614,6 +1614,7 @@ function renderTokensView(): void {
 
   // The longest duration: the full width of a duration's track, so the bars read against each other.
   const longestDuration = Math.max(...tokensOf('duration').map(t => numeric(t.value)));
+  const longestDistance = Math.max(...tokensOf('distance').map(t => numeric(t.value)));
 
   // An example for a value that plays on click: a duration fills its track over that time (the bar's length
   // is the duration, against the longest), a distance moves a square across that many pixels.
@@ -1638,11 +1639,15 @@ function renderTokensView(): void {
       track.appendChild(mover);
       wrap.appendChild(track);
     } else {
+      // A track as long as the longest distance, behind the square and where it goes, as the duration example has.
+      const track = document.createElement('div');
+      track.className = 'lab-dist-track';
+      track.style.width = `${longestDistance + 12}px`;
       const ghost = document.createElement('div');
       ghost.className = 'lab-dist-ghost';
       ghost.style.left = `${amount}px`;
       mover.classList.add('lab-dist-box');
-      wrap.append(ghost, mover);
+      wrap.append(track, ghost, mover);
     }
     wrap.addEventListener('click', play);
     return wrap;
