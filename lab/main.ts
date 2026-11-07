@@ -34,6 +34,7 @@ import type { Json } from './lib/scale-apply.js';
 import { defaultStaggerOf, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken } from './lib/stagger.js';
 import { buildExportCode, EXPORT_FORMATS, EXPORT_LABELS, type ExportFormat } from './lib/export-code.js';
 import { buildLibraryEntries, libraryFilterFromParams } from './lib/library.js';
+import { renderEmptyState } from './lib/empty-state.js';
 import { bezierCurve, springCurve, curvePath, curveYAt, toX, toY, type Curve } from './lib/curve.js';
 // The lab's own fonts (the Vitrine kit's Inter and IBM Plex Mono), open source and bundled.
 import '@fontsource-variable/inter/wght.css';
@@ -2102,11 +2103,13 @@ function route(): void {
   activeAnimations.forEach(handle => handle.cancel());
   activeAnimations = [];
 
+  const noComponents = Object.keys(motionModules).length === 0;
+  const noPages = Object.keys(pageModules).length === 0;
   // The tab says what is on screen: "card – Jane Street · Motion Lab".
   const what: Record<string, string> = {
     library: 'Components', tokens: 'Tokens', presets: 'Presets',
-    component: params.get('component') ?? defaultComponentName(),
-    page: params.get('page') ?? defaultPageName(),
+    component: noComponents ? 'Components' : params.get('component') ?? defaultComponentName(),
+    page: noPages ? 'Pages' : params.get('page') ?? defaultPageName(),
     frame: `${params.get('component') ?? defaultComponentName()} frame`,
   };
   document.title = titleFor(what[view] ?? '', projectName);
@@ -2117,7 +2120,12 @@ function route(): void {
     btn.classList.toggle('lab-nav__btn--active', isActive);
   });
 
-  if (view === 'frame') {
+  // A project with nothing in it yet says what to ask Claude, instead of a blank or broken screen.
+  if (noComponents && (view === 'library' || view === 'component')) {
+    renderEmptyState(document.getElementById('main-content')!, 'components');
+  } else if (noPages && view === 'page') {
+    renderEmptyState(document.getElementById('main-content')!, 'pages');
+  } else if (view === 'frame') {
     renderFrameView(params);
   } else if (view === 'page') {
     renderPageView(params);
