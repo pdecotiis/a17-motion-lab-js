@@ -28,7 +28,7 @@ export const EMPTY_STATES: Record<EmptyKind, EmptyState> = {
       { label: 'Start from a whole page', text: 'Import a whole Figma page as components and a page together. Here is the link to the frame (in Figma, select it and press ⌘L): (paste it here)' },
       { label: 'Learn how it works', text: 'Walk me through how Motion Lab works, using a small example I can try.' },
     ],
-    tip: 'Select a frame in Figma first so Claude can see it. Nothing is changed in your Figma file.',
+    tip: 'In Figma, select the frame and press ⌘L to copy its link. Nothing is changed in your Figma file.',
   },
   pages: {
     title: 'No pages yet',
