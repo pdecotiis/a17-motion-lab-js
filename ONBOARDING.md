@@ -22,7 +22,7 @@ You need three things. If one is missing, ask the person above.
 
 1. In your Documents folder, make an empty folder called **Motion Lab**.
 2. Open the Claude desktop app, go to the **Code** tab, and open that folder.
-3. If your Claude has the **Motion Lab setup** skill (your admin will say), just type `/motion-lab-setup` and give it the address from the table above. Otherwise paste this and send it, filling in the address:
+3. If your Claude has the **Motion Lab setup** skill (your admin will say), just type `/motion-lab:setup` and give it the address from the table above. Otherwise paste this and send it, filling in the address:
 
    > Set up Motion Lab for me. The project's code is at **\<the address\>**. Put it in this folder, check my computer is ready, fix anything that is missing, and open the lab. I'm not technical, so tell me what you're doing in plain words and ask before you install anything.
 

@@ -1,0 +1,6 @@
+{
+  "name": "motion-lab",
+  "version": "0.1.0",
+  "description": "Gets a designer's Mac from nothing to Motion Lab open: developer tools, signing in to the code host, cloning the project, Node, packages, test browsers. Type /motion-lab:setup.",
+  "author": { "name": "AREA 17" }
+}
