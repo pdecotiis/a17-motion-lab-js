@@ -4,9 +4,9 @@ import { setRuntime } from './lab.js';
 // The top navigation: the Library is home and the way into a component, there is no Component item, and a component
 // has a breadcrumb back. Runs on the lab's own components, so it holds in a project as well as in the template.
 test.describe('Navigation', () => {
-  test('the items are Tokens, Components, Page and Presets: there is no Component item', async ({ page }) => {
+  test('the items are Tokens, Components, Pages and Presets: there is no Component item', async ({ page }) => {
     await page.goto('/?view=library');
-    await expect(page.locator('.lab-nav__btn')).toHaveText(['Tokens', 'Components', 'Page', 'Presets']);
+    await expect(page.locator('.lab-nav__btn')).toHaveText(['Tokens', 'Components', 'Pages', 'Presets']);
     await expect(page.locator('.lab-nav__btn[data-view="component"]')).toHaveCount(0);
   });
 
