@@ -520,24 +520,26 @@ html, body {
    hairline borders, 48px rows and the token name as a mono label. */
 .lab-main--tokens { padding: 0; background: var(--color-bg); }
 .lab-tokens-view { display: flex; flex-direction: column; }
-.lab-tokens-hero { background: var(--color-bar); color: var(--color-bar-text); padding: 16px 20px; min-height: 160px; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; }
-.lab-tokens-title { margin: 0;     text-transform: capitalize; font: var(--type-display); }
-.lab-tokens-subtabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.lab-tokens-hero { background: var(--color-bar); color: var(--color-bar-text); padding: 16px 20px; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end; }
+.lab-tokens-title { margin: 0; font: var(--type-display); }
+.lab-tokens-subtabs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 20px; background: var(--color-surface); border-bottom: 1px solid var(--color-subtle); }
 .lab-tokens-subtab {
-  height: var(--control-height);
-  padding: 0 16px;
+  padding: 8px 12px;
   border: none;
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--color-bar-text);
+  background: transparent;
+  color: var(--color-text-muted);
   cursor: pointer;
-  font: inherit;
+  font: var(--type-ui-2);
+  text-transform: capitalize;
   transition: background 120ms, color 120ms;
 }
-.lab-tokens-subtab:hover { background: rgba(255, 255, 255, 0.14); }
-.lab-tokens-subtab--active { background: var(--color-bar-text); color: var(--color-bar); border-color: var(--color-bar-text); }
-.lab-tokens-subtab:focus-visible { outline: 2px solid var(--color-bar-text); outline-offset: 2px; }
-.lab-token-setting { padding: 16px 20px 0; }
+.lab-tokens-subtab:hover { background: var(--color-tint); color: var(--color-text); }
+.lab-tokens-subtab--active, .lab-tokens-subtab--active:hover { background: var(--color-card); color: var(--color-text); }
+.lab-tokens-subtab:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.lab-token-setting { padding: 16px 20px; background: var(--color-surface); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.lab-token-setting:empty { display: none; }
+.lab-token-setting .lab-control-label { flex-direction: column; align-items: flex-start; gap: 8px; font: var(--type-ui-2); color: var(--color-text); }
 .lab-tokens-table-wrap { display: flex; flex-direction: column; }
 .lab-tokens-table, .lab-mt-table { width: 100%; border-collapse: collapse; font: var(--type-ui-2); }
 .lab-tokens-table { table-layout: fixed; background: var(--color-surface); }
@@ -661,8 +663,7 @@ html, body {
 .lab-segmented { display: inline-flex; }
 .lab-tokens-heading { margin: 20px 0 8px; font: var(--type-ui-2-strong); }
 
-.lab-token-setting { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
-.lab-token-setting__hint { color: var(--color-text-muted); font: var(--type-caption); }
+.lab-token-setting__hint { max-width: 360px; color: var(--color-text-muted); font: var(--type-ui-2); }
 
 .lab-scale-panel { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 24px; }
 .lab-scale-panel p { margin: 0; }
