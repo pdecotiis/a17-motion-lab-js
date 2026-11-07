@@ -169,18 +169,21 @@ test.describe('Presets page', () => {
   test('the names are 16px, the kit\'s large label', async ({ page }) => {
     await page.goto('/?view=presets');
     expect(await page.locator('.lab-preset__name').first().evaluate(el => getComputedStyle(el).fontSize)).toBe('16px');
-    expect(await page.locator('.lab-presets__lead').evaluate(el => getComputedStyle(el).fontSize)).toBe('16px');
+    expect(await page.locator('.lab-hero__text').evaluate(el => getComputedStyle(el).fontSize)).toBe('16px');
   });
 
-  test('the top bar has what the page is on the left and Replay all on the right, as the other views do', async ({ page }) => {
+  test('the description is in the header under the title, and the action bar has Replay all on the right', async ({ page }) => {
     await page.goto('/?view=presets');
-    const lead = (await page.locator('.lab-presets__lead').boundingBox())!;
+    const title = (await page.locator('.lab-hero__title').boundingBox())!;
+    const text = (await page.locator('.lab-hero__text').boundingBox())!;
+    expect(text.y).toBeGreaterThan(title.y);
+    const bar = (await page.locator('.lab-actionbar').boundingBox())!;
     const button = (await page.locator('#presets-replay-all').boundingBox())!;
-    expect(lead.x).toBeLessThan(button.x);
-    await expect(page.locator('.lab-viewbar')).toHaveCount(1);
+    expect(button.y).toBeGreaterThanOrEqual(bar.y);
+    expect(button.x).toBeGreaterThan(bar.width / 2);
   });
 
-  test('the cards are the kit\'s lightest gray on the white page, with an outline around the example', async ({ page }) => {
+  test('the cards are the kit\'s lightest gray on the white page, with the example on white', async ({ page }) => {
     await page.goto('/?view=presets');
     const colours = await page.evaluate(() => {
       const bg = (sel: string) => getComputedStyle(document.querySelector(sel)!).backgroundColor;
@@ -188,7 +191,7 @@ test.describe('Presets page', () => {
     });
     expect(colours.page).toBe('rgb(255, 255, 255)');
     expect(colours.card).toBe('rgb(245, 245, 245)');
-    expect(colours.outline).toBe('1px');
-    expect(colours.stage).toBe('rgba(0, 0, 0, 0)');
+    expect(colours.outline).toBe('0px');
+    expect(colours.stage).toBe('rgb(255, 255, 255)');
   });
 });
