@@ -10,7 +10,7 @@ describe('icons', () => {
     expect(markup).toContain('aria-hidden="true"');
     expect(markup).not.toMatch(/#[0-9a-f]{3,6}/i);
   });
-  it('has the four the header and Settings use', () => {
-    expect(Object.keys(ICONS).sort()).toEqual(['close', 'moon', 'settings', 'sun']);
+  it('has the two the header and Settings use', () => {
+    expect(Object.keys(ICONS).sort()).toEqual(['close', 'settings']);
   });
 });

@@ -244,23 +244,19 @@ if (reducedMotion) notice.classList.remove('lab-notice--hidden');
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 
-// The button shows what it will switch to: the moon in the light theme, the sun in the dark one.
-const themeToggle = document.getElementById('theme-toggle')!;
-function renderThemeToggle(): void {
-  themeToggle.innerHTML = currentTheme === 'dark' ? ICONS.sun : ICONS.moon;
-  const label = currentTheme === 'dark' ? 'Switch to the light theme' : 'Switch to the dark theme';
-  themeToggle.setAttribute('aria-label', label);
-  themeToggle.title = label;
+// Light or dark, a switch in Settings (the header has only the gear and the avatars).
+const themeButtons = { light: document.getElementById('theme-light')!, dark: document.getElementById('theme-dark')! };
+function applyTheme(theme: 'light' | 'dark'): void {
+  currentTheme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  themeButtons.light.setAttribute('aria-pressed', String(theme === 'light'));
+  themeButtons.dark.setAttribute('aria-pressed', String(theme === 'dark'));
 }
-renderThemeToggle();
-themeToggle.addEventListener('click', () => {
-  currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', currentTheme);
-  renderThemeToggle();
-});
+themeButtons.light.addEventListener('click', () => applyTheme('light'));
+themeButtons.dark.addEventListener('click', () => applyTheme('dark'));
 
 // ── Settings ───────────────────────────────────────────────────────────────
-// The gear beside the theme toggle opens the settings: things you change rarely. Today, the Global
+// The gear in the header opens the settings: things you change rarely. The theme, the motion library and the Global
 // scale (how the distance, duration, delay, opacity and scale tokens get their values).
 
 const settingsDialog = document.getElementById('settings-dialog') as HTMLDialogElement;

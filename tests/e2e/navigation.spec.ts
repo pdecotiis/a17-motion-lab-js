@@ -110,7 +110,7 @@ test.describe('Header controls look like the kit\'s buttons', () => {
 
   test('the speed dropdown and the icon buttons are 40px, the kit\'s height, with 8px corners', async ({ page }) => {
     await page.goto('/?view=component');
-    for (const selector of ['#speed-control', '#settings-btn', '#theme-toggle']) {
+    for (const selector of ['#speed-control', '#settings-btn']) {
       expect((await style(page, selector)).height, selector).toBe(40);
     }
     expect((await style(page, '#speed-control')).radius).toBe('8px');
@@ -126,7 +126,8 @@ test.describe('Header controls look like the kit\'s buttons', () => {
 
   test('in the dark theme the current page is a light-on-dark gray, and the one primary button is the light one', async ({ page }) => {
     await page.goto('/?view=component');
-    await page.click('#theme-toggle');
+    await page.click('#settings-btn');
+    await page.click('#theme-dark');
     await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ background: 'rgb(29, 29, 29)', color: 'rgb(245, 245, 245)' });
     await expect.poll(() => style(page, '#replay-btn')).toMatchObject({ background: 'rgb(245, 245, 245)', color: 'rgb(23, 23, 23)' });
   });
@@ -291,25 +292,26 @@ test.describe('Title and project name', () => {
 
 // The header's icons are SVG line icons in the button's colour, not text glyphs.
 test.describe('Icons', () => {
-  test('Settings, the theme toggle and the dialog close button each hold an SVG icon, and no text', async ({ page }) => {
+  test('Settings and the dialog close button each hold an SVG icon, and no text', async ({ page }) => {
     await page.goto('/?view=library');
-    for (const id of ['#settings-btn', '#theme-toggle', '#settings-close']) {
+    for (const id of ['#settings-btn', '#settings-close']) {
       await expect(page.locator(`${id} svg.lab-icon`)).toHaveCount(1);
       expect((await page.locator(id).innerText()).trim(), id).toBe('');
       await expect(page.locator(id)).toHaveAttribute('aria-label', /.+/);
     }
   });
 
-  test('the theme toggle shows the theme it will switch to, and says so', async ({ page }) => {
+  test('the header has the gear and no theme button: light and dark are a switch in Settings', async ({ page }) => {
     await page.goto('/?view=library');
-    const toggle = page.locator('#theme-toggle');
-    await expect(toggle).toHaveAttribute('aria-label', 'Switch to the dark theme');
-    const moon = await toggle.innerHTML();
-    await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-label', 'Switch to the light theme');
-    expect(await toggle.innerHTML()).not.toBe(moon);
-    await toggle.click();
-    expect(await toggle.innerHTML()).toBe(moon);
+    await expect(page.locator('#theme-toggle')).toHaveCount(0);
+    await page.click('#settings-btn');
+    await expect(page.locator('#theme-light')).toHaveAttribute('aria-pressed', 'true');
+    await page.click('#theme-dark');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('#theme-dark')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#theme-light')).toHaveAttribute('aria-pressed', 'false');
+    await page.click('#theme-light');
+    await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'dark');
   });
 
   test('an icon takes the button colour, in both themes', async ({ page }) => {
@@ -317,7 +319,9 @@ test.describe('Icons', () => {
     const colours = () => page.locator('#settings-btn svg').evaluate(el => ({ stroke: getComputedStyle(el).stroke, text: getComputedStyle(el.parentElement!).color }));
     const light = await colours();
     expect(light.stroke).toBe(light.text);
-    await page.click('#theme-toggle');
+    await page.click('#settings-btn');
+    await page.click('#theme-dark');
+    await page.keyboard.press('Escape');
     await expect.poll(async () => (await colours()).stroke).not.toBe(light.stroke);
     const dark = await colours();
     expect(dark.stroke).toBe(dark.text);
@@ -408,9 +412,9 @@ test.describe('One primary button per page', () => {
     await expect.poll(() => tab.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0.08)');
   });
 
-  test('Apply in Settings is a plain button', async ({ page }) => {
+  test('Apply in Settings is the primary button', async ({ page }) => {
     await page.goto('/?view=component');
     await page.click('#settings-btn');
-    await expect(page.locator('#scale-apply-btn')).not.toHaveClass(/lab-btn--primary/);
+    await expect(page.locator('#scale-apply-btn')).toHaveClass(/lab-btn--primary/);
   });
 });

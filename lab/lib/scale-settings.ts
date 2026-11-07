@@ -1,7 +1,8 @@
 import { SCALES } from './scales.js';
+import { tokenDisplayName } from './token-names.js';
 import { previewScale, describeScaleConfig, SCALE_KINDS, type Json } from './scale-apply.js';
 
-// The Global scale setting, shown in the Settings panel (the gear beside the theme toggle). It is a
+// The Global scale setting, shown in the Settings panel (the gear in the header). It is a
 // setting you change rarely: how the distance, duration, delay, opacity and scale tokens get their
 // values. This previews a scale against the real tokens and, with the dev server, applies it.
 
@@ -55,12 +56,10 @@ function buildScaleSettings(container: HTMLElement, deps: ScaleSettingsDeps): HT
   now.className = 'lab-scale-panel__current';
 
   // The scale to preview.
-  const pick = document.createElement('label');
-  pick.className = 'lab-control-label';
-  pick.append('Preview a scale');
   const select = document.createElement('select');
   select.id = 'scale-preview-select';
   select.className = 'lab-select';
+  select.setAttribute('aria-label', 'Scale to preview');
   for (const s of SCALES) {
     const opt = document.createElement('option');
     opt.value = s.id;
@@ -72,7 +71,6 @@ function buildScaleSettings(container: HTMLElement, deps: ScaleSettingsDeps): HT
     previewScaleId = select.value;
     renderScaleSettings(container, deps);
   });
-  pick.appendChild(select);
 
   const preview = previewScale(deps.tokens, previewScaleId, deps.usedBy);
   const summary = heading(preview.error
@@ -81,20 +79,24 @@ function buildScaleSettings(container: HTMLElement, deps: ScaleSettingsDeps): HT
   summary.id = 'scale-summary';
   summary.className = 'lab-scale-panel__summary' + (preview.error ? ' lab-scale-panel__summary--error' : '');
 
-  panel.append(now, pick, summary);
+  panel.append(now, select, summary);
 
   // Each kind: the current tokens next to the ones that would take their place.
+  // The same accordion as the component view's panels (a <details>: the title is the summary).
   const changes = document.createElement('details');
-  changes.className = 'lab-scale-changes';
+  changes.className = 'lab-controls lab-accordion lab-scale-changes';
   changes.id = 'scale-changes';
   changes.open = true;
   const changesTitle = document.createElement('summary');
+  changesTitle.className = 'lab-controls__title';
   changesTitle.textContent = 'What changes';
-  changes.appendChild(changesTitle);
+  const changesBody = document.createElement('div');
+  changesBody.className = 'lab-accordion__body';
+  changes.append(changesTitle, changesBody);
   for (const kind of SCALE_KINDS) {
     const rows = preview.rows.filter(r => r.kind === kind);
     if (rows.length === 0) continue;
-    changes.appendChild(heading(kind, 'h3')).className = 'lab-tokens-heading';
+    changesBody.appendChild(heading(kind, 'h3')).className = 'lab-tokens-heading';
     const table = document.createElement('table');
     table.className = 'lab-tokens-table lab-scale-table';
     table.dataset['kind'] = kind;
@@ -108,20 +110,22 @@ function buildScaleSettings(container: HTMLElement, deps: ScaleSettingsDeps): HT
     for (const r of rows) {
       const tr = body.insertRow();
       tr.className = 'lab-scale-row' + (r.renamed ? ' lab-scale-row--renamed' : '');
-      const cell = (token: { path: string; value: string } | null, empty: string): void => {
+      const cell = (token: { path: string; value: string } | null, empty: string, changed: boolean): void => {
         const td = tr.insertCell();
         if (!token) { td.textContent = empty; td.className = 'lab-text-muted'; return; }
-        const code = document.createElement('code');
-        code.textContent = token.path;
-        td.append(code, ` ${token.value}`);
+        const chip = document.createElement('code');
+        chip.className = 'lab-token-name' + (changed ? ' lab-token-name--changed' : '');
+        chip.textContent = tokenDisplayName(token.path);
+        chip.title = `${token.path}: ${token.value}`;
+        td.appendChild(chip);
       };
-      cell(r.from, 'new step');
-      cell(r.to, 'folds into the last step');
+      cell(r.from, 'new step', r.renamed);
+      cell(r.to, 'folds into the last step', false);
       const used = tr.insertCell();
       used.textContent = r.usedBy.length ? r.usedBy.join(', ') : '';
       if (!r.usedBy.length) used.className = 'lab-text-muted';
     }
-    changes.appendChild(table);
+    changesBody.appendChild(table);
   }
   panel.appendChild(changes);
 
@@ -146,7 +150,7 @@ function buildApplySection(scaleId: string, renamed: number, versionCount: numbe
   actions.className = 'lab-scale-apply__actions';
 
   const apply = document.createElement('button');
-  apply.className = 'lab-btn';
+  apply.className = 'lab-btn lab-btn--primary';
   apply.id = 'scale-apply-btn';
   apply.textContent = `Apply ${SCALES.find(s => s.id === scaleId)?.label ?? scaleId}`;
   apply.disabled = true;
