@@ -39,4 +39,8 @@ describe('.claude/launch.json (the dev server the desktop app previews)', () => 
     expect(dev.runtimeArgs.join(' ')).toMatch(/nvm use/);
     expect(dev.runtimeArgs.join(' ')).toMatch(/npm run dev/);
   });
+  it('opens the lab at motionlab.localhost, the same port: a .localhost name needs no setup and no admin password', () => {
+    const dev = launch.configurations.find(c => c.name === 'dev') as { url?: string; port: number };
+    expect(dev.url).toBe(`http://motionlab.localhost:${dev.port}`);
+  });
 });
