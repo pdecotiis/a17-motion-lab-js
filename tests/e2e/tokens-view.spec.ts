@@ -23,7 +23,7 @@ test.describe('Tokens view', () => {
     await expect(page.locator('.lab-tokens-table')).toHaveCount(3);
   });
 
-  test('the spacing is the kit\'s: a 160px header, 96px sub-headers, 56px rows, equal columns, 240px curves', async ({ page }) => {
+  test('the spacing is the kit\'s: 96px sub-headers, 56px rows, equal columns, 240px curves', async ({ page }) => {
     test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     const height = (selector: string): Promise<number> => page.locator(selector).first().evaluate(e => Math.round(e.getBoundingClientRect().height));
     expect(await height('.lab-tokens-hero')).toBe(160);

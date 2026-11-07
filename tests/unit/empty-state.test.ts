@@ -20,10 +20,10 @@ describe('the empty lab', () => {
         expect(new Set(state.prompts.map(p => p.text)).size).toBe(3);
         for (const p of state.prompts) { expect(p.label.length).toBeGreaterThan(3); expect(p.text).toMatch(/[.)]$/); }
       });
-      it('never repeats a request in other words: only one asks for a frame, selected or by link, per job', () => {
-        const importing = state.prompts.filter(p => /selected/.test(p.text));
+      it('never repeats a request in other words: only one asks for a frame, by link, per job', () => {
+        const importing = state.prompts.filter(p => /link to the frame/.test(p.text));
         expect(importing.length).toBeLessThanOrEqual(2);
-        for (const p of importing) expect(p.text).toMatch(/or this link/);
+        for (const p of importing) expect(p.text).toMatch(/⌘L/);
       });
     });
   }

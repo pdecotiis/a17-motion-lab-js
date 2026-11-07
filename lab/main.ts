@@ -1759,14 +1759,16 @@ function renderTokensView(): void {
   const wrapper = document.createElement('div');
   wrapper.className = 'lab-tokens-view';
 
-  // The kit's page header: a black bar with the kind as a large title, the kinds as tabs beneath it.
+  // The kit's page header: a black bar titled Tokens, then the kinds as pills tabs on a gray band.
   const hero = document.createElement('div');
   hero.className = 'lab-tokens-hero';
   const title = document.createElement('h1');
   title.className = 'lab-tokens-title';
+  title.textContent = 'Tokens';
+  hero.appendChild(title);
   const subtabs = document.createElement('div');
   subtabs.className = 'lab-tokens-subtabs';
-  hero.append(title, subtabs);
+  subtabs.setAttribute('role', 'tablist');
   const tokenSetting = document.createElement('div');
   tokenSetting.className = 'lab-token-setting';
   const tableContainer = document.createElement('div');
@@ -1827,13 +1829,15 @@ function renderTokensView(): void {
   }
 
   function renderKind(kind: string): void {
-    title.textContent = kind;
     tableContainer.replaceChildren();
     renderSetting(kind);
-    tableContainer.append(...buildSheet(kind));
+    const sheet = buildSheet(kind);
+    // The setting sits under the section header, above the table.
+    sheet.splice(1, 0, tokenSetting);
+    tableContainer.append(...sheet);
   }
 
-  wrapper.append(hero, tokenSetting, tableContainer);
+  wrapper.append(hero, subtabs, tableContainer);
   renderKind(activeKind);
   main.appendChild(wrapper);
 }
