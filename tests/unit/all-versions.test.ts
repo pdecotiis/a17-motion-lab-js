@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { validateVersionMeta } from '../../lab/lib/version-meta.js';
 import { getTokenRefs, pairingWarnings } from '../../lab/lib/token-refs.js';
@@ -20,8 +22,11 @@ const components = Object.entries(componentModules).map(([path, module]) => ({
 }));
 
 describe('every version of every component', () => {
-  it('finds components to check', () => {
-    expect(components.length).toBeGreaterThan(0);
+  // A fresh project has no components yet (the lab shows its empty state), so this checks the glob finds every folder, not that there is one.
+  it('finds every component in components/', () => {
+    const dir = join(process.cwd(), 'components');
+    const onDisk = existsSync(dir) ? readdirSync(dir).filter(f => existsSync(join(dir, f, 'motion.ts'))).length : 0;
+    expect(components.length).toBe(onDisk);
   });
 
   describe.each(components)('$name', ({ module }) => {

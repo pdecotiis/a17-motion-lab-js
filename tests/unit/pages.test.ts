@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { checkPageVersions, validatePageVersion, type PageVersion } from '../../lab/lib/page-versions.js';
 import type { ComponentModule, PageConfig } from '../../lab/lib/types.js';
 
@@ -17,8 +19,11 @@ for (const [path, module] of Object.entries(componentModules)) {
 const pages = Object.entries(pageModules).map(([path, page]) => ({ folder: /\/pages\/([^/]+)\/page\.json$/.exec(path)![1]!, page }));
 
 describe('pages', () => {
-  it('finds pages to check', () => {
-    expect(pages.length).toBeGreaterThan(0);
+  // A fresh project has no pages yet, so this checks the glob finds every folder, not that there is one.
+  it('finds every page in pages/', () => {
+    const dir = join(process.cwd(), 'pages');
+    const onDisk = existsSync(dir) ? readdirSync(dir).filter(f => existsSync(join(dir, f, 'page.json'))).length : 0;
+    expect(pages.length).toBe(onDisk);
   });
 
   describe.each(pages)('$folder', ({ folder, page }) => {

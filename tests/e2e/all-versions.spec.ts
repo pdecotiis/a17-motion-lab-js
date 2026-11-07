@@ -8,6 +8,7 @@ import { join } from 'node:path';
 // faster than loading the lab for every version (this test grew with every version added).
 
 const componentsDir = join(process.cwd(), 'components');
+if (!existsSync(componentsDir)) throw new Error('components/ is missing: keep the folder (components/.gitkeep) even when it is empty');
 const byComponent = new Map<string, string[]>();
 for (const component of readdirSync(componentsDir).sort()) {
   const dir = join(componentsDir, component, 'versions');
@@ -17,7 +18,9 @@ for (const component of readdirSync(componentsDir).sort()) {
 }
 
 test.describe('every version plays', () => {
-  test('finds versions to play', () => {
+  // A fresh project has no components yet (the lab shows its empty state): there is then nothing to play.
+  test('finds the versions to play', () => {
+    test.skip(byComponent.size === 0, 'no components in this project yet');
     expect(byComponent.size).toBeGreaterThan(0);
   });
 

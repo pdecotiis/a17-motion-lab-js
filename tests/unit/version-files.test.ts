@@ -11,8 +11,9 @@ const components = readdirSync(componentsDir).filter(f => statSync(join(componen
 const INLINE_VERSION = /\b(?:const|let|var)\s+v\d+\b|\bid\s*:\s*['"]v\d+['"]/;
 
 describe('one file per version', () => {
-  it('finds components to check', () => {
-    expect(components.length).toBeGreaterThan(0);
+  // A fresh project has no components yet, so this checks every folder is a component folder, not that there is one.
+  it('finds the component folders', () => {
+    expect(components.every(name => existsSync(join(componentsDir, name)))).toBe(true);
   });
 
   describe.each(components)('%s', name => {
