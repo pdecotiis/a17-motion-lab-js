@@ -137,7 +137,7 @@ html, body {
 
 .lab-header__brand { margin-right: auto; color: inherit; text-decoration: none; border-radius: var(--radius); }
 .lab-header__brand:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
-.lab-header__logo { font: var(--type-ui-1-strong); }
+.lab-header__logo { font: var(--type-ui-1-strong); font-weight: 600; }
 .lab-header__controls { display: flex; align-items: center; gap: 12px; }
 
 /* Segmented toggle (the runtime, CSS / Motion): the kit's tint with the active half a primary button */
@@ -778,9 +778,12 @@ html, body {
 
 /* The project's name before the product ("Jane Street · Motion Lab"), when the project has named itself. */
 .lab-header__brand { display: inline-flex; align-items: baseline; }
-.lab-header__project { font: var(--type-ui-1-strong); }
-.lab-header__project:not([hidden])::after { content: '·'; margin: 0 8px; color: var(--color-text-muted); font-weight: 400; }
-.lab-header__project:not([hidden]) + .lab-header__logo { color: var(--color-text-muted); font-weight: 400; }
+.lab-header__project { font: var(--type-ui-1-strong); font-weight: 600; }
+.lab-header__project:not([hidden])::after { content: '·'; margin: 0 8px; color: var(--color-text-muted); font-weight: 500; }
+.lab-header__logo + .lab-badge { align-self: center; margin-left: 8px; }
+/* The kit's badge, neutral: 20px high, full radius, a light fill, the label in mono medium caps. */
+.lab-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 9999px; background: var(--color-card); color: var(--color-text-muted); font: var(--type-label); font-weight: 500; letter-spacing: var(--type-label-tracking); text-transform: uppercase; white-space: nowrap; }
+.lab-header__project:not([hidden]) + .lab-header__logo { color: var(--color-text-muted); font-weight: 500; }
 
 /* The empty lab (a project with nothing in it yet): what to ask Claude, with ready-made requests to copy. */
 .lab-main--empty { display: flex; justify-content: center; align-items: flex-start; padding: 64px 16px; }
