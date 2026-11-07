@@ -32,7 +32,7 @@ test.describe('The empty lab', () => {
     await expect(page.locator('.lab-ask__prompt')).toHaveCount(3);
   });
 
-  test('uses the lab\'s own look: the card is the kit's secondary gray with no border, and nothing overflows the window', async ({ page }) => {
+  test('uses the lab\'s own look: the card is the secondary gray with no border, and nothing overflows the window', async ({ page }) => {
     await draw(page, 'components');
     expect(await page.locator('.lab-ask__prompt').first().evaluate(el => getComputedStyle(el).borderTopWidth)).toBe('0px');
     expect(await page.locator('.lab-ask__prompt').first().evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(245, 245, 245)');
