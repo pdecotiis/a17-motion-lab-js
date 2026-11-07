@@ -26,7 +26,7 @@ test.describe('Tokens view', () => {
   test('the spacing is the kit\'s: 96px sub-headers, 56px rows, equal columns, 240px curves', async ({ page }) => {
     test.skip(!SAMPLES_PRESENT, SAMPLES_NEEDED);
     const height = (selector: string): Promise<number> => page.locator(selector).first().evaluate(e => Math.round(e.getBoundingClientRect().height));
-    expect(await height('.lab-tokens-hero')).toBe(160);
+    expect(await height('.lab-hero')).toBe(160);
     expect(await height('.lab-tokens-group')).toBe(96);
     expect(await height('.lab-tokens-table th')).toBe(56);
     expect(await height('.lab-token-row')).toBe(56);

@@ -23,3 +23,18 @@ export function brandText(project?: string): string {
 export function titleFor(what: string, project?: string): string {
   return what ? `${what} – ${brandText(project)}` : brandText(project);
 }
+
+/**
+ * Optional names for the avatars: `project.json` may say `"team": { "Claudia Reyes": "claudiar" }` so a person who commits
+ * with a private email still gets their GitHub picture. Returns name → GitHub login, leaving out anything that is not one.
+ */
+export function teamLoginsOf(config: unknown): Record<string, string> {
+  if (typeof config !== 'object' || config === null) return {};
+  const team = (config as { team?: unknown }).team;
+  if (typeof team !== 'object' || team === null || Array.isArray(team)) return {};
+  const out: Record<string, string> = {};
+  for (const [name, login] of Object.entries(team)) {
+    if (typeof login === 'string' && /^[A-Za-z0-9-]{1,39}$/.test(login) && name.trim()) out[name.trim()] = login;
+  }
+  return out;
+}

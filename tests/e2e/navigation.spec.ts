@@ -6,7 +6,7 @@ import { setRuntime } from './lab.js';
 test.describe('Navigation', () => {
   test('the items are Tokens, Components, Pages and Presets: there is no Component item', async ({ page }) => {
     await page.goto('/?view=library');
-    await expect(page.locator('.lab-nav__btn')).toHaveText(['Tokens', 'Components', 'Pages', 'Presets']);
+    await expect(page.locator('.lab-nav__btn')).toHaveText(['Components', 'Pages', 'Presets', 'Tokens']);
     await expect(page.locator('.lab-nav__btn[data-view="component"]')).toHaveCount(0);
   });
 
@@ -145,7 +145,7 @@ test.describe('Navigation in place', () => {
     await page.evaluate(() => { (window as unknown as { __kept: boolean }).__kept = true; });
     await page.click('a.lab-nav__btn[data-view="tokens"]');
     await expect(page).toHaveURL(/view=tokens/);
-    await expect(page.locator('.lab-tokens-title')).toBeVisible();
+    await expect(page.locator('.lab-hero__title')).toBeVisible();
     await page.click('a.lab-nav__btn[data-view="presets"]');
     await expect(page.locator('#presets-grid')).toBeVisible();
     // A reload would have thrown the marker away.
@@ -155,15 +155,17 @@ test.describe('Navigation in place', () => {
   test('the back and forward buttons walk the views', async ({ page }) => {
     await page.goto('/?view=library');
     await page.click('a.lab-nav__btn[data-view="tokens"]');
-    await page.click('a.lab-nav__btn[data-view="page"]');
+    await page.click('a.lab-nav__btn[data-view="pages"]');
+    await page.locator('.lab-library-card').first().click();
     await expect(page.locator('.lab-page-layout')).toBeVisible();
     await page.goBack();
-    await expect(page.locator('.lab-tokens-title')).toBeVisible();
+    await page.goBack();
+    await expect(page.locator('.lab-hero__title')).toBeVisible();
     await expect(page.locator('a.lab-nav__btn[data-view="tokens"]')).toHaveAttribute('aria-current', 'page');
     await page.goBack();
     await expect(page.locator('#library-grid')).toBeVisible();
     await page.goForward();
-    await expect(page.locator('.lab-tokens-title')).toBeVisible();
+    await expect(page.locator('.lab-hero__title')).toBeVisible();
   });
 
   test('a card, the breadcrumb and the logo are followed in place too', async ({ page }) => {
@@ -196,7 +198,9 @@ test.describe('Navigation in place', () => {
     for (let i = 0; i < 4; i++) {
       await page.click('a.lab-nav__btn[data-view="library"]');
       await expect(page.locator('#library-grid')).toBeVisible();
-      await page.click('a.lab-nav__btn[data-view="page"]');
+      await page.click('a.lab-nav__btn[data-view="pages"]');
+      await expect(page.locator('#pages-grid')).toBeVisible();
+      await page.locator('.lab-library-card').first().click();
       await expect(page.locator('.lab-page-layout')).toBeVisible();
     }
     expect(errors).toEqual([]);
@@ -231,7 +235,8 @@ test.describe('Playback bar', () => {
   test('the speed holds as you move between views', async ({ page }) => {
     await page.goto('/?view=component');
     await page.selectOption('#speed-control', '0.5');
-    await page.click('a.lab-nav__btn[data-view="page"]');
+    await page.click('a.lab-nav__btn[data-view="pages"]');
+    await page.locator('.lab-library-card').first().click();
     await expect(page.locator('#speed-control')).toHaveValue('0.5');
   });
 
@@ -268,7 +273,7 @@ test.describe('Title and project name', () => {
     await expect(page).toHaveTitle(/^Tokens – .*Motion Lab$/);
     await page.click('a.lab-nav__btn[data-view="presets"]');
     await expect(page).toHaveTitle(/^Presets – .*Motion Lab$/);
-    await page.click('a.lab-nav__btn[data-view="page"]');
+    await page.click('a.lab-nav__btn[data-view="pages"]');
     await expect(page).toHaveTitle(/^[^–]+ – .*Motion Lab$/);
   });
 

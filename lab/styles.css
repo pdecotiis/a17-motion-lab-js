@@ -15,23 +15,29 @@
   --gray-800: #282828;
   --gray-900: #1d1d1d;
   --gray-950: #171717;
+  --orange-50: #fbf3ef; /* the kit's orange ramp: the Beta badge */
+  --orange-300: #ee9554;
+  --orange-500: #ae5900;
+  --orange-900: #301400;
   --blue-50: #eff6fb;
   --blue-400: #448df4;
+  --blue-500: #006aff; /* the kit's spec blue: the examples' marks */
   --blue-600: #034db9;
   --blue-900: #031d39;
   --color-bg: #ffffff;
-  --color-card: var(--gray-50); /* the preset cards: the kit's lightest gray */
+  --color-spec: var(--blue-500);
+  --color-spec-bg: rgba(0, 106, 255, 0.15); /* the lighter tint behind a spec mark */
+  --color-card: var(--gray-50); /* the kit's background/secondary: every card, panel and example frame */
   --color-surface: #ffffff;
   --color-text: var(--gray-950);
   --color-text-muted: var(--gray-600);
-  --color-border: var(--gray-100);
+  --color-border: rgba(0, 0, 0, 0.12); /* the kit's border/default */
   --color-accent: var(--gray-950);
   --color-accent-text: var(--gray-50);
   --color-image-bg: var(--gray-100);
   --color-notice-bg: var(--blue-50);
   --color-notice-border: var(--blue-400);
   --color-chip: var(--gray-50);
-  --color-subtle: var(--gray-50);
   --color-bar: #000000;
   --color-bar-text: #ffffff;
   --color-highlight: var(--blue-50);
@@ -48,8 +54,8 @@
   --radius: 8px;
   --radius-xs: 2px;
   --header-height: 64px;
-  --lab-font-sans: "Inter Variable", system-ui, -apple-system, sans-serif;
-  --lab-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --lab-font-sans: "Suisse Int'l", "Inter Variable", system-ui, -apple-system, sans-serif;
+  --lab-font-mono: "Suisse Int'l Mono", "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --lab-font-content: system-ui, -apple-system, sans-serif;
   /* The Vitrine kit's text styles (Figma file "Vitrine — UI Kit 2.2", read 2026-11-07), as font shorthands: weight size/line-height family.
      The kit is responsive (sm to xxl); the lab is a fixed tool, so each style is its small/medium size. The kit's typeface is Suisse Int'l
@@ -73,20 +79,21 @@
   --type-code: 400 12px/1.5 var(--lab-font-mono);               /* the lab's own: token names and code, mono at caption size */
 }
 
+[data-theme="dark"] .lab-badge { background: var(--orange-900); color: var(--orange-300); }
 [data-theme="dark"] {
   --color-bg: var(--gray-950);
+  --color-bar: var(--color-bg); /* the page headers: the page colour */
   --color-card: var(--gray-900);
   --color-surface: var(--gray-900);
   --color-text: var(--gray-50);
   --color-text-muted: var(--gray-300);
-  --color-border: var(--gray-800);
+  --color-border: rgba(255, 255, 255, 0.12); /* the kit's border/default */
   --color-accent: var(--gray-50);
   --color-accent-text: var(--gray-950);
   --color-image-bg: var(--gray-800);
   --color-notice-bg: var(--gray-900);
   --color-notice-border: var(--blue-600);
   --color-chip: var(--gray-800);
-  --color-subtle: var(--gray-800);
   --color-highlight: var(--blue-900);
   --color-btn: var(--gray-50);
   --color-btn-hover: var(--gray-100);
@@ -133,7 +140,7 @@ html, body {
 
 .lab-header__brand { margin-right: auto; color: inherit; text-decoration: none; border-radius: var(--radius); }
 .lab-header__brand:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
-.lab-header__logo { font: var(--type-ui-1-strong); }
+.lab-header__logo { font: var(--type-ui-1-strong); font-weight: 600; }
 .lab-header__controls { display: flex; align-items: center; gap: 12px; }
 
 /* Segmented toggle (the runtime, CSS / Motion): the kit's tint with the active half a primary button */
@@ -228,7 +235,7 @@ html, body {
 /* Preview */
 .lab-preview-area { display: flex; flex-direction: column; gap: 16px; }
 .lab-preview {
-  background: var(--color-surface);
+  background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 32px;
@@ -252,7 +259,7 @@ html, body {
 
 /* Controls */
 .lab-controls {
-  background: var(--color-surface);
+  background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 14px;
@@ -353,10 +360,10 @@ html, body {
 .lab-curve:hover .lab-curve__line { opacity: 0.7; }
 .lab-curve__box { fill: none; stroke: var(--color-border); stroke-width: 1; stroke-dasharray: 3 3; }
 .lab-curve__diagonal { stroke: var(--color-border); stroke-width: 1; }
-.lab-curve__handle { stroke: var(--color-accent); stroke-width: 1; }
-.lab-curve__point, .lab-curve__end { fill: var(--color-accent); }
-.lab-curve__line { fill: none; stroke: var(--color-accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; transition: opacity 120ms; }
-.lab-curve__dot { fill: var(--color-accent); stroke: var(--color-surface); stroke-width: 2; }
+.lab-curve__handle { stroke: var(--color-spec); stroke-width: 1; }
+.lab-curve__point, .lab-curve__end { fill: var(--color-spec); }
+.lab-curve__line { fill: none; stroke: var(--color-spec); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; transition: opacity 120ms; }
+.lab-curve__dot { fill: var(--color-spec); stroke: var(--color-surface); stroke-width: 2; }
 
 /* Buttons */
 /* The kit's button: 40px, 8px corners, 16px sides. A plain one is the quiet tint. .lab-btn--primary is the kit's near-black
@@ -434,7 +441,7 @@ html, body {
   overflow-x: hidden;
   overflow-y: auto;
   padding: 16px;
-  background: var(--color-surface);
+  background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
 }
@@ -500,7 +507,7 @@ html, body {
 
 /* Generated CSS panel */
 .lab-css-pre {
-  background: var(--color-bg);
+  background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   padding: 8px 10px;
@@ -520,9 +527,10 @@ html, body {
    hairline borders, 48px rows and the token name as a mono label. */
 .lab-main--tokens { padding: 0; background: var(--color-bg); }
 .lab-tokens-view { display: flex; flex-direction: column; }
-.lab-tokens-hero { background: var(--color-bar); color: var(--color-bar-text); padding: 16px 20px; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end; }
-.lab-tokens-title { margin: 0; font: var(--type-display); }
-.lab-tokens-subtabs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 20px; background: var(--color-surface); border-bottom: 1px solid var(--color-subtle); }
+/* The page header the top-level views share (heroEl in lab/main.ts): the view's name large on the page colour, a rule under it. */
+.lab-hero { background: var(--color-bg); color: var(--color-text); border-bottom: 1px solid var(--color-border); padding: 16px 20px; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end; }
+.lab-hero__title { margin: 0; font: var(--type-display); }
+.lab-tokens-subtabs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 20px; background: var(--color-bg); border-bottom: 1px solid var(--color-border); }
 .lab-tokens-subtab {
   padding: 8px 12px;
   border: none;
@@ -550,10 +558,10 @@ html, body {
   
   color: var(--color-text);
   background: var(--color-surface);
-  border: 1px solid var(--color-subtle);
+  border: 1px solid var(--color-border);
   font: var(--type-ui-2-strong);
 }
-.lab-tokens-table td, .lab-mt-table td { height: 48px; padding: 12px 20px 16px; border: 1px solid var(--color-subtle); vertical-align: top; }
+.lab-tokens-table td, .lab-mt-table td { height: 48px; padding: 12px 20px 16px; border: 1px solid var(--color-border); vertical-align: top; }
 .lab-tokens-table th { height: 56px; }
 .lab-tokens-table td { height: 56px; }
 .lab-mt-table th { height: 48px; }
@@ -563,7 +571,7 @@ html, body {
 .lab-token-preview {
   width: 40px;
   height: 8px;
-  background: var(--color-accent);
+  background: var(--color-spec);
   border-radius: var(--radius-xs);
   cursor: pointer;
   transform-origin: left center;
@@ -576,10 +584,11 @@ html, body {
 .lab-token-example { cursor: pointer; }
 .lab-token-example--duration { max-width: 240px; height: 24px; display: flex; align-items: center; }
 .lab-token-example--duration .lab-token-track { flex: 1; }
-.lab-token-track { height: 8px; background: var(--color-chip); border-radius: var(--radius-xs); }
+.lab-token-track { height: 8px; background: var(--color-spec-bg); border-radius: var(--radius-xs); }
 .lab-token-example--duration .lab-token-preview { width: 100%; height: 100%; }
 .lab-token-example--distance { position: relative; width: 72px; height: 24px; }
-.lab-dist-ghost { position: absolute; top: 6px; width: 12px; height: 12px; border: 1px dashed var(--color-text-muted); border-radius: var(--radius-xs); }
+.lab-dist-track { position: absolute; left: 0; top: 6px; height: 12px; background: var(--color-spec-bg); border-radius: var(--radius-xs); }
+.lab-dist-ghost { position: absolute; top: 6px; width: 12px; height: 12px; border: 1px dashed var(--color-spec); border-radius: var(--radius-xs); }
 .lab-token-example--distance .lab-dist-box { position: absolute; left: 0; top: 6px; width: 12px; height: 12px; border-radius: var(--radius-xs); }
 
 .lab-token-name { display: inline-flex; align-items: center; height: 24px; padding: 0 6px; background: var(--color-chip); border-radius: var(--radius-xs);    word-break: break-all; font: var(--type-code); }
@@ -618,7 +627,7 @@ html, body {
 .lab-lineage {  color: var(--color-text-muted); margin: 0 0 10px; font: var(--type-ui-2); }
 .lab-spec-meta { display: grid; grid-template-columns: auto 1fr; gap: 0 16px; margin: 0 0 10px; font: var(--type-ui-2); }
 .lab-spec-meta dt { color: var(--color-text); font-weight: 500; }
-.lab-spec-meta dt, .lab-spec-meta dd { padding: 8px 0; border-top: 1px solid var(--color-subtle); }
+.lab-spec-meta dt, .lab-spec-meta dd { padding: 8px 0; border-top: 1px solid var(--color-border); }
 .lab-spec-meta dt:first-of-type, .lab-spec-meta dt:first-of-type + dd { border-top: none; padding-top: 0; }
 .lab-spec-meta dd { margin: 0; white-space: pre-line; }
 .lab-spec-meta__unset { color: var(--color-text-muted); font-style: italic; }
@@ -644,7 +653,7 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--color-surface);
+  background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   color: inherit;
@@ -676,7 +685,7 @@ html, body {
 .lab-scale-table { table-layout: fixed; width: 100%; }
 .lab-scale-apply { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .lab-scale-apply__actions { display: flex; gap: 8px; }
-.lab-scale-panel__flash { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 6px; font-weight: 500; padding: 10px 12px; }
+.lab-scale-panel__flash { background: var(--color-card); border: 1px solid var(--color-border); border-radius: 6px; font-weight: 500; padding: 10px 12px; }
 
 /* Settings: a dialog opened by the gear beside the theme toggle. */
 .lab-settings { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3); color: var(--color-text); max-height: 86vh; max-width: min(860px, 94vw); overflow: auto; padding: 0 24px 24px; width: 100%; }
@@ -717,7 +726,7 @@ html, body {
 .lab-preset-eg--text {   max-width: 260px; font: var(--type-ui-2); }
 .lab-preset-eg--card { display: grid; gap: 4px; width: 200px; padding: 16px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); }
 .lab-preset-eg--card span {  color: var(--color-text-muted); font: var(--type-ui-2); }
-.lab-preset-eg--media { width: 220px; height: 120px; border-radius: 8px; background: var(--color-border); }
+.lab-preset-eg--media { width: 220px; height: 120px; border-radius: 8px; background: var(--color-image-bg); }
 .lab-compare[hidden] { display: none; }
 
 /* What is being previewed is not the lab: components, pages and frames keep a neutral font, never the lab's Inter. */
@@ -736,10 +745,10 @@ html, body {
 .lab-mt-element { font-weight: 500; }
 .lab-mt-also { color: var(--color-text-muted); }
 .lab-mt-chip { display: inline-block; padding: 2px 6px; background: var(--color-chip); border-radius: var(--radius-xs);    white-space: nowrap; font: var(--type-code); }
-.lab-mt-timeline { background: var(--color-surface); border: 1px solid var(--color-subtle); padding: 48px; }
+.lab-mt-timeline { background: var(--color-surface); border: 1px solid var(--color-border); padding: 48px; }
 .lab-mt-plot { position: relative; max-width: 720px; padding-bottom: 28px; }
 .lab-mt-lines { position: absolute; inset: 0 0 28px 0; }
-.lab-mt-line { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--color-subtle); }
+.lab-mt-line { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--color-border); }
 .lab-mt-track { position: relative; height: 24px; margin-bottom: 8px; }
 .lab-mt-bar { position: absolute; top: 0; height: 24px; box-sizing: border-box; min-width: 2px; padding: 0 8px; display: flex; align-items: center; background: var(--color-highlight);    white-space: nowrap; overflow: hidden; font: var(--type-code); }
 .lab-mt-ruler { position: absolute; left: 0; right: 0; bottom: 0; height: 20px; }
@@ -772,10 +781,12 @@ html, body {
 .lab-settings .lab-segmented { width: fit-content; }
 
 /* The project's name before the product ("Jane Street · Motion Lab"), when the project has named itself. */
-.lab-header__brand { display: inline-flex; align-items: baseline; }
-.lab-header__project { font: var(--type-ui-1-strong); }
-.lab-header__project:not([hidden])::after { content: '·'; margin: 0 8px; color: var(--color-text-muted); font-weight: 400; }
-.lab-header__project:not([hidden]) + .lab-header__logo { color: var(--color-text-muted); font-weight: 400; }
+.lab-header__brand { display: inline-flex; align-items: baseline; white-space: nowrap; }
+.lab-header__project { font: var(--type-ui-1-strong); font-weight: 600; }
+.lab-header__project:not([hidden])::after { content: ''; margin-right: 0.28em; }
+.lab-header__logo + .lab-badge { align-self: center; margin-left: 8px; }
+/* The kit's badge, neutral: 20px high, full radius, a light fill, the label in mono medium caps. */
+.lab-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 9999px; background: var(--orange-50); color: var(--orange-500); font: var(--type-label); font-weight: 500; letter-spacing: var(--type-label-tracking); text-transform: uppercase; white-space: nowrap; }
 
 /* The empty lab (a project with nothing in it yet): what to ask Claude, with ready-made requests to copy. */
 .lab-main--empty { display: flex; justify-content: center; align-items: flex-start; padding: 64px 16px; }
@@ -783,9 +794,22 @@ html, body {
 .lab-ask__title { margin: 0 0 8px; font: var(--type-heading-4); }
 .lab-ask__lead { margin: 0 0 24px;  color: var(--color-text-muted); font: var(--type-ui-1); }
 .lab-ask__prompts { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.lab-ask__prompt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
+.lab-ask__prompt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-card); }
 .lab-ask__words { flex: 1; min-width: 0; }
 .lab-ask__label { margin: 0 0 4px; color: var(--color-text); font: var(--type-heading-6); }
 .lab-ask__text { margin: 0; color: var(--color-text-muted); font: var(--type-ui-1); }
 .lab-ask__copy { width: auto; flex: none; margin: 0; font: var(--type-ui-2); }
 .lab-ask__tip { margin: 16px 0 0;  color: var(--color-text-muted); font: var(--type-caption); }
+
+/* The avatar beside the theme switch: the person who set the lab up, initials on a light circle (the kit's 32px avatar). */
+.lab-avatars { display: inline-flex; align-items: center; margin-left: 4px; padding-left: 8px; }
+.lab-avatars[hidden] { display: none; }
+.lab-avatars .lab-avatar { margin-left: -8px; box-shadow: 0 0 0 2px var(--color-bg); }
+.lab-avatar--more { background: var(--color-tint); color: var(--color-text-muted); }
+.lab-avatar { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 9999px; flex: none; background: var(--color-card); color: var(--color-text); font: var(--type-label); font-weight: 500; letter-spacing: 0; user-select: none; }
+.lab-avatar[hidden], .lab-badge[hidden] { display: none; }
+.lab-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; display: block; }
+
+/* Views that start with the shared header: no padding on the page itself, the content below it is padded. */
+.lab-main--library, .lab-main--presets, .lab-main--pages { padding: 0; }
+.lab-view-body { padding: 16px; }

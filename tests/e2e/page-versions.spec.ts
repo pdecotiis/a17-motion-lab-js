@@ -20,7 +20,7 @@ test.describe('Page versions', () => {
     ]);
     await expect(page.locator('#page-version-select')).toHaveValue('v1');
     await expect(page.locator('#page-version-note')).toHaveText('');
-    await expect(page.locator('.lab-nav__btn[data-view="page"]')).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('.lab-nav__btn[data-view="pages"]')).toHaveAttribute('aria-current', 'page');
   });
 
   test('choosing a version loads its component versions and its stagger', async ({ page }) => {
