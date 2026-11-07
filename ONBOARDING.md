@@ -20,14 +20,14 @@ You need three things. If one is missing, ask the person above.
 
 ## Set up (once, on each computer)
 
-1. In your Documents folder, make an empty folder called **Motion Lab**.
+1. In your Documents folder, make an empty folder called **Motion Lab**. (The project goes in a folder inside it.)
 2. Open the Claude desktop app, go to the **Code** tab, and open that folder.
 3. If your Claude has the **Motion Lab setup** skill (your admin will say), just type `/motion-lab:setup` and give it the address from the table above. Otherwise paste this and send it, filling in the address:
 
-   > Set up Motion Lab for me. The project's code is at **\<the address\>**. Put it in this folder, check my computer is ready, fix anything that is missing, and open the lab. I'm not technical, so tell me what you're doing in plain words and ask before you install anything.
+   > Set up Motion Lab for me. The project's code is at **\<the address\>**. Put it in a folder of its own inside this one, check my computer is ready, fix anything that is missing, and open the lab. I'm not technical, so tell me what you're doing in plain words and ask before you install anything.
 
 4. Claude will check your Mac and walk you through what it needs. Usually:
-   - **Apple's developer tools.** macOS offers to install them; say yes and wait a few minutes.
+   - **Apple's developer tools.** macOS offers to install them; say yes and wait a few minutes. (If Claude says Xcode's licence needs accepting, it gives you one line to run in Terminal; it needs your Mac password, which only you type.)
    - **A way to sign in to the code host.** Claude will explain it and set it up with you (a one-time key or token; you'll approve it in your browser). Keep what it shows you private.
    - **Node**, the engine the lab runs on. Claude installs the right version.
    - **The project's packages**, a download of a few hundred MB.

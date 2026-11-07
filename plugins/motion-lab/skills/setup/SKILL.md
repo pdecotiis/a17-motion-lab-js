@@ -23,7 +23,7 @@ Two things come from the designer or the project's details (the table at the top
 - **The project's address** (the git clone address). If you were not given it, ask for it: "What is the project's address? It's in the welcome note you were sent."
 - **Their name and work email**, for the first-time sign-in. Ask once.
 
-Work in the folder you were opened in. If it already holds the project (there is a `package.json` and `components/`), skip to **Check the machine** and treat this as a repair.
+Work from the folder you were opened in; the project goes in a folder of its own inside it (step 4). If a folder with the project already exists there (a `package.json` and `components/`), skip to step 5 and treat this as a repair.
 
 ## 1. Look at the machine (read-only)
 
@@ -43,6 +43,8 @@ Then tell the designer, in a short list, what is already fine and what you need 
 ## 2. Apple's developer tools (gives you `git`)
 
 If `git --version` opened a macOS dialog or failed, ask them to click **Install** in it and wait a few minutes. Run `git --version` again until it prints a version.
+
+If it prints **"You have not agreed to the Xcode license agreements"**, the Mac has Xcode installed but its licence isn't accepted, and `git` won't run until it is. This is the one thing you ask them to do themselves, because it needs their Mac password and you never use `sudo`: tell them to open **Terminal** (Spotlight, type Terminal), run `sudo xcodebuild -license accept`, type their Mac password (nothing shows as they type; that's normal) and press Return, then come back and say "done".
 
 ## 3. Sign in to the code host (an SSH key)
 
@@ -65,12 +67,11 @@ If the host needs a VPN or single sign-on and they can't reach it, say so plainl
 
 ## 4. Get the project
 
-- If the current folder is empty: `git clone <the address> .`
-- If it has other things in it (apart from `.claude`): `git clone <the address> motion-lab` and say you'll work in that folder from now on.
+Clone into a **folder of its own** inside the current one, named for the project (the last part of the address, without `.git`): `git clone <the address> <name>`. Don't clone into `.`: the folder you were opened in usually already holds a `.claude` folder, and git refuses a folder that isn't empty.
 
 If the clone says the repository isn't found or access is denied, the invitation isn't accepted or their role is missing: say that, don't try workarounds.
 
-Then `cd` into the project and read `CLAUDE.md` once: from here on it is your rulebook (including "Designer workflow").
+Then **move this session into the project folder** so its `CLAUDE.md`, settings and skills apply: use the app's directory tool to change this session's folder to `<the current folder>/<name>`. If you can't, ask them to open that folder in the Code tab (they pick it) and say "continue setup", and carry on from step 5 there. Once you are in it, read `CLAUDE.md` once: from here on it is your rulebook (including "Designer workflow").
 
 ## 5. Node and the project's packages
 
