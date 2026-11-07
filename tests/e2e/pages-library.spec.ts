@@ -5,19 +5,25 @@ import { test, expect } from '@playwright/test';
 // pages the Pages view is the "ask Claude" screen, so the checks that need a page skip.
 test.describe('the shared header and the Pages library', () => {
   test('Components, Presets and Tokens open with the same header', async ({ page }) => {
+    const titleYs: number[] = [];
     for (const [view, title] of [['library', 'Components'], ['presets', 'Presets'], ['tokens', 'Tokens']] as const) {
       await page.goto(`/?view=${view}`);
       // A project with no components shows the "ask Claude" screen instead of the Components library.
       if (view === 'library' && (await page.locator('.lab-ask').count()) > 0) continue;
       await expect(page.locator('.lab-hero__title')).toHaveText(title);
       const box = await page.locator('.lab-hero').boundingBox();
-      expect(Math.round(box!.height)).toBe(160);
+      // 160px, or taller where a description sits under the title (Presets); the title is in the same place on every view.
+      expect(Math.round(box!.height)).toBeGreaterThanOrEqual(160);
+      if (view !== 'presets') expect(Math.round(box!.height)).toBe(160);
+      const titleBox = await page.locator('.lab-hero__title').boundingBox();
+      titleYs.push(Math.round(titleBox!.y));
       expect(Math.round(box!.x)).toBe(0);
       // The row under the header is the action bar: the same height and full width on every view.
       const bar = await page.locator('.lab-actionbar').boundingBox();
       expect(Math.round(bar!.height)).toBe(72);
       expect(Math.round(bar!.x)).toBe(0);
     }
+    expect(new Set(titleYs).size).toBe(1);
   });
 
   test('Pages is a library of pages, and a card opens the page', async ({ page }) => {
