@@ -42,7 +42,7 @@
   --color-bar: #000000;
   --color-bar-text: #ffffff;
   --color-highlight: var(--blue-50);
-  /* Buttons, as the Vitrine kit has them: 40px high, 8px corners, 16px sides; near-black, a shade lighter on hover
+  /* Buttons, as the Vitrine kit has them: 40px high, 4px corners, 16px sides; near-black, a shade lighter on hover
      and lighter again pressed. The tint is the kit's "component" background (black at 4%), for the quieter ones. */
   --color-btn: var(--gray-950);
   --color-btn-hover: var(--gray-800);
@@ -53,6 +53,7 @@
   --color-tint-pressed: rgba(0, 0, 0, 0.12);
   --control-height: 40px;
   --radius: 8px;
+  --radius-control: 4px; /* buttons, nav items, tabs, selects and inputs */
   --radius-xs: 2px;
   --header-height: 64px;
   --lab-font-sans: "Suisse Int'l", "Inter Variable", system-ui, -apple-system, sans-serif;
@@ -132,7 +133,7 @@ html, body {
   gap: 16px;
   padding: 0 16px;
   height: var(--header-height);
-  background: var(--color-surface);
+  background: var(--color-bg);
   border-bottom: 1px solid var(--color-subtle);
   position: sticky;
   top: 0;
@@ -151,13 +152,13 @@ html, body {
   gap: 2px;
   height: var(--control-height);
   padding: 4px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   background: var(--color-tint);
 }
 .lab-segmented__btn {
   padding: 0 12px;
   border: none;
-  border-radius: 6px;
+  border-radius: 2px;
   background: transparent;
   color: var(--color-text-muted);
   font: inherit;
@@ -188,7 +189,7 @@ html, body {
   height: var(--control-height);
   padding: 0 16px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--color-text-muted);
   font: inherit;
@@ -200,11 +201,11 @@ html, body {
 .lab-nav__btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 /* The page you are on is the light gray, text at full strength. Near-black is only for the one primary action. */
 .lab-nav__btn--active,
-.lab-nav__btn[aria-current="page"] { background: var(--color-tint-hover); color: var(--color-text); }
+.lab-nav__btn[aria-current="page"] { background: var(--color-card); color: var(--color-text); }
 .lab-nav__btn--active:hover,
-.lab-nav__btn[aria-current="page"]:hover { background: var(--color-tint-pressed); color: var(--color-text); }
+.lab-nav__btn[aria-current="page"]:hover { background: var(--color-card); color: var(--color-text); }
 .lab-nav__btn--active:active,
-.lab-nav__btn[aria-current="page"]:active { background: var(--color-tint-pressed); }
+.lab-nav__btn[aria-current="page"]:active { background: var(--color-card); }
 
 /* Breadcrumb (component view): the way back to the Library */
 .lab-breadcrumb { margin: 0; }
@@ -319,7 +320,7 @@ html, body {
   height: var(--control-height);
   padding: 0 12px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   background-color: var(--color-tint);
   color: var(--color-text);
   font: inherit;
@@ -378,7 +379,7 @@ html, body {
   height: var(--control-height);
   padding: 0 16px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   background: var(--color-tint);
   color: var(--color-text);
   font: inherit;
@@ -407,7 +408,7 @@ html, body {
   height: var(--control-height);
   padding: 0 16px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   background: var(--color-tint);
   color: var(--color-text-muted);
   text-align: left;
@@ -533,7 +534,7 @@ html, body {
 .lab-tokens-subtab {
   padding: 8px 12px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;

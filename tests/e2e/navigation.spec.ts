@@ -78,7 +78,7 @@ test.describe('Navigation', () => {
   });
 });
 
-// The header's controls are the Vitrine kit's button: 40px high, 8px corners, the near-black one for the page you are
+// The header's controls are the Vitrine kit's button: 40px high, 4px corners, the near-black one for the page you are
 // on and a quiet tint for the rest, a shade lighter on hover.
 test.describe('Header controls look like the kit\'s buttons', () => {
   const style = (page: import('@playwright/test').Page, selector: string) => page.locator(selector).first().evaluate(el => {
@@ -87,10 +87,10 @@ test.describe('Header controls look like the kit\'s buttons', () => {
     return { height: Math.round(r.height), radius: s.borderTopLeftRadius, background: s.backgroundColor, color: s.color };
   });
 
-  test('nav items are 40px with 8px corners; the current one is the light gray with full-strength text, not black', async ({ page }) => {
+  test('nav items are 40px with 4px corners; the current one is the light gray with full-strength text, not black', async ({ page }) => {
     await page.goto('/?view=tokens');
     // (the colours ease in for 120ms, so poll)
-    await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ height: 40, radius: '8px', background: 'rgba(0, 0, 0, 0.08)', color: 'rgb(23, 23, 23)' });
+    await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ height: 40, radius: '4px', background: 'rgb(245, 245, 245)', color: 'rgb(23, 23, 23)' });
     const other = await style(page, '.lab-nav__btn:not([aria-current="page"])');
     expect(other.height).toBe(40);
     expect(other.background).toBe('rgba(0, 0, 0, 0)');
@@ -106,12 +106,12 @@ test.describe('Header controls look like the kit\'s buttons', () => {
     await page.mouse.up();
   });
 
-  test('the speed dropdown and the icon buttons are 40px, the kit\'s height, with 8px corners', async ({ page }) => {
+  test('the speed dropdown and the icon buttons are 40px, the kit\'s height, with 4px corners', async ({ page }) => {
     await page.goto('/?view=component');
     for (const selector of ['#speed-control', '#settings-btn', '#theme-toggle']) {
       expect((await style(page, selector)).height, selector).toBe(40);
     }
-    expect((await style(page, '#speed-control')).radius).toBe('8px');
+    expect((await style(page, '#speed-control')).radius).toBe('4px');
   });
 
   test('the motion library switch is in Settings, 40px, with the active half a raised light segment', async ({ page }) => {
@@ -125,7 +125,7 @@ test.describe('Header controls look like the kit\'s buttons', () => {
   test('in the dark theme the current page is a light-on-dark gray, and the one primary button is the light one', async ({ page }) => {
     await page.goto('/?view=component');
     await page.click('#theme-toggle');
-    await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ background: 'rgba(255, 255, 255, 0.12)', color: 'rgb(245, 245, 245)' });
+    await expect.poll(() => style(page, '.lab-nav__btn[aria-current="page"]')).toMatchObject({ background: 'rgb(29, 29, 29)', color: 'rgb(245, 245, 245)' });
     await expect.poll(() => style(page, '#replay-btn')).toMatchObject({ background: 'rgb(245, 245, 245)', color: 'rgb(23, 23, 23)' });
   });
 });
