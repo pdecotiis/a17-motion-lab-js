@@ -78,3 +78,23 @@ test.describe('Page view', () => {
     await expect(page.locator('#motion-map-panel select').nth(1)).toHaveValue('v2');
   });
 });
+
+// The detail panels live to the right of the page window when the lab window is wide enough for both, and under it when not.
+test.describe('the page view\'s detail panels', () => {
+  test('sit to the right of the page on a wide window', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.goto('/?view=page');
+    const stage = (await page.locator('#page-stage').boundingBox())!;
+    const rail = (await page.locator('.lab-sidebar').boundingBox())!;
+    expect(rail.x).toBeGreaterThanOrEqual(stage.x + stage.width - 1);
+    expect(Math.abs(rail.y - stage.y)).toBeLessThan(24);
+  });
+
+  test('go under the page when the window is too narrow for both', async ({ page }) => {
+    await page.setViewportSize({ width: 600, height: 900 });
+    await page.goto('/?view=page');
+    const stage = (await page.locator('#page-stage').boundingBox())!;
+    const rail = (await page.locator('.lab-sidebar').boundingBox())!;
+    expect(rail.y).toBeGreaterThanOrEqual(stage.y + stage.height - 1);
+  });
+});

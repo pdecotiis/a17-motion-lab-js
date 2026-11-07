@@ -134,7 +134,6 @@ html, body {
   padding: 0 16px;
   height: var(--header-height);
   background: var(--color-bg);
-  border-bottom: 1px solid var(--color-subtle);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -446,11 +445,13 @@ html, body {
   border-radius: var(--radius);
 }
 /* One page: a 1:1 window onto the design. The window is the page's own size, edge to edge (no padding or border, and flush with the lab's
-   edges), and the controls sit under it, in a row, so a page as wide as a browser window shows whole at its real size. */
-.lab-page-layout--single { grid-template-columns: minmax(0, 1fr); align-content: start; }
-.lab-page-layout--single .lab-page-stage { margin-inline: -16px; }
+   edges). The detail panels sit to the right of the window when the lab window is wide enough for both, and under it, in a row, when it is not,
+   so a page as wide as a browser window still shows whole at its real size. */
+.lab-page-layout--single { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: start; gap: 16px; }
+.lab-page-layout--single .lab-page-stage { flex: 0 1 auto; margin-inline: -16px 0; max-width: calc(100% + 16px); }
 .lab-page-layout--single .lab-page-viewport { padding: 0; border: 0; border-radius: 0; }
-.lab-page-layout--single .lab-sidebar { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; overflow-y: visible; }
+.lab-page-layout--single .lab-sidebar { flex: 1 1 340px; min-width: min(100%, 320px); display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; overflow-y: visible; }
+.lab-page-layout--beside .lab-sidebar { grid-template-columns: minmax(0, 1fr); max-width: 440px; }
 .lab-page-stage--fit .lab-page-col { flex: 1 1 0; min-width: 0; }
 .lab-page-stage--fit .lab-page-viewport { width: auto; }
 /* A section whose motion plays when it scrolls in is hidden until then; its own motion starts as it appears. */
