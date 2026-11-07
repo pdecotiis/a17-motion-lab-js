@@ -51,8 +51,8 @@
   --radius: 8px;
   --radius-xs: 2px;
   --header-height: 64px;
-  --lab-font-sans: "Inter Variable", system-ui, -apple-system, sans-serif;
-  --lab-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --lab-font-sans: "Suisse Int'l", "Inter Variable", system-ui, -apple-system, sans-serif;
+  --lab-font-mono: "Suisse Int'l Mono", "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --lab-font-content: system-ui, -apple-system, sans-serif;
   /* The Vitrine kit's text styles (Figma file "Vitrine — UI Kit 2.2", read 2026-11-07), as font shorthands: weight size/line-height family.
      The kit is responsive (sm to xxl); the lab is a fixed tool, so each style is its small/medium size. The kit's typeface is Suisse Int'l
