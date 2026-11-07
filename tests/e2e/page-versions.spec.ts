@@ -112,14 +112,14 @@ test.describe('Page versions', () => {
 
   test('one page is shown at its own size, never scaled, and scrolls sideways when the window is narrower', async ({ page }) => {
     // `home` has no width of its own, so it lays out at the default 400px; an imported page sets its Figma width.
-    for (const width of [500, 1600]) {
+    for (const width of [300, 1600]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/?view=page&page=home');
       const grid = page.locator('.lab-page-grid');
       expect(await grid.evaluate(el => (el as HTMLElement).style.zoom)).toBe('');
       expect((await grid.boundingBox())!.width).toBe(400);
       const stage = page.locator('#page-stage');
-      expect(await stage.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(width === 500);
+      expect(await stage.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(width === 300);
     }
     await expect(page.locator('.lab-page-col__scale')).toHaveCount(0);
     await expect(page.locator('#page-actual-size')).toHaveCount(0);
