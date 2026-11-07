@@ -7,6 +7,7 @@ import { compileTokens, applyTokensToDom, tokenLabel } from './lib/token-compile
 import { motionTableOf } from './lib/motion-table.js';
 import { tokenDisplayName, tokenValueText, VALUE_HEADERS, EXAMPLE_KINDS } from './lib/token-names.js';
 import { projectNameOf, brandText, titleFor } from './lib/project.js';
+import { initialsOf } from './lib/avatar.js';
 import { ICONS } from './lib/icons.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
 import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
@@ -81,6 +82,29 @@ const pageModules = import.meta.glob<PageConfig>(
 // The project's own name (project.json at the repo root, if it has one) for the header and the tab title.
 const projectName = projectNameOf(Object.values(import.meta.glob<unknown>('../project.json', { eager: true, import: 'default' }))[0]);
 const brandEl = document.querySelector<HTMLElement>('.lab-header__brand');
+// The Beta tag is the template's: a project shows its own name instead.
+if (projectName) document.querySelector<HTMLElement>('.lab-header__brand .lab-badge')?.setAttribute('hidden', '');
+
+// The avatar: who set the lab up on this computer.
+const avatarEl = document.getElementById('lab-avatar');
+const avatarInitials = initialsOf(typeof __LAB_USER__ === 'string' ? __LAB_USER__ : '');
+if (avatarEl && avatarInitials) {
+  avatarEl.textContent = avatarInitials;
+  avatarEl.title = __LAB_USER__;
+  avatarEl.setAttribute('role', 'img');
+  avatarEl.setAttribute('aria-label', __LAB_USER__);
+  avatarEl.hidden = false;
+  // Their GitHub picture when we know the login; it replaces the initials once it has loaded (no picture, no change).
+  const login = typeof __LAB_GITHUB__ === 'string' ? __LAB_GITHUB__ : '';
+  if (/^[A-Za-z0-9-]{1,39}$/.test(login)) {
+    const img = new Image();
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.onload = () => { avatarEl.textContent = ''; avatarEl.appendChild(img); };
+    img.src = `https://github.com/${login}.png?size=64`;
+  }
+}
+
 if (projectName && brandEl) {
   const nameEl = document.getElementById('header-project')!;
   nameEl.textContent = projectName;

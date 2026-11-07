@@ -15,6 +15,10 @@
   --gray-800: #282828;
   --gray-900: #1d1d1d;
   --gray-950: #171717;
+  --orange-50: #fbf3ef; /* the kit's orange ramp: the Beta badge */
+  --orange-300: #ee9554;
+  --orange-500: #ae5900;
+  --orange-900: #301400;
   --blue-50: #eff6fb;
   --blue-400: #448df4;
   --blue-500: #006aff; /* the kit's spec blue: the examples' marks */
@@ -76,6 +80,7 @@
   --type-code: 400 12px/1.5 var(--lab-font-mono);               /* the lab's own: token names and code, mono at caption size */
 }
 
+[data-theme="dark"] .lab-badge { background: var(--orange-900); color: var(--orange-300); }
 [data-theme="dark"] {
   --color-bg: var(--gray-950);
   --color-bar: var(--color-bg); /* the page headers: the page colour */
@@ -779,11 +784,10 @@ html, body {
 /* The project's name before the product ("Jane Street · Motion Lab"), when the project has named itself. */
 .lab-header__brand { display: inline-flex; align-items: baseline; }
 .lab-header__project { font: var(--type-ui-1-strong); font-weight: 600; }
-.lab-header__project:not([hidden])::after { content: '·'; margin: 0 8px; color: var(--color-text-muted); font-weight: 500; }
+.lab-header__project:not([hidden])::after { content: ''; margin-right: 0.28em; }
 .lab-header__logo + .lab-badge { align-self: center; margin-left: 8px; }
 /* The kit's badge, neutral: 20px high, full radius, a light fill, the label in mono medium caps. */
-.lab-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 9999px; background: var(--color-card); color: var(--color-text-muted); font: var(--type-label); font-weight: 500; letter-spacing: var(--type-label-tracking); text-transform: uppercase; white-space: nowrap; }
-.lab-header__project:not([hidden]) + .lab-header__logo { color: var(--color-text-muted); font-weight: 500; }
+.lab-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 9999px; background: var(--orange-50); color: var(--orange-500); font: var(--type-label); font-weight: 500; letter-spacing: var(--type-label-tracking); text-transform: uppercase; white-space: nowrap; }
 
 /* The empty lab (a project with nothing in it yet): what to ask Claude, with ready-made requests to copy. */
 .lab-main--empty { display: flex; justify-content: center; align-items: flex-start; padding: 64px 16px; }
@@ -797,3 +801,8 @@ html, body {
 .lab-ask__text { margin: 0; color: var(--color-text-muted); font: var(--type-ui-1); }
 .lab-ask__copy { width: auto; flex: none; margin: 0; font: var(--type-ui-2); }
 .lab-ask__tip { margin: 16px 0 0;  color: var(--color-text-muted); font: var(--type-caption); }
+
+/* The avatar beside the theme switch: the person who set the lab up, initials on a light circle (the kit's 32px avatar). */
+.lab-avatar { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin-left: 4px; border-radius: 9999px; background: var(--color-card); color: var(--color-text); font: var(--type-label); font-weight: 500; letter-spacing: 0; user-select: none; }
+.lab-avatar[hidden], .lab-badge[hidden] { display: none; }
+.lab-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; display: block; }
