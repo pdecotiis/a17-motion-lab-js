@@ -53,7 +53,7 @@
   --color-tint-pressed: rgba(0, 0, 0, 0.12);
   --control-height: 40px;
   --radius: 8px;
-  --radius-control: 4px; /* buttons, nav items, tabs, selects and inputs */
+  --radius-control: 8px; /* buttons, nav items, tabs, selects and inputs */
   --radius-xs: 2px;
   --header-height: 64px;
   --lab-font-sans: "Suisse Int'l", "Inter Variable", system-ui, -apple-system, sans-serif;
@@ -527,8 +527,9 @@ html, body {
 .lab-main--tokens { padding: 0; background: var(--color-bg); }
 .lab-tokens-view { display: flex; flex-direction: column; }
 /* The page header the top-level views share (heroEl in lab/main.ts): the view's name large on the page colour, a rule under it. */
-.lab-hero { background: var(--color-bg); color: var(--color-text); border-bottom: 1px solid var(--color-subtle); padding: 16px 20px; min-height: 160px; display: flex; flex-direction: column; justify-content: flex-end; }
-.lab-hero__title { margin: 0; font: var(--type-display); }
+.lab-hero { background: var(--color-bg); color: var(--color-text); border-bottom: 1px solid var(--color-subtle); padding: 16px 20px 15px; }
+/* The title always sits in the same 128px zone, so it is in the same place on every view; a description goes below the zone and makes the header taller. */
+.lab-hero__title { margin: 0; min-height: 128px; display: flex; align-items: flex-end; font: var(--type-display); }
 .lab-hero__text { margin: 8px 0 0; max-width: 72ch; color: var(--color-text-muted); font: var(--type-ui-1); }
 .lab-tokens-subtabs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 20px; background: var(--color-bg); }
 .lab-tokens-subtab {
