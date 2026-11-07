@@ -348,10 +348,12 @@ When a designer wants a standard entrance ("the eyebrow, title and text rise in 
 | `npm run test`       | Run Vitest unit tests                           |
 | `npm run test:e2e`   | Run Playwright E2E tests (starts dev server; `PORT=5200 npm run test:e2e` when another server holds 5173) |
 | `npm run test:e2e:fast` | Playwright in Chromium only (about half the time) |
-| `npm run check:fast` | typecheck + test + Chromium e2e (about 35s): while iterating |
-| `npm run check`      | typecheck + test + build + test:e2e (all four, Chromium and WebKit, about 1 minute) |
+| `npm run check:changed` | typecheck + every unit test + the browser tests only for the components and pages you changed (a few seconds to 15s): **what to run while working**; a change to the lab, tokens or scripts runs `check:fast` instead; `-- <component>` names one |
+| `npm run check:fast` | typecheck + test + Chromium e2e (about a minute in the template, about 25s in a project): when the lab or tokens changed |
+| `npm run check`      | typecheck + test + build + test:e2e: **before review**. Chromium runs everything (a project: its own components and pages), WebKit runs the motion tests (every version, triggers, reduced motion, each component's spec) |
+| `npm run check:all`  | `check` with the lab's own specs and WebKit's screens included, in a project too: after a merge from the template, and before a release |
 
-**`npm run check` must pass before reporting a session as done.** While iterating, run less: `npm run check:fast` (no WebKit, no build), one spec (`npx playwright test tests/e2e/<file>.spec.ts --project=chromium`) or one unit file (`npx vitest run tests/unit/<file>`), and the full check once before saving. The e2e tests run fully in parallel (`fullyParallel` in `playwright.config.ts`); keep each test independent (own page, no shared state) and avoid fixed sleeps so they stay safe that way.
+**`npm run check` must pass before sending work for review** (and `npm run check:all` after merging from the template). While working and before a save, run `npm run check:changed`: typecheck, all the unit tests and only the browser tests for what you touched. Other ways to run less: `npm run check:fast`, one spec (`npx playwright test tests/e2e/<file>.spec.ts --project=chromium`) or one unit file (`npx vitest run tests/unit/<file>`). **Where the time goes** (measured): the unit tests, typecheck and build are about 10s; the browser tests are the rest, so a project skips the lab's own specs (`LAB_E2E_FILES` in `tests/samples.ts`: the template tests the lab, a project only merges it, `LAB_TESTS=1` runs them), WebKit skips the lab's screens (`WEBKIT_SKIP_FILES`, `WEBKIT_ALL=1` runs them), and `tests/e2e/all-versions.spec.ts` loads the lab once per component and opens each version from its tab (it used to load the lab per version, and grew with every one added). The e2e tests run fully in parallel (`fullyParallel` in `playwright.config.ts`); keep each test independent (own page, no shared state) and avoid fixed sleeps so they stay safe that way.
 
 ## Build
 

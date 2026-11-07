@@ -97,3 +97,54 @@ export const PRESETS_NEEDED = 'needs the template\'s default presets (tokens/pre
 /** Files that pin the template's default presets, left out entirely when tokens/presets.json is customised. */
 export const PRESET_UNIT_FILES = ['tests/unit/entrance-presets.test.ts'];
 export const PRESET_E2E_FILES = ['tests/e2e/presets.spec.ts'];
+
+/**
+ * The lab's own end-to-end specs: its navigation, views, settings, triggers and the like. They test the lab's code, which a project only
+ * has by merging it from the template (where they run in full), so a project skips them unless LAB_TESTS=1: run
+ * `LAB_TESTS=1 npm run check` once after a merge from the template. The template (samples present) always runs them.
+ */
+export const LAB_E2E_FILES = [
+  'tests/e2e/built-output.spec.ts',
+  'tests/e2e/compare-view.spec.ts',
+  'tests/e2e/component-view.spec.ts',
+  'tests/e2e/engine-tokens.spec.ts',
+  'tests/e2e/interaction-triggers.spec.ts',
+  'tests/e2e/interactions.spec.ts',
+  'tests/e2e/library-view.spec.ts',
+  'tests/e2e/motion-table.spec.ts',
+  'tests/e2e/navigation.spec.ts',
+  'tests/e2e/page-scroll.spec.ts',
+  'tests/e2e/page-versions.spec.ts',
+  'tests/e2e/page-view.spec.ts',
+  'tests/e2e/presets.spec.ts',
+  'tests/e2e/reduced-motion.spec.ts',
+  'tests/e2e/settings.spec.ts',
+  'tests/e2e/side-panel.spec.ts',
+  'tests/e2e/theme.spec.ts',
+  'tests/e2e/tokens-view.spec.ts',
+  'tests/e2e/visual-check.spec.ts',
+];
+export const LAB_TESTS: boolean = SAMPLES_PRESENT || process.env['LAB_TESTS'] === '1';
+
+/**
+ * WebKit (Safari's engine) runs the motion tests: every version, the triggers, reduced motion and each component's own spec. The lab's
+ * screens (navigation, library, settings, tokens, the page and component chrome) are plain layout that Chromium covers, so WebKit skips
+ * them unless WEBKIT_ALL=1 (`npm run check:all`, before a release).
+ */
+export const WEBKIT_SKIP_FILES = [
+  'tests/e2e/built-output.spec.ts',
+  'tests/e2e/compare-view.spec.ts',
+  'tests/e2e/component-view.spec.ts',
+  'tests/e2e/library-view.spec.ts',
+  'tests/e2e/motion-table.spec.ts',
+  'tests/e2e/navigation.spec.ts',
+  'tests/e2e/page-scroll.spec.ts',
+  'tests/e2e/page-versions.spec.ts',
+  'tests/e2e/page-view.spec.ts',
+  'tests/e2e/presets.spec.ts',
+  'tests/e2e/settings.spec.ts',
+  'tests/e2e/theme.spec.ts',
+  'tests/e2e/tokens-view.spec.ts',
+  'tests/e2e/visual-check.spec.ts',
+];
+export const WEBKIT_ALL: boolean = process.env['WEBKIT_ALL'] === '1';

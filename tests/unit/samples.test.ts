@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { SAMPLE_FILES, SAMPLE_E2E_FILES, SAMPLE_UNIT_FILES } from '../samples.js';
+import { SAMPLE_FILES, SAMPLE_E2E_FILES, SAMPLE_UNIT_FILES, LAB_E2E_FILES, WEBKIT_SKIP_FILES } from '../samples.js';
 
 // The template's sample content (card, side-panel, home) is deleted in a project repo. Every test that
 // needs it must be listed in tests/samples.ts or guard itself with SAMPLES_PRESENT, or a project's
@@ -63,5 +63,14 @@ describe('what counts as using a sample', () => {
     expect(USES_SAMPLE.test('/?view=component&component=side-panel-wide')).toBe(false);
     expect(USES_SAMPLE.test('/?view=page&page=homepage')).toBe(false);
     expect(USES_SAMPLE.test('/?view=page&page=home-news')).toBe(false);
+  });
+});
+
+describe('the lab and WebKit spec lists', () => {
+  it('name specs that exist', () => {
+    for (const f of [...LAB_E2E_FILES, ...WEBKIT_SKIP_FILES]) expect(existsSync(join(root, f)), `${f} is listed in tests/samples.ts but does not exist`).toBe(true);
+  });
+  it('skip in WebKit only specs that are the lab\'s own or plain layout: never an every-version, trigger or component spec', () => {
+    for (const f of ['tests/e2e/all-versions.spec.ts', 'tests/e2e/interaction-triggers.spec.ts', 'tests/e2e/reduced-motion.spec.ts']) expect(WEBKIT_SKIP_FILES).not.toContain(f);
   });
 });
