@@ -8,6 +8,7 @@ import { motionTableOf } from './lib/motion-table.js';
 import { tokenDisplayName, tokenValueText, VALUE_HEADERS, EXAMPLE_KINDS } from './lib/token-names.js';
 import { projectNameOf, brandText, titleFor } from './lib/project.js';
 import { initialsOf } from './lib/avatar.js';
+import { arrangeTeam, personTitle, type Person } from './lib/team.js';
 import { ICONS } from './lib/icons.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
 import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
@@ -85,24 +86,48 @@ const brandEl = document.querySelector<HTMLElement>('.lab-header__brand');
 // The Beta tag is the template's: a project shows its own name instead.
 if (projectName) document.querySelector<HTMLElement>('.lab-header__brand .lab-badge')?.setAttribute('hidden', '');
 
-// The avatar: who set the lab up on this computer.
-const avatarEl = document.getElementById('lab-avatar');
-const avatarInitials = initialsOf(typeof __LAB_USER__ === 'string' ? __LAB_USER__ : '');
-if (avatarEl && avatarInitials) {
-  avatarEl.textContent = avatarInitials;
-  avatarEl.title = __LAB_USER__;
-  avatarEl.setAttribute('role', 'img');
-  avatarEl.setAttribute('aria-label', __LAB_USER__);
-  avatarEl.hidden = false;
+// The avatars beside the theme switch. Alone, one: who set the lab up on this computer (the computer's git user). With
+// others, a stack of everyone who has worked in the project, you first, from the project's own history (the dev server's
+// /__lab/team, lab/lib/team.ts). A built copy has no one to show, so it shows none.
+const avatarsEl = document.getElementById('lab-avatars');
+function avatarFor(name: string, login: string | undefined, title: string): HTMLElement {
+  const el = document.createElement('span');
+  el.className = 'lab-avatar';
+  el.textContent = initialsOf(name);
+  el.title = title;
+  el.setAttribute('role', 'img');
+  el.setAttribute('aria-label', title);
   // Their GitHub picture when we know the login; it replaces the initials once it has loaded (no picture, no change).
-  const login = typeof __LAB_GITHUB__ === 'string' ? __LAB_GITHUB__ : '';
-  if (/^[A-Za-z0-9-]{1,39}$/.test(login)) {
+  if (login && /^[A-Za-z0-9-]{1,39}$/.test(login)) {
     const img = new Image();
     img.alt = '';
     img.referrerPolicy = 'no-referrer';
-    img.onload = () => { avatarEl.textContent = ''; avatarEl.appendChild(img); };
+    img.onload = () => { el.textContent = ''; el.appendChild(img); };
     img.src = `https://github.com/${login}.png?size=64`;
   }
+  return el;
+}
+if (avatarsEl) {
+  const user = typeof __LAB_USER__ === 'string' ? __LAB_USER__ : '';
+  const userLogin = typeof __LAB_GITHUB__ === 'string' ? __LAB_GITHUB__ : '';
+  if (initialsOf(user)) { avatarsEl.replaceChildren(avatarFor(user, userLogin, user)); avatarsEl.hidden = false; }
+  fetch('/__lab/team').then(r => (r.ok ? r.json() : null)).catch(() => null).then((data: { people?: Person[]; you?: { name?: string; email?: string } } | null) => {
+    if (!data?.people) return;
+    const { shown, more } = arrangeTeam(data.people, data.you ?? {});
+    if (shown.length === 0) return;
+    const now = Date.now();
+    const yourName = data.you?.name?.toLowerCase();
+    const nodes = shown.map((p, i) => avatarFor(p.name, p.login ?? (i === 0 && p.name.toLowerCase() === yourName ? userLogin : undefined), i === 0 && p.name.toLowerCase() === yourName ? `${p.name} (you)` : personTitle(p, now)));
+    if (more > 0) {
+      const chip = document.createElement('span');
+      chip.className = 'lab-avatar lab-avatar--more';
+      chip.textContent = `+${more}`;
+      chip.title = `${more} more who have worked in this project`;
+      nodes.push(chip);
+    }
+    avatarsEl.replaceChildren(...nodes);
+    avatarsEl.hidden = false;
+  });
 }
 
 if (projectName && brandEl) {

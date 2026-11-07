@@ -44,6 +44,16 @@ Open the Claude desktop app, open your Motion Lab folder in the **Code** tab, an
 
 You never need to say "commit", "branch" or "merge". If you do, Claude will mirror you.
 
+## Working with other designers
+
+Several designers can work on the same project at once. Each of you works on your own copy, so you can't break each other's work, and your work meets the others' when you say "Ready for review" (a reviewer approves it into the shared project).
+
+- **Your own copy.** Claude starts every exploration on a copy named for you and keeps it separate until it is reviewed.
+- **Who else is here.** The avatars beside the light/dark switch show everyone who has ever worked in the project, you first. Hover one to see when they last worked.
+- **Claude tells you about overlap.** Before you start on a component, Claude checks whether a teammate already has work in review on it and says so. Work someone has saved only on their own Mac can't be seen, so ask each other if you're about to touch the same thing.
+- **When you meet.** Claude brings in the latest shared work before saving or sending yours. It settles easy overlaps itself and asks you only when you and a teammate changed the same motion value or look.
+- **One owner per Figma frame.** Re-importing a frame replaces its markup and styles, so agree who imports it.
+
 ## If something goes wrong
 
 - **Something stops with an error:** copy the whole message and paste it to Claude. It reads the error, so you don't have to.

@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import { resolve } from 'path';
 import { scaleApplyPlugin } from './scripts/scale-plugin';
 import { pageVersionPlugin } from './scripts/page-version-plugin';
+import { teamPlugin } from './scripts/team-plugin';
 
 // The computer's git user, for the avatar in the header (dev server only: a built copy has no one to show).
 function gitUser(): string {
@@ -28,7 +29,7 @@ export default defineConfig(({ command }) => ({
   },
   root: 'lab',
   base: './',
-  plugins: [scaleApplyPlugin(__dirname), pageVersionPlugin(__dirname)],
+  plugins: [scaleApplyPlugin(__dirname), pageVersionPlugin(__dirname), teamPlugin(__dirname)],
   build: {
     outDir: '../dist',
     emptyOutDir: true,
