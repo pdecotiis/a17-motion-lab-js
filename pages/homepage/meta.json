@@ -12,6 +12,16 @@
   },
   "sections": [
     {
+      "id": "menu",
+      "component": "menu",
+      "figmaName": "menu"
+    },
+    {
+      "id": "header",
+      "component": "header",
+      "figmaName": "header"
+    },
+    {
       "id": "page-header-title",
       "component": "page-header-title",
       "figmaName": "page header"
@@ -33,14 +43,6 @@
     }
   ],
   "notImported": [
-    {
-      "name": "menu",
-      "reason": "the side menu, shown open at this breakpoint (304px): chrome, an interaction of its own"
-    },
-    {
-      "name": "header",
-      "reason": "the global header: chrome, not part of the page flow"
-    },
     {
       "name": "footer",
       "reason": "the global footer: chrome"

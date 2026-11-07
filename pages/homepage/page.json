@@ -1,8 +1,17 @@
 {
   "id": "homepage",
   "title": "Homepage",
-  "width": 1136,
+  "width": 1440,
   "components": [
+    {
+      "id": "menu",
+      "component": "menu",
+      "layout": "aside"
+    },
+    {
+      "id": "header",
+      "component": "header"
+    },
     {
       "id": "page-header-title",
       "component": "page-header-title"

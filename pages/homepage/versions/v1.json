@@ -2,6 +2,8 @@
   "id": "v1",
   "label": "Default",
   "motionMap": {
+    "menu": "v1",
+    "header": "v1",
     "page-header-title": "v1",
     "grid-container-mosaic-routing": "v1",
     "card-feature": "v1",
