@@ -1288,7 +1288,7 @@ function renderPageView(params: URLSearchParams): void {
     viewport.className = 'lab-page-viewport';
     const grid = document.createElement('div');
     // An imported page (it has a width) sits its sections flush, as the Figma frame does.
-    grid.className = `lab-page-grid${pageConfig.width ? ' lab-page-grid--flush' : ''}`;
+    grid.className = `lab-page-grid${pageConfig.width ? ' lab-page-grid--flush' : ''}${pageConfig.components.some(c => c.layout === 'aside') ? ' lab-page-grid--aside' : ''}`;
     if (id !== null) grid.id = id;
     viewport.appendChild(grid);
     col.appendChild(viewport);

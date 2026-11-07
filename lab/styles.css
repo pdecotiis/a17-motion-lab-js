@@ -410,6 +410,11 @@ html, body {
 .lab-page-grid { display: flex; flex-direction: column; gap: 24px; }
 .lab-page-grid--flush { gap: 0; }
 .lab-page-item { width: 100%; }
+/* A page with an aside (a side menu): the aside sits at the left, full height and sticky as the window scrolls, and the other sections
+   stack in the column beside it. */
+.lab-page-grid--aside { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: start; }
+.lab-page-grid--aside > .lab-page-item { grid-column: 2; }
+.lab-page-grid--aside > .lab-page-item--aside { grid-column: 1; grid-row: 1 / span 50; position: sticky; top: 0; align-self: start; width: auto; }
 
 /* Motion map panel */
 .lab-motion-map-panel { display: flex; flex-direction: column; gap: 8px; }
