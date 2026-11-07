@@ -1,0 +1,38 @@
+{
+  "name": "header",
+  "layerName": "header",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23668-42753",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23668:42753"
+  },
+  "importedAt": "2026-11-06",
+  "frame": {
+    "width": 1136,
+    "height": 80
+  },
+  "designWidth": 1136,
+  "variables": [
+    "background/default",
+    "background/inverse",
+    "background/quaternary",
+    "font-size/16",
+    "grid/xl/container",
+    "layout/margin",
+    "radius/full",
+    "size/24",
+    "size/48",
+    "size/8",
+    "text/default",
+    "text/inverse",
+    "ui-sans/family",
+    "ui-sans/weight"
+  ],
+  "assets": [
+    "icon-search.svg"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "The header sits at the content width (1136px) beside the 304px menu; it is the global header (chrome), not part of the page flow."
+  ]
+}

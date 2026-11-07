@@ -1,0 +1,53 @@
+{
+  "name": "menu",
+  "layerName": "menu",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23668-42751",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23668:42751"
+  },
+  "importedAt": "2026-11-06",
+  "frame": {
+    "width": 304,
+    "height": 900
+  },
+  "designWidth": 304,
+  "variables": [
+    "background/default",
+    "background/secondary",
+    "font-size/14",
+    "font-size/16",
+    "grid/xl/nav",
+    "label/family",
+    "label/weight",
+    "radius/full",
+    "radius/lg",
+    "size/12",
+    "size/128",
+    "size/16",
+    "size/24",
+    "size/32",
+    "size/4",
+    "size/40",
+    "size/48",
+    "size/8",
+    "space/1",
+    "text/default",
+    "text/secondary",
+    "ui-sans/family",
+    "ui-sans/weight"
+  ],
+  "assets": [
+    "chevron-down.svg",
+    "chevron-up.svg",
+    "icon-moon.svg",
+    "icon-sidebar.svg",
+    "icon-sun.svg",
+    "logo.svg"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "The chevron-down icon was not exported by Figma: it is the chevron-up icon flipped. The theme toggle and the close button are static here (no behaviour).",
+    "The \"sidebar\" and \"search\" icons are vector layers inside instances, exported as SVG."
+  ]
+}

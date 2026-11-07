@@ -8,6 +8,7 @@
   --background-default: #f5f4f2;
   --background-inverse: #141414;
   --background-on-accent-inactive-primary: #00000033;
+  --background-quaternary: #dbdad8e5;
   --background-secondary: #e8e7e5;
   --body-family: "TWK Everett", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --body-weight: 400;
@@ -30,6 +31,7 @@
   --grid-xl-container: 1136px;
   --grid-xl-gutter: 8px;
   --grid-xl-margin: 32px;
+  --grid-xl-nav: 304px;
   --heading-family: "TWK Everett", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --heading-weight: 400;
   --interactive-height-lg: 48px;
@@ -50,6 +52,7 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
   --size-12: 12px;
+  --size-128: 128px;
   --size-16: 16px;
   --size-24: 24px;
   --size-32: 32px;
