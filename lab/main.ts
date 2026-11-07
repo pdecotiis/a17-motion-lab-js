@@ -401,6 +401,18 @@ function viewBarHtml(replay: { id: string; label: string }, leading = '', extra 
     </div>`;
 }
 
+// The page header the top-level views share (Components, Pages, Presets, Tokens): the view's name large, on the page
+// colour, with a rule under it. Whatever the view has (tabs, a toolbar) follows it.
+function heroEl(title: string): HTMLElement {
+  const hero = document.createElement('div');
+  hero.className = 'lab-hero';
+  const h1 = document.createElement('h1');
+  h1.className = 'lab-hero__title';
+  h1.textContent = title;
+  hero.appendChild(h1);
+  return hero;
+}
+
 function bindPlaybackBar(): void {
   const speed = document.getElementById('speed-control') as HTMLSelectElement | null;
   speed?.addEventListener('change', () => {
@@ -1247,7 +1259,12 @@ function renderPageView(params: URLSearchParams): void {
   const fit = Boolean(compareWith) && !actualSize;
 
   main.innerHTML = `
-    ${viewBarHtml({ id: 'replay-all-btn', label: 'Replay All' }, '<h2 class="lab-viewbar__title" id="viewbar-title"></h2>')}
+    ${viewBarHtml({ id: 'replay-all-btn', label: 'Replay All' }, `<nav class="lab-breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="?view=pages" id="breadcrumb-pages">Pages</a></li>
+          <li aria-current="page" id="viewbar-title"></li>
+        </ol>
+      </nav>`)}
     <div class="lab-page-layout${compareWith ? '' : ' lab-page-layout--single'}">
       <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
       <aside class="lab-sidebar">
@@ -1292,7 +1309,7 @@ function renderPageView(params: URLSearchParams): void {
   `;
 
   bindPlaybackBar();
-  document.getElementById('viewbar-title')!.textContent = pageName;
+  document.getElementById('viewbar-title')!.textContent = pageConfig.title || pageName;
   const stage = document.getElementById('page-stage')!;
   const motionMapPanel = document.getElementById('motion-map-panel')!;
 
@@ -1814,12 +1831,7 @@ function renderTokensView(): void {
   wrapper.className = 'lab-tokens-view';
 
   // The kit's page header: a black bar titled Tokens, then the kinds as pills tabs on a gray band.
-  const hero = document.createElement('div');
-  hero.className = 'lab-tokens-hero';
-  const title = document.createElement('h1');
-  title.className = 'lab-tokens-title';
-  title.textContent = 'Tokens';
-  hero.appendChild(title);
+  const hero = heroEl('Tokens');
   const subtabs = document.createElement('div');
   subtabs.className = 'lab-tokens-subtabs';
   subtabs.setAttribute('role', 'tablist');
@@ -1979,7 +1991,10 @@ function renderPresetsView(): void {
     replay.addEventListener('click', () => animateElement(holder, presetVersion(name)));
   }
 
-  main.append(intro, grid);
+  const body = document.createElement('div');
+  body.className = 'lab-view-body';
+  body.append(intro, grid);
+  main.append(heroEl('Presets'), body);
   const playAll = (): void => targets.forEach(({ name, target }) => animateElement(target, presetVersion(name)));
   replayAll.addEventListener('click', playAll);
   playAll();
@@ -2063,7 +2078,10 @@ function renderLibraryView(params: URLSearchParams): void {
   meta.className = 'lab-library__meta';
   meta.append(count, controls.archived);
   toolbar.append(filters, meta);
-  main.append(toolbar, grid);
+  const body = document.createElement('div');
+  body.className = 'lab-view-body';
+  body.append(toolbar, grid);
+  main.append(heroEl('Components'), body);
 
   search.addEventListener('input', () => {
     const sp = new URLSearchParams(window.location.search);
@@ -2145,13 +2163,129 @@ function renderLibraryView(params: URLSearchParams): void {
   renderGrid();
 }
 
+// ── Pages library ──────────────────────────────────────────────────────────
+// /?view=pages[&q=…]
+// Every page as a scaled preview of its sections, the way the Components view shows components. A card plays the page's
+// sections on hover or focus and opens the page view.
+function renderPagesView(params: URLSearchParams): void {
+  const main = document.getElementById('main-content')!;
+  main.innerHTML = '';
+  main.className = 'lab-main lab-main--pages';
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'lab-library__toolbar';
+  const search = document.createElement('input');
+  search.type = 'search';
+  search.id = 'pages-search';
+  search.className = 'lab-input';
+  search.placeholder = 'Search pages';
+  search.setAttribute('aria-label', 'Search pages');
+  search.value = params.get('q') ?? '';
+  const filters = document.createElement('div');
+  filters.className = 'lab-library__filters';
+  filters.appendChild(search);
+  const count = document.createElement('span');
+  count.className = 'lab-library__count';
+  count.id = 'pages-count';
+  const meta = document.createElement('div');
+  meta.className = 'lab-library__meta';
+  meta.appendChild(count);
+  toolbar.append(filters, meta);
+  const grid = document.createElement('div');
+  grid.className = 'lab-library__grid';
+  grid.id = 'pages-grid';
+  const body = document.createElement('div');
+  body.className = 'lab-view-body';
+  body.append(toolbar, grid);
+  main.append(heroEl('Pages'), body);
+
+  search.addEventListener('input', () => {
+    const sp = new URLSearchParams(window.location.search);
+    if (search.value) sp.set('q', search.value); else sp.delete('q');
+    window.history.replaceState(null, '', `?${sp.toString()}`);
+    renderGrid();
+  });
+
+  function renderGrid(): void {
+    libraryObserver?.disconnect();
+    libraryObserver = new ResizeObserver(entries => {
+      for (const e of entries) (e.target as HTMLElement & { refit?: () => void }).refit?.();
+    });
+    grid.innerHTML = '';
+    const query = (new URLSearchParams(window.location.search).get('q') ?? '').toLowerCase().replace(/-/g, ' ').trim();
+    const ids = Object.keys(pageModules)
+      .map(p => /\/pages\/([^/]+)\/page\.json$/.exec(p)?.[1])
+      .filter((n): n is string => Boolean(n))
+      .sort()
+      .filter(id => !query || `${id} ${getPageConfig(id)?.title ?? ''}`.toLowerCase().replace(/-/g, ' ').includes(query));
+    count.textContent = `${ids.length} page${ids.length === 1 ? '' : 's'}`;
+    if (ids.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'lab-library__empty';
+      empty.textContent = 'No pages match.';
+      grid.appendChild(empty);
+      return;
+    }
+    const modules = getComponentModules();
+    for (const id of ids) {
+      const config = getPageConfig(id)!;
+      const pageWidth = config.width ?? PAGE_DEFAULT_WIDTH;
+
+      const card = document.createElement('a');
+      card.className = 'lab-library-card';
+      card.href = `?view=page&page=${id}`;
+      card.dataset['page'] = id;
+
+      const preview = document.createElement('div') as HTMLElement & { refit?: () => void };
+      preview.className = 'lab-library-card__preview lab-library-card__preview--page';
+      const scaler = document.createElement('div');
+      scaler.className = `lab-library-card__scaler lab-page-grid${config.width ? ' lab-page-grid--flush' : ''}${config.components.some(c => c.layout === 'aside') ? ' lab-page-grid--aside' : ''}`;
+      scaler.style.width = `${pageWidth}px`;
+      const targets: { target: HTMLElement; version: MotionVersion }[] = [];
+      for (const pc of config.components) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `lab-page-item lab-page-item--${pc.layout ?? 'full'}`;
+        wrapper.innerHTML = getMarkup(pc.component);
+        scaler.appendChild(wrapper);
+        const target = wrapper.querySelector<HTMLElement>('[data-motion-target]') ?? (wrapper.firstElementChild as HTMLElement | null);
+        if (target && modules[pc.component]) targets.push({ target, version: getDefaultVersion(pc.component) });
+      }
+      preview.appendChild(scaler);
+
+      const footer = document.createElement('div');
+      footer.className = 'lab-library-card__footer';
+      const name = document.createElement('span');
+      name.className = 'lab-library-card__name';
+      name.textContent = config.title || id;
+      const versions = document.createElement('span');
+      versions.className = 'lab-library-card__versions';
+      const savedVersions = getPageVersions(id, config).length;
+      versions.textContent = `${config.components.length} section${config.components.length === 1 ? '' : 's'} · ${savedVersions} version${savedVersions === 1 ? '' : 's'}`;
+      footer.append(name, versions);
+
+      card.append(preview, footer);
+      grid.appendChild(card);
+
+      // The page lays out at its own width and is scaled down to the card, from the top left; the card shows its top.
+      preview.refit = () => { scaler.style.transform = `scale(${preview.clientWidth / pageWidth})`; };
+      libraryObserver.observe(preview);
+
+      const play = (): void => targets.forEach(({ target, version }, i) => { animateElement(target, version, i); });
+      card.addEventListener('pointerenter', play);
+      card.addEventListener('focus', play);
+    }
+  }
+
+  renderGrid();
+}
+
 // ── Router ─────────────────────────────────────────────────────────────────
 
 function route(): void {
   const params = new URLSearchParams(window.location.search);
   // The Library is home. A component opens from it, so while one is open the Library stays the lit item.
   const view = params.get('view') ?? 'library';
-  const navView = view === 'component' ? 'library' : view;
+  const navView = view === 'component' ? 'library' : view === 'page' ? 'pages' : view;
 
   // Let go of the view on screen: what it observed, and the motions still playing on its elements.
   viewCleanups.forEach(cleanup => cleanup());
@@ -2165,7 +2299,7 @@ function route(): void {
   const noPages = Object.keys(pageModules).length === 0;
   // The tab says what is on screen: "card – Jane Street · Motion Lab".
   const what: Record<string, string> = {
-    library: 'Components', tokens: 'Tokens', presets: 'Presets',
+    library: 'Components', pages: 'Pages', tokens: 'Tokens', presets: 'Presets',
     component: noComponents ? 'Components' : params.get('component') ?? defaultComponentName(),
     page: noPages ? 'Pages' : params.get('page') ?? defaultPageName(),
     frame: `${params.get('component') ?? defaultComponentName()} frame`,
@@ -2181,10 +2315,12 @@ function route(): void {
   // A project with nothing in it yet says what to ask Claude, instead of a blank or broken screen.
   if (noComponents && (view === 'library' || view === 'component')) {
     renderEmptyState(document.getElementById('main-content')!, 'components');
-  } else if (noPages && view === 'page') {
+  } else if (noPages && (view === 'page' || view === 'pages')) {
     renderEmptyState(document.getElementById('main-content')!, 'pages');
   } else if (view === 'frame') {
     renderFrameView(params);
+  } else if (view === 'pages') {
+    renderPagesView(params);
   } else if (view === 'page') {
     renderPageView(params);
   } else if (view === 'tokens') {

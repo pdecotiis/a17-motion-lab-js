@@ -56,7 +56,8 @@ test.describe('Page view', () => {
     await expect(page.locator('.lab-token-row', { hasText: 'delay-120' })).toHaveAttribute('title', /the default page stagger/);
     await expect(page.locator('.lab-token-row', { hasText: 'delay-80' })).not.toHaveAttribute('title', /the default page stagger/);
 
-    await page.click('.lab-nav__btn[data-view="page"]');
+    await page.click('.lab-nav__btn[data-view="pages"]');
+    await page.locator('.lab-library-card').first().click();
     await expect(page.locator('#stagger-select option').first()).toHaveText('Default (delay.120)');
     expect(await delays(page)).toEqual([0, 120, 240]);
   });

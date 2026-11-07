@@ -304,8 +304,8 @@ test.describe('Runtime (CSS / Motion)', () => {
     await page.locator('.lab-library-card').first().click();
     await expect(page).toHaveURL(/view=component/);
     await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
-    await page.click('.lab-nav__btn[data-view="page"]');
-    await expect(page).toHaveURL(/view=page/);
+    await page.click('.lab-nav__btn[data-view="pages"]');
+    await expect(page).toHaveURL(/view=pages/);
     await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
   });
 

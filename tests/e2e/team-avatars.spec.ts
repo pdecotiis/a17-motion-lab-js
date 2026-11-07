@@ -42,6 +42,6 @@ test.describe('team avatars', () => {
   test('a failed team request leaves the lab working', async ({ page }) => {
     await page.route('**/__lab/team', route => route.abort());
     await page.goto('/?view=tokens');
-    await expect(page.locator('.lab-tokens-title')).toBeVisible();
+    await expect(page.locator('.lab-hero__title')).toBeVisible();
   });
 });
