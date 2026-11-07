@@ -7,6 +7,9 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 // v7 is v5 with a two-column grid: each bento is only the text card and an image, side by side, 484 x 600 each (the rest of the grid
 // closes). Same timings as v5. The card's text slides in from the left, the side the card
 // grows from, the images come in from a larger scale, and they fade to black as a bento closes. Experiment: as v6.
+// v11 is fast: everything is on productive easings, the cells morph over 300ms (v10: 800), the text fades in over 220ms after 40ms and
+// out over 100ms, the photos settle over 300ms, the scale reset waits for the collapse, the colour cards are held for 150ms before the
+// morph (v10: a second), and the cards enter with the preset's stagger (the second at 70ms, the third at 120ms).
 // v11 is v10 with the colour always there: the closed bars are never the secondary background, they keep their own colours (so nothing
 // animates to colour on hover or click, and the cards only change shape as they open and close). The rest is v10.
 // v10 is v9 with a starting view: the three colour cards side by side (green Technology, yellow Trading, orange Machine Learning), each
@@ -47,20 +50,20 @@ const LAYOUTS: Record<Tab, Layout> = {
   technology: { grid: HALVES },
 };
 
-const into = (state: State) => ({ model: 'tween' as const, duration: 'duration.800', easing: 'easing.expressive-standard' });
+const into = (state: State) => ({ model: 'tween' as const, duration: 'duration.300', easing: 'easing.productive-standard' });
 // Text: fades in a beat after the card starts to open, and out quickly as it closes.
 const fadeInto = (opens: Tab) => Object.fromEntries(STATES.map(s => [s, s === opens
-  ? { model: 'tween' as const, duration: 'duration.560', easing: 'easing.expressive-entrance', delay: 'delay.120' }
-  : { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-exit' }]));
+  ? { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-entrance', delay: 'delay.40' }
+  : { model: 'tween' as const, duration: 'duration.100', easing: 'easing.productive-exit' }]));
 
 // The images come in from a slightly larger scale (the largest scale token, 106%) and settle to 100% as their bento opens; they do not
 // scale on the way out. A black veil dims them: it fades up to 40% over the picture as the bento closes (a soft fade, not to black) and
-// off as it opens. The photo's scale resets to 106% only after the cell has finished collapsing (the collapse takes 800ms), when it is
+// off as it opens. The photo's scale resets to 106% only after the cell has finished collapsing (the collapse takes 400ms), when it is
 // too narrow to show it, so no scaling is seen on the way out.
 const ZOOM = '{scale.106}';
 const settle = (opens: Tab) => Object.fromEntries(STATES.map(s => [s, s === opens
-  ? { model: 'tween' as const, duration: 'duration.800', easing: 'easing.expressive-entrance' }
-  : { model: 'tween' as const, duration: 'duration.100', easing: 'easing.productive-exit', delay: 'duration.800' }]));
+  ? { model: 'tween' as const, duration: 'duration.300', easing: 'easing.productive-entrance' }
+  : { model: 'tween' as const, duration: 'duration.100', easing: 'easing.productive-exit', delay: 'duration.300' }]));
 // The veil moves with the cell: exactly the card width's timing, in both directions (800ms, expressive-standard), so the two feel connected.
 const veilTo = (_opens: Tab) => Object.fromEntries(STATES.map(s => [s, into(s)]));
 
@@ -99,7 +102,7 @@ export const v11: MotionVersion = {
   layers: cardsEnter,
   interaction: {
     initial: 'cards',
-    hold: '1000ms', // the cards are held for a second before the scene morphs
+    hold: '150ms', // the colour cards are held for a short beat before the scene morphs
     states: Object.fromEntries(STATES.map(s => [s, {}])),
     transitions: Object.fromEntries(STATES.map(s => [s, into(s)])),
     layers,
