@@ -180,13 +180,15 @@ test.describe('Presets page', () => {
     await expect(page.locator('.lab-viewbar')).toHaveCount(1);
   });
 
-  test('the cards are surfaces on the page colour, with the example on the lighter canvas', async ({ page }) => {
+  test('the cards are the kit\'s lightest gray on the white page, with an outline around the example', async ({ page }) => {
     await page.goto('/?view=presets');
     const colours = await page.evaluate(() => {
       const bg = (sel: string) => getComputedStyle(document.querySelector(sel)!).backgroundColor;
-      return { card: bg('.lab-preset'), stage: bg('.lab-preset__stage'), page: getComputedStyle(document.body).backgroundColor };
+      return { card: bg('.lab-preset'), stage: bg('.lab-preset__stage'), outline: getComputedStyle(document.querySelector('.lab-preset__stage')!).borderTopWidth, page: getComputedStyle(document.body).backgroundColor };
     });
-    expect(colours.card).toBe('rgb(255, 255, 255)');
-    expect(colours.stage).toBe(colours.page);
+    expect(colours.page).toBe('rgb(255, 255, 255)');
+    expect(colours.card).toBe('rgb(245, 245, 245)');
+    expect(colours.outline).toBe('1px');
+    expect(colours.stage).toBe('rgba(0, 0, 0, 0)');
   });
 });

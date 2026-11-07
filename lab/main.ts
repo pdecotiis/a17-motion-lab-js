@@ -728,7 +728,7 @@ function renderComponentView(params: URLSearchParams): void {
   main.innerHTML = `
     ${viewBarHtml({ id: 'replay-btn', label: 'Replay' }, `<nav class="lab-breadcrumb" aria-label="Breadcrumb">
         <ol>
-          <li><a href="${libraryHref()}" id="breadcrumb-library">Library</a></li>
+          <li><a href="${libraryHref()}" id="breadcrumb-library">Components</a></li>
           <li aria-current="page" id="breadcrumb-current"></li>
         </ol>
       </nav>`, '<button class="lab-btn" id="generate-spec-btn" type="button" disabled title="Writes the spec and the code for the open version (coming soon)">Generate spec</button>')}
@@ -1198,7 +1198,7 @@ function renderPageView(params: URLSearchParams): void {
 
   main.innerHTML = `
     ${viewBarHtml({ id: 'replay-all-btn', label: 'Replay All' }, '<h2 class="lab-viewbar__title" id="viewbar-title"></h2>')}
-    <div class="lab-page-layout">
+    <div class="lab-page-layout${compareWith ? '' : ' lab-page-layout--single'}">
       <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
       <aside class="lab-sidebar">
         <section class="lab-controls" aria-label="Page versions">
@@ -1308,7 +1308,9 @@ function renderPageView(params: URLSearchParams): void {
       pageObserver!.observe(viewport);
     } else {
       // The window is the page's width plus its padding and border (and a scrollbar, where one takes room).
-      viewport.style.width = `${pageWidth + 34 + scrollbarWidth()}px`;
+      // One page is the window itself, edge to edge, so it is the page's size exactly (plus a scrollbar where one takes room); two
+      // compared pages sit in framed windows (the frame's padding and border add 34px).
+      viewport.style.width = `${pageWidth + (compareWith ? 34 : 0) + scrollbarWidth()}px`;
       if (scaleLabel) scaleLabel.textContent = '100%';
     }
     const column: PageColumn = { grid, viewport, anims: new Map(), slots: new Map(), map, choice };
@@ -2102,7 +2104,7 @@ function route(): void {
 
   // The tab says what is on screen: "card – Jane Street · Motion Lab".
   const what: Record<string, string> = {
-    library: 'Library', tokens: 'Tokens', presets: 'Presets',
+    library: 'Components', tokens: 'Tokens', presets: 'Presets',
     component: params.get('component') ?? defaultComponentName(),
     page: params.get('page') ?? defaultPageName(),
     frame: `${params.get('component') ?? defaultComponentName()} frame`,
