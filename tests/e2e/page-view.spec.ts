@@ -120,3 +120,37 @@ test.describe('dragging the detail panel', () => {
     expect(Math.round((await rail.boundingBox())!.width)).toBe(376);
   });
 });
+
+test.describe('Fit to window', () => {
+  test('one page is shown at its real size by default, and Fit scales it down to the pane, saying by how much', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 900 });
+    await page.goto('/?view=page');
+    const grid = page.locator('.lab-page-grid');
+    const stage = page.locator('#page-stage');
+    await expect(page.locator('#page-size-select')).toHaveValue('actual');
+    expect(await grid.evaluate(el => (el as HTMLElement).style.zoom)).toBe('');
+    await page.selectOption('#page-size-select', 'fit');
+    await expect(page).toHaveURL(/size=fit/);
+    await expect(page.locator('#page-size-select')).toHaveValue('fit');
+    const zoom = Number(await grid.evaluate(el => (el as HTMLElement).style.zoom));
+    expect(zoom).toBeGreaterThan(0);
+    expect(zoom).toBeLessThanOrEqual(1);
+    await expect(page.locator('#page-size-select option[value="fit"]')).toHaveText(`Fit to window (${Math.round(zoom * 100)}%)`);
+    // nothing scrolls sideways when fitted
+    expect(await stage.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    await page.selectOption('#page-size-select', 'actual');
+    expect(await grid.evaluate(el => (el as HTMLElement).style.zoom)).toBe('');
+    await expect(page).not.toHaveURL(/size=fit/);
+  });
+
+  test('a wide window never scales a page up', async ({ page }) => {
+    await page.setViewportSize({ width: 2400, height: 900 });
+    await page.goto('/?view=page&size=fit');
+    expect(Number(await page.locator('.lab-page-grid').evaluate(el => (el as HTMLElement).style.zoom))).toBe(1);
+  });
+
+  test('Compare has no size dropdown of its own in the top bar (it has its own Actual size)', async ({ page }) => {
+    await page.goto('/?view=page&compare=v2');
+    await expect(page.locator('#page-size-select')).toHaveCount(0);
+  });
+});

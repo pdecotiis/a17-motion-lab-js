@@ -353,7 +353,7 @@ html, body {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
-/* A header label ("Speed") sits beside its field. */
+/* A header label sits beside its field (the playback dropdowns in the top bar carry none). */
 .lab-header__controls .lab-control-label { font: var(--type-ui-2); }
 .lab-header__controls .lab-select { width: auto; }
 .lab-input--hidden { display: none; }

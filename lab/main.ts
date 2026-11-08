@@ -389,7 +389,7 @@ function viewBarHtml(replay: { id: string; label: string }, leading = '', extra 
   return `<div class="lab-viewbar">
       ${leading}
       <div class="lab-toolbar" role="group" aria-label="Playback">
-        <label class="lab-control-label">Speed <select id="speed-control" class="lab-select">${options}</select></label>
+        <select id="speed-control" class="lab-select" aria-label="Speed" title="Speed">${options}</select>
         ${chip}
         ${extra}
         <button class="lab-btn lab-btn--primary" id="${replay.id}">${replay.label}</button>
@@ -1288,7 +1288,9 @@ function renderPageView(params: URLSearchParams): void {
   // which only fits scaled down, so it fits them to the window and says the scale; "Actual size" goes back
   // to exact size and scrolls.
   const actualSize = params.get('size') === 'actual';
-  const fit = Boolean(compareWith) && !actualSize;
+  // One page can also be fitted: scaled down (never up) to the example pane, the scale shown (?size=fit); Compare always fits unless "Actual size".
+  const fitOne = !compareWith && params.get('size') === 'fit';
+  const fit = compareWith ? !actualSize : fitOne;
 
   main.innerHTML = `
     ${viewBarHtml({ id: 'replay-all-btn', label: 'Replay All' }, `<nav class="lab-breadcrumb" aria-label="Breadcrumb">
@@ -1296,7 +1298,10 @@ function renderPageView(params: URLSearchParams): void {
           <li><a href="?view=pages" id="breadcrumb-pages">Pages</a></li>
           <li aria-current="page" id="viewbar-title"></li>
         </ol>
-      </nav>`)}
+      </nav>`, compareWith ? '' : `<select id="page-size-select" class="lab-select" aria-label="Page size" title="Page size">
+        <option value="actual"${fitOne ? '' : ' selected'}>Actual size</option>
+        <option value="fit"${fitOne ? ' selected' : ''}>Fit to window</option>
+      </select>`)}
     <div class="lab-page-layout${compareWith ? '' : ' lab-page-layout--single'}">
       <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
       <aside class="lab-sidebar">
@@ -1399,11 +1404,13 @@ function renderPageView(params: URLSearchParams): void {
     grid.style.width = `${pageWidth}px`;
     if (fit) {
       viewport.refit = () => {
-        const width = viewport.clientWidth - 32;
+        const width = viewport.clientWidth - (compareWith ? 32 : 0);
         viewport.fitWidth = width;
         const zoom = Math.min(1, Math.max(0.05, width / pageWidth));
         grid.style.zoom = String(zoom);
         if (scaleLabel) scaleLabel.textContent = `${Math.round(zoom * 100)}%`;
+        const fitOption = document.querySelector<HTMLOptionElement>('#page-size-select option[value="fit"]');
+        if (fitOption) fitOption.textContent = `Fit to window (${Math.round(zoom * 100)}%)`;
       };
       viewport.refit();
       pageObserver!.observe(viewport);
@@ -1594,6 +1601,13 @@ function renderPageView(params: URLSearchParams): void {
   compareSelect.addEventListener('change', () => {
     const sp = new URLSearchParams(window.location.search);
     if (compareSelect.value) sp.set('compare', compareSelect.value); else { sp.delete('compare'); sp.delete('size'); }
+    window.history.replaceState(null, '', `?${sp.toString()}`);
+    renderPageView(sp);
+  });
+  // One page: actual size (the default) or fit to the window (?size=fit).
+  document.getElementById('page-size-select')?.addEventListener('change', event => {
+    const sp = new URLSearchParams(window.location.search);
+    if ((event.target as HTMLSelectElement).value === 'fit') sp.set('size', 'fit'); else sp.delete('size');
     window.history.replaceState(null, '', `?${sp.toString()}`);
     renderPageView(sp);
   });
