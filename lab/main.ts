@@ -912,12 +912,12 @@ function renderComponentView(params: URLSearchParams): void {
   const framed = Boolean(metaModules[`../components/${componentName}/meta.json`]);
 
   main.innerHTML = `
-    ${viewBarHtml({ id: 'replay-btn', label: 'Replay' }, `<nav class="lab-breadcrumb" aria-label="Breadcrumb">
+    ${viewBarHtml({ id: 'replay-btn', label: 'Play' }, `<nav class="lab-breadcrumb" aria-label="Breadcrumb">
         <ol>
           <li><a href="${libraryHref()}" id="breadcrumb-library">Components</a></li>
           <li aria-current="page" id="breadcrumb-current"></li>
         </ol>
-      </nav>`, '<button class="lab-btn" id="preview-btn" type="button" title="Show just the component, filling the window">Preview</button><button class="lab-btn" id="generate-spec-btn" type="button" disabled title="Writes the spec and the code for the open version (coming soon)">Generate spec</button>')}
+      </nav>`, '<button class="lab-btn" id="generate-spec-btn" type="button" disabled title="Writes the spec and the code for the open version (coming soon)">Generate spec</button><button class="lab-btn" id="preview-btn" type="button" title="Show just the component, filling the window">Preview</button>')}
     <div class="lab-component-layout">
       <div class="lab-preview-area${framed ? ' lab-preview-area--framed' : ''}">
         <div class="lab-preview" id="preview-primary">
@@ -1357,15 +1357,15 @@ function renderPageView(params: URLSearchParams): void {
   const fit = compareWith ? !actualSize : fitOne;
 
   main.innerHTML = `
-    ${viewBarHtml({ id: 'replay-all-btn', label: 'Replay All' }, `<nav class="lab-breadcrumb" aria-label="Breadcrumb">
+    ${viewBarHtml({ id: 'replay-all-btn', label: 'Play' }, `<nav class="lab-breadcrumb" aria-label="Breadcrumb">
         <ol>
           <li><a href="?view=pages" id="breadcrumb-pages">Pages</a></li>
           <li aria-current="page" id="viewbar-title"></li>
         </ol>
-      </nav>`, `${compareWith ? '' : '<button class="lab-btn" id="preview-btn" type="button" title="Show just the page, filling the window">Preview</button>'}` + (compareWith ? '' : `<select id="page-size-select" class="lab-select" aria-label="Page size" title="Page size">
+      </nav>`, (compareWith ? '' : `<select id="page-size-select" class="lab-select" aria-label="Page size" title="Page size">
         <option value="actual"${fitOne ? '' : ' selected'}>Actual size</option>
         <option value="fit"${fitOne ? ' selected' : ''}>Fit to window</option>
-      </select>`))}
+      </select><button class="lab-btn" id="preview-btn" type="button" title="Show just the page, filling the window">Preview</button>`))}
     <div class="lab-page-layout${compareWith ? '' : ' lab-page-layout--single'}">
       <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
       <aside class="lab-sidebar">
