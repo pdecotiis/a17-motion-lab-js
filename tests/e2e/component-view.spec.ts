@@ -126,13 +126,13 @@ test.describe('Sidebar accordions', () => {
   const accordions = (page: import('@playwright/test').Page) => page.locator('.lab-sidebar > details.lab-accordion');
   const summary = (page: import('@playwright/test').Page, title: string) => page.locator('.lab-sidebar > details > summary', { hasText: title });
 
-  test('the panels are accordions, in the order Version, Details, Tokens Used, Version history, Generated code', async ({ page }) => {
-    await expect(accordions(page).locator('> summary')).toHaveText(['Version', 'Details', 'Tokens Used', 'Version history', 'Generated code']);
+  test('the panels are accordions, in the order Version, Details, Version history, Generated code', async ({ page }) => {
+    await expect(accordions(page).locator('> summary')).toHaveText(['Version', 'Details', 'Version history', 'Generated code']);
   });
 
-  test('only Version is open by default; Details, Tokens Used, Version history and Generated code are closed', async ({ page }) => {
+  test('only Version is open by default; Details, Version history and Generated code are closed', async ({ page }) => {
     await expect(accordions(page).nth(0)).toHaveAttribute('open', '');
-    for (const i of [1, 2, 3, 4]) await expect(accordions(page).nth(i)).not.toHaveAttribute('open', '');
+    for (const i of [1, 2, 3]) await expect(accordions(page).nth(i)).not.toHaveAttribute('open', '');
     await expect(page.locator('#version-tabs')).toBeVisible();
     await expect(page.locator('#version-spec-meta')).toBeHidden();
     await expect(page.locator('#tokens-used-list')).toBeHidden();
@@ -151,17 +151,20 @@ test.describe('Sidebar accordions', () => {
     await expect(page.locator('#css-pre')).toBeVisible();
     await expect(page.locator('#css-pre')).toContainText('@keyframes motion-card-v1');
 
-    await summary(page, 'Tokens Used').click();
+    await summary(page, 'Details').click();
     await expect(page.locator('#tokens-used-list')).toBeVisible();
-    await summary(page, 'Tokens Used').click();
+    await summary(page, 'Details').click();
     await expect(page.locator('#tokens-used-list')).toBeHidden();
   });
 
-  test('Details holds Component status, Plays, Reduced motion and Playback (the plain-language What it does is switched off)', async ({ page }) => {
+  test('Details holds Component status, Plays and Reduced motion, then the tokens used (the plain-language What it does is switched off)', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v2');
     const details = page.locator('#details-panel');
     await expect(details.locator('#version-behaviour')).toBeHidden();
-    await expect(details.locator('#version-spec-meta dt')).toHaveText(['Component status', 'Plays', 'Reduced motion', 'Playback']);
+    await expect(details.locator('#version-spec-meta dt')).toHaveText(['Component status', 'Plays', 'Reduced motion']);
+    await expect(details.locator('.lab-details__subtitle')).toHaveText('Tokens used');
+    await expect(details.locator('#tokens-used-list')).toHaveCount(1);
+    await expect(page.locator('#version-spec-meta dt:has-text("Playback")')).toHaveCount(0);
     // The Version panel no longer holds them
     await expect(page.locator('.lab-sidebar > details').first().locator('#version-spec-meta')).toHaveCount(0);
   });
@@ -173,7 +176,7 @@ test.describe('Sidebar accordions', () => {
   });
 
   test('the Compare with panel is switched off (SHOW_COMPARE in lab/main.ts): built but hidden, after the accordions', async ({ page }) => {
-    await expect(page.locator('.lab-sidebar > details')).toHaveCount(5);
+    await expect(page.locator('.lab-sidebar > details')).toHaveCount(4);
     await expect(page.locator('.lab-sidebar > section')).toHaveCount(1);
     await expect(page.locator('.lab-sidebar > section')).toBeHidden();
     await expect(page.locator('#compare-select')).toBeHidden();
@@ -198,8 +201,6 @@ test.describe('Playback (CSS runtime)', () => {
       const t = (document.querySelector<HTMLElement>(sel)!.getAnimations()[0]!.effect as KeyframeEffect).getTiming();
       return { duration: t.duration as number, easing: t.easing as string };
     }, selector);
-  const playbackRow = (page: import('@playwright/test').Page) =>
-    page.locator('#version-spec-meta dt:has-text("Playback") + dd');
 
   test('the header has no Easing / Spring switch', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
@@ -210,25 +211,18 @@ test.describe('Playback (CSS runtime)', () => {
   test('a tween plays its easing curve over its duration', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
     expect(await timing(page, ROOT)).toEqual({ duration: 200, easing: 'cubic-bezier(0, 0, 0.38, 0.9)' });
-    await expect(playbackRow(page)).toContainText('Easing · productive-entrance, 200ms');
   });
 
-  test('a version authored as a spring plays its easing, and says so', async ({ page }) => {
+  test('a version authored as a spring plays its easing', async ({ page }) => {
     await page.goto('/?view=component&component=side-panel&version=v1');
     expect(await timing(page, ROOT)).toEqual({ duration: 700, easing: EXPRESSIVE_ENTRANCE });
-    await expect(playbackRow(page)).toContainText('Easing · expressive-entrance, 700ms (authored as a spring; CSS plays its easing)');
   });
 
-  test('layers play their own easing, and the Playback row names each motion', async ({ page }) => {
+  test('layers play their own easing', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
     for (const sel of [ROOT, '#preview-inner-primary [data-motion="title"]', '#preview-inner-primary [data-motion="text"]']) {
       expect((await timing(page, sel)).easing, sel).toMatch(/^cubic-bezier/);
     }
-    await expect(playbackRow(page)).toHaveText([
-      'Easing · productive-entrance, 200ms',
-      'title: Easing · productive-entrance, 250ms',
-      'text: Easing · productive-entrance, 250ms',
-    ].join('\n'));
   });
 
   test('a stale ?play=spring link plays as easing', async ({ page }) => {
@@ -250,8 +244,6 @@ test.describe('Playback (CSS runtime)', () => {
 // animation library and the only runtime that plays a spring as one.
 test.describe('Runtime (CSS / Motion)', () => {
   const ROOT = '#preview-inner-primary [data-motion-target]';
-  const playbackRow = (page: import('@playwright/test').Page) =>
-    page.locator('#version-spec-meta dt:has-text("Playback") + dd');
   const opacityOf = (page: import('@playwright/test').Page) =>
     page.evaluate((sel) => Number(getComputedStyle(document.querySelector<HTMLElement>(sel)!).opacity), ROOT);
 
@@ -265,12 +257,13 @@ test.describe('Runtime (CSS / Motion)', () => {
     await page.goto('/?view=component&component=card&version=v1');
     await setRuntime(page, 'motion');
     await expect(page.locator('#runtime-motion')).toHaveAttribute('aria-pressed', 'true');
-    await expect(playbackRow(page)).toContainText('Spring · bounce 0.25 (bounce.25), 200ms (authored as easing; bounce is the global setting)');
+    await expect(page.locator('#tokens-used-list')).toContainText('bounce-25');   // the global bounce
 
     await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion');
-    await expect(playbackRow(page)).toContainText('Spring · bounce 0.5 (bounce.50), 700ms');
+    await expect(page.locator('#tokens-used-list')).toContainText('bounce-50');   // the spring version's own
     await setRuntime(page, 'css');
-    await expect(playbackRow(page)).toContainText('Easing · expressive-entrance, 700ms (authored as a spring; CSS plays its easing)');
+    await expect(page.locator('#tokens-used-list')).toContainText('expressive-entrance');
+    await expect(page.locator('#tokens-used-list')).not.toContainText('bounce-');
   });
 
   test('Motion plays the motion: it starts away from the end state and arrives', async ({ page }) => {
@@ -323,25 +316,20 @@ test.describe('Runtime (CSS / Motion)', () => {
     await expect(page.locator('.lab-token-row', { hasText: 'bounce-25' })).toHaveAttribute('title', /Not used yet/);
 
     await page.goBack();
-    await expect(playbackRow(page)).toContainText('Spring · bounce 0 (bounce.0), 200ms (authored as easing; bounce is the global setting)');
+    await expect(page.locator('#tokens-used-list')).toContainText('bounce-0');
   });
 
   test('the global bounce holds across views, and a spring that names its own bounce ignores it', async ({ page }) => {
     await page.goto('/?view=library&runtime=motion&bounce=50');
     await page.locator('.lab-library-card').first().click();
-    await expect(page.locator('#version-spec-meta dt:has-text("Playback") + dd')).toContainText('bounce 0.5 (bounce.50)');
+    await expect(page.locator('#tokens-used-list')).toContainText('bounce-50');
     await page.goto('/?view=component&component=side-panel&version=v1&runtime=motion&bounce=0');
-    await expect(playbackRow(page)).toContainText('Spring · bounce 0.5 (bounce.50), 700ms');
+    await expect(page.locator('#tokens-used-list')).toContainText('bounce-50');   // its own, not the global bounce.0
   });
 
-  test('layers are springs under Motion too, and the Playback row names each motion', async ({ page }) => {
+  test('layers are springs under Motion too', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1&runtime=motion');
-    const note = ' (authored as easing; bounce is the global setting)';
-    await expect(playbackRow(page)).toHaveText([
-      `Spring · bounce 0.25 (bounce.25), 200ms${note}`,
-      `title: Spring · bounce 0.25 (bounce.25), 250ms${note}`,
-      `text: Spring · bounce 0.25 (bounce.25), 250ms${note}`,
-    ].join('\n'));
+    await expect(page.locator('#tokens-used-list')).toContainText('bounce-25');
     await expect.poll(() => page.evaluate(() =>
       Number(getComputedStyle(document.querySelector<HTMLElement>('#preview-inner-primary [data-motion="text"]')!).opacity)), { timeout: 3000 }).toBe(1);
   });

@@ -11,17 +11,17 @@ import { initialsOf } from './lib/avatar.js';
 import { arrangeTeam, personTitle, type Person } from './lib/team.js';
 import { ICONS } from './lib/icons.js';
 import { registerComponent, getVersion, getDefaultVersion } from './lib/version-registry.js';
-import { playbackOf, describePlayback, stepsOf, hasEntrance } from './lib/motion-models.js';
+import { playbackOf, stepsOf, hasEntrance } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
 import {
   choiceToStagger, pageVersionsOf, resolveMotionMap, staggerToChoice, validatePageVersion, type PageVersion,
 } from './lib/page-versions.js';
 import { prefersReducedMotion } from './lib/reduced-motion.js';
 import { animate as motionAnimate } from 'motion';
-import { motionArgsOf, describeMotionArgs, DEFAULT_BOUNCE } from './lib/motion-args.js';
+import { motionArgsOf, DEFAULT_BOUNCE } from './lib/motion-args.js';
 import { cssHandle, runtimeFromParam, RUNTIMES, type PlayHandle, type Runtime } from './lib/runtime.js';
 import { createInteractionPlayer, type InteractionPlayer } from './lib/interaction-player.js';
-import { describeTransition, hasHoldTriggers, interactionParts, stateNames } from './lib/interaction.js';
+import { hasHoldTriggers, stateNames } from './lib/interaction.js';
 import { summarizeInteraction } from './lib/interaction-summary.js';
 import { PRESET_NAMES, presetOf, type PresetName } from './lib/entrance-presets.js';
 import {
@@ -395,6 +395,65 @@ function viewBarHtml(replay: { id: string; label: string }, leading = '', extra 
         <button class="lab-btn lab-btn--primary" id="${replay.id}">${replay.label}</button>
       </div>
     </div>`;
+}
+
+// The detail panel on the component and page views is a fixed column at the right of the window; a handle on its left edge
+// drags its width (a double click or Home resets it, the arrow keys nudge it). The width is kept for the next view and visit.
+const PANEL_WIDTH_KEY = 'lab-panel-width';
+const PANEL_DEFAULT = 360, PANEL_MIN = 280, PANEL_MAX = 640;
+function setPanelWidth(px: number, save: boolean): number {
+  const width = Math.round(Math.min(PANEL_MAX, Math.max(PANEL_MIN, px)));
+  document.documentElement.style.setProperty('--panel-width', `${width}px`);
+  if (save) { try { localStorage.setItem(PANEL_WIDTH_KEY, String(width)); } catch { /* storage can be blocked */ } }
+  return width;
+}
+try {
+  const saved = Number(localStorage.getItem(PANEL_WIDTH_KEY));
+  if (Number.isFinite(saved) && saved > 0) setPanelWidth(saved, false);
+} catch { /* storage can be blocked */ }
+
+function addPanelResizer(main: HTMLElement): void {
+  const layout = main.querySelector<HTMLElement>('.lab-component-layout, .lab-page-layout');
+  const aside = layout?.querySelector<HTMLElement>('.lab-sidebar');
+  if (!layout || !aside) return;
+  const handle = document.createElement('div');
+  handle.className = 'lab-panel-resizer';
+  handle.tabIndex = 0;
+  handle.setAttribute('role', 'separator');
+  handle.setAttribute('aria-orientation', 'vertical');
+  handle.setAttribute('aria-label', 'Resize the detail panel');
+  handle.title = 'Drag to resize the panel (double click to reset)';
+  aside.before(handle);
+  const sync = (px: number): void => { handle.setAttribute('aria-valuenow', String(px)); handle.setAttribute('aria-valuemin', String(PANEL_MIN)); handle.setAttribute('aria-valuemax', String(PANEL_MAX)); };
+  sync(Math.round(aside.getBoundingClientRect().width));
+  // The example pane keeps at least 240px.
+  const clampToLayout = (px: number): number => Math.min(px, layout.getBoundingClientRect().width - 16 - 240);
+  const set = (px: number, save = true): void => sync(setPanelWidth(clampToLayout(px), save));
+  handle.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    handle.classList.add('lab-panel-resizer--dragging');
+    const move = (ev: PointerEvent): void => set(layout.getBoundingClientRect().right - ev.clientX - 8);
+    const up = (): void => {
+      handle.classList.remove('lab-panel-resizer--dragging');
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  });
+  handle.addEventListener('dblclick', () => set(PANEL_DEFAULT));
+  handle.addEventListener('keydown', e => {
+    const now = Math.round(aside.getBoundingClientRect().width);
+    if (e.key === 'ArrowLeft') set(now + 16);
+    else if (e.key === 'ArrowRight') set(now - 16);
+    else if (e.key === 'Home') set(PANEL_DEFAULT);
+    else return;
+    e.preventDefault();
+  });
 }
 
 // The page header the top-level views share (Components, Pages, Presets, Tokens): the view's name large, on the page
@@ -822,11 +881,7 @@ function renderComponentView(params: URLSearchParams): void {
           <div class="lab-accordion__body">
             <div class="lab-behaviour" id="version-behaviour" hidden></div>
             <dl class="lab-spec-meta" id="version-spec-meta"></dl>
-          </div>
-        </details>
-        <details class="lab-controls lab-accordion">
-          <summary class="lab-controls__title">Tokens Used</summary>
-          <div class="lab-accordion__body">
+            <h3 class="lab-details__subtitle">Tokens used</h3>
             <div id="tokens-used-list"></div>
           </div>
         </details>
@@ -860,6 +915,7 @@ function renderComponentView(params: URLSearchParams): void {
     <section class="lab-motion-table" id="motion-table" aria-label="Motion table"${motionTableShown() ? '' : ' hidden'}></section>
   `;
 
+  addPanelResizer(main);
   document.getElementById('breadcrumb-current')!.textContent = componentName;
   bindPlaybackBar();
 
@@ -890,36 +946,10 @@ function renderComponentView(params: URLSearchParams): void {
   // What a developer needs that the lab can't show: when it plays, and what reduced-motion visitors get.
   const specMeta = document.getElementById('version-spec-meta')!;
   const triggerText = describeTrigger(version.trigger);
-  // What is playing, one line per motion: the entrance (the root, then each layer), then the transition into each state.
-  const playbackLines = (): string[] => {
-    const lines: string[] = [];
-    if (!version.interaction || hasEntrance(version)) {
-      for (const { name, track, version: step } of stepsOf(version)) {
-        // "title fade", "title move": a preset on an element is a fade and a move.
-        const who = [name, track && track !== 'all' ? track : null].filter(Boolean).join(' ');
-        const label = version.interaction ? `${who ? `${who} ` : ''}appear: ` : who ? `${who}: ` : '';
-        lines.push(label + (runtime === 'motion'
-          ? describeMotionArgs(motionArgsOf(step, raw, { globalBounce }))
-          : describePlayback(playbackOf(step, raw))));
-      }
-    }
-    if (version.interaction) {
-      const i = version.interaction;
-      for (const state of stateNames(i)) {
-        // The root, then each layer that has its own timing into this state.
-        for (const part of interactionParts(i)) {
-          if (part === null || i.layers?.[part]?.transitions?.[state]) lines.push(describeTransition(i, state, raw, runtime, { globalBounce, target: part }));
-        }
-      }
-    }
-    return lines;
-  };
   const specRows: [string, string, boolean][] = [
     ['Component status', STATUS_LABELS[getComponentStatus(mod ?? {})], false],
     ['Plays', triggerText ?? 'Trigger not specified', triggerText === null],
     ['Reduced motion', REDUCED_MOTION_LABELS[getReducedMotionPolicy(version)], false],
-    // What is playing, one line per motion (the root, then each layer).
-    ['Playback', playbackLines().join('\n'), false],
   ];
   for (const [label, text, muted] of specRows) {
     const dt = document.createElement('dt');
@@ -1077,10 +1107,10 @@ function renderComponentView(params: URLSearchParams): void {
       chip.className = 'lab-token-chip';
       const code = document.createElement('code');
       code.textContent = tokenDisplayName(use.token);
-      code.title = use.token;
       const where = document.createElement('span');
       where.className = 'lab-token-chip-where';
       where.textContent = use.where.join(', ');
+      code.title = `${use.token}: ${where.textContent}`;
       const link = document.createElement('a');
       link.href = '?view=tokens';
       link.className = 'lab-token-chip-link';
@@ -1311,6 +1341,7 @@ function renderPageView(params: URLSearchParams): void {
   `;
 
   bindPlaybackBar();
+  addPanelResizer(main);
   document.getElementById('viewbar-title')!.textContent = pageConfig.title || pageName;
   const stage = document.getElementById('page-stage')!;
 

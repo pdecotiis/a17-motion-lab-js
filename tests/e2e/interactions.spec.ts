@@ -4,7 +4,6 @@ import { test, expect, type Page } from '@playwright/test';
 // The stage gets state buttons; a click on anything marked data-motion-set moves the component too.
 const ROOT = '#preview-inner-primary [data-motion-target]';
 const url = (runtime: 'css' | 'motion', version = 'v2') => `/?view=component&component=side-panel&version=${version}&runtime=${runtime}`;
-const playbackRow = (page: Page) => page.locator('#version-spec-meta dt:has-text("Playback") + dd');
 const stateNow = (page: Page) => page.locator('#state-now');
 
 // x of the panel (px) over the next `ms`, one sample a frame: [t, x, data-state].
@@ -86,19 +85,6 @@ test.describe('Interactions: states', () => {
       });
     });
   }
-
-  test('Playback names the transition into each state, as the runtime plays it', async ({ page }) => {
-    await page.goto(url('css'));
-    await expect(playbackRow(page)).toHaveText([
-      'into closed: Easing · productive-exit, 250ms (authored as a spring; CSS plays its easing)',
-      'into open: Easing · expressive-entrance, 700ms (authored as a spring; CSS plays its easing)',
-    ].join('\n'));
-    await page.goto(url('motion'));
-    await expect(playbackRow(page)).toHaveText([
-      'into closed: Spring · bounce 0 (bounce.0), 250ms',
-      'into open: Spring · bounce 0.5 (bounce.50), 700ms',
-    ].join('\n'));
-  });
 
   test('opening bounces under Motion (bounce.50) and never overshoots under CSS', async ({ page }) => {
     for (const runtime of ['css', 'motion'] as const) {
@@ -284,13 +270,8 @@ test.describe('Interactions: entrance, then hover and press on the card', () => 
     });
   }
 
-  test('Playback and Tokens used list the entrance first, then the states', async ({ page }) => {
+  test('Tokens used list the entrance, then the states', async ({ page }) => {
     await page.goto(cardUrl('css'));
-    const row = playbackRow(page);
-    await expect(row).toContainText('appear: Easing · productive-entrance, 200ms');
-    await expect(row).toContainText('title appear: Easing · productive-entrance, 250ms');
-    await expect(row).toContainText('into hovered: Easing · productive-standard, 200ms');
-    await expect(row).toContainText('into default: Easing · productive-exit, 150ms (authored as a spring; CSS plays its easing)');
     const tokens = page.locator('#tokens-used-list');
     await expect(tokens).toContainText('into hovered duration');
     await expect(tokens).toContainText('hovered transform');
@@ -299,10 +280,9 @@ test.describe('Interactions: entrance, then hover and press on the card', () => 
   });
 });
 
-test.describe('Interactions: Playback and the (switched off) plain-language summary', () => {
-  test('card v2 lists how it appears in Playback, and the What it does list is not shown', async ({ page }) => {
+test.describe('Interactions: the (switched off) plain-language summary', () => {
+  test('the What it does list is not shown', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v2');
-    await expect(playbackRow(page)).toContainText('appear:');
     // SHOW_WHAT_IT_DOES is off in lab/main.ts: too busy for now. The summary logic stays (unit tests cover it).
     await expect(page.locator('#version-behaviour')).toBeHidden();
     await expect(page.locator('#version-behaviour')).toBeEmpty();
