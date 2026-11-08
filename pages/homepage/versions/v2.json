@@ -1,0 +1,13 @@
+{
+  "id": "v2",
+  "label": "v2: Carousel",
+  "motionMap": {
+    "menu": "v1",
+    "header": "v2",
+    "page-header-title": "v1",
+    "grid-container-mosaic-routing": "v11",
+    "card-feature": "v1",
+    "prompts-footer-section": "v1"
+  },
+  "forkedFrom": "v1"
+}
