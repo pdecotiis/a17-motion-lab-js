@@ -239,8 +239,9 @@ html, body {
 }
 
 /* Preview */
-.lab-preview-area { display: flex; flex-direction: column; gap: 16px; }
+.lab-preview-area { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .lab-preview {
+  flex: 1 1 auto;
   background: var(--color-card);
   border-radius: var(--radius);
   padding: 32px;
@@ -448,15 +449,10 @@ html, body {
   background: var(--color-card);
   border-radius: var(--radius);
 }
-/* One page: a 1:1 window onto the design. The window is the page's own size, edge to edge (no padding or border, and flush with the lab's
-   edges). The detail panels sit to the right of the window when the lab window is wide enough for both, and under it, in a row, when it is not,
-   so a page as wide as a browser window still shows whole at its real size. */
-.lab-page-layout--single { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: start; gap: 16px; }
-.lab-page-layout--single .lab-page-stage { flex: 0 1 auto; margin-inline: -16px; max-width: calc(100% + 32px); }
-.lab-page-layout--beside .lab-page-stage { margin-right: 0; max-width: calc(100% + 16px); }
+/* One page: a 1:1 window onto the design, never scaled. The example pane fills the space beside the detail panel, which is always at the right
+   of the window (a fixed column); a page wider than the pane scrolls sideways inside it. */
+.lab-page-layout--single .lab-page-stage { align-self: stretch; margin: 0; padding-bottom: 0; overflow: auto; background: var(--color-card); border-radius: var(--radius); }
 .lab-page-layout--single .lab-page-viewport { padding: 0; border: 0; border-radius: 0; }
-.lab-page-layout--single .lab-sidebar { flex: 1 1 340px; min-width: min(100%, 320px); display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; overflow-y: visible; }
-.lab-page-layout--beside .lab-sidebar { grid-template-columns: minmax(0, 1fr); max-width: 440px; }
 .lab-page-stage--fit .lab-page-col { flex: 1 1 0; min-width: 0; }
 .lab-page-stage--fit .lab-page-viewport { width: auto; }
 /* A section whose motion plays when it scrolls in is hidden until then; its own motion starts as it appears. */
@@ -805,7 +801,7 @@ html, body {
 .lab-ask__copy { width: auto; flex: none; margin: 0; font: var(--type-ui-2); }
 .lab-ask__tip { margin: 16px 0 0;  color: var(--color-text-muted); font: var(--type-caption); }
 
-/* The avatar beside the theme switch: the person who set the lab up, initials on a light circle (the kit's 32px avatar). */
+/* The avatars beside the gear: the person who set the lab up, initials on a light circle (the kit's 32px avatar). */
 .lab-avatars { display: inline-flex; align-items: center; margin-left: 4px; padding-left: 8px; }
 .lab-avatars[hidden] { display: none; }
 .lab-avatars .lab-avatar { margin-left: -8px; box-shadow: 0 0 0 2px var(--color-bg); }

@@ -365,16 +365,13 @@ test.describe('Top bar of the component and page views', () => {
     await expect.poll(() => page.locator('[data-motion-target]').first().evaluate(el => el.getAnimations().length)).toBeGreaterThan(0);
   });
 
-  test('the page view has the same bar: the page name on the left, speed and Replay All on the right, above the page, with the controls beside or under it', async ({ page }) => {
+  test('the page view has the same bar: the page name on the left, speed and Replay All on the right, above the page, with the controls to its right', async ({ page }) => {
     await page.goto('/?view=page');
     const bar = await box(page, '.lab-viewbar');
     const stage = await box(page, '#page-stage');
     const rail = await box(page, '.lab-sidebar');
     expect(bar.y + bar.height).toBeLessThanOrEqual(stage.y);
-    // the controls sit to the right of the page window when the window is wide enough for both, else under it
-    const beside = rail.x >= stage.x + stage.width - 1;
-    const under = rail.y >= stage.y + stage.height - 1;
-    expect(beside || under).toBe(true);
+    expect(rail.x).toBeGreaterThanOrEqual(stage.x + stage.width - 1);   // the controls are always to the right of the page window
     await expect(page.locator('#viewbar-title')).not.toBeEmpty();
     await expect(page.locator('.lab-viewbar #replay-all-btn')).toHaveText('Replay All');
     await expect(page.locator('.lab-sidebar #replay-all-btn')).toHaveCount(0);
