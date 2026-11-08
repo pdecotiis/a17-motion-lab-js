@@ -79,22 +79,18 @@ test.describe('Page view', () => {
   });
 });
 
-// The detail panels live to the right of the page window when the lab window is wide enough for both, and under it when not.
-test.describe('the page view\'s detail panels', () => {
-  test('sit to the right of the page on a wide window', async ({ page }) => {
-    await page.setViewportSize({ width: 1600, height: 900 });
-    await page.goto('/?view=page');
-    const stage = (await page.locator('#page-stage').boundingBox())!;
-    const rail = (await page.locator('.lab-sidebar').boundingBox())!;
-    expect(rail.x).toBeGreaterThanOrEqual(stage.x + stage.width - 1);
-    expect(Math.abs(rail.y - stage.y)).toBeLessThan(24);
-  });
-
-  test('go under the page when the window is too narrow for both', async ({ page }) => {
-    await page.setViewportSize({ width: 600, height: 900 });
-    await page.goto('/?view=page');
-    const stage = (await page.locator('#page-stage').boundingBox())!;
-    const rail = (await page.locator('.lab-sidebar').boundingBox())!;
-    expect(rail.y).toBeGreaterThanOrEqual(stage.y + stage.height - 1);
-  });
+// The example pane fills the space and the detail panel is always at the right of the window, whatever the page's width.
+test.describe('the page view\'s two panes', () => {
+  for (const width of [900, 1600]) {
+    test(`the detail panel is at the right edge and the example pane fills the rest at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/?view=page');
+      const stage = (await page.locator('#page-stage').boundingBox())!;
+      const rail = (await page.locator('.lab-sidebar').boundingBox())!;
+      expect(Math.round(rail.x + rail.width)).toBe(width - 16);           // against the right edge, inside the page padding
+      expect(Math.round(rail.width)).toBe(360);
+      expect(rail.x).toBeGreaterThanOrEqual(stage.x + stage.width);
+      expect(Math.round(stage.x + stage.width + 16)).toBe(Math.round(rail.x)); // the pane runs right up to the panel
+    });
+  }
 });

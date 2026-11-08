@@ -18,6 +18,10 @@
   --orange-50: #fbf3ef; /* the kit's orange ramp: the Beta badge */
   --orange-300: #ee9554;
   --orange-500: #ae5900;
+  --red-50: #fdf2f3; /* the kit's red ramp: tokens a scale would change */
+  --red-300: #fa8d91;
+  --red-500: #db2029;
+  --red-900: #380e10;
   --orange-900: #301400;
   --blue-50: #eff6fb;
   --blue-400: #448df4;
@@ -235,8 +239,9 @@ html, body {
 }
 
 /* Preview */
-.lab-preview-area { display: flex; flex-direction: column; gap: 16px; }
+.lab-preview-area { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .lab-preview {
+  flex: 1 1 auto;
   background: var(--color-card);
   border-radius: var(--radius);
   padding: 32px;
@@ -444,15 +449,10 @@ html, body {
   background: var(--color-card);
   border-radius: var(--radius);
 }
-/* One page: a 1:1 window onto the design. The window is the page's own size, edge to edge (no padding or border, and flush with the lab's
-   edges). The detail panels sit to the right of the window when the lab window is wide enough for both, and under it, in a row, when it is not,
-   so a page as wide as a browser window still shows whole at its real size. */
-.lab-page-layout--single { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: start; gap: 16px; }
-.lab-page-layout--single .lab-page-stage { flex: 0 1 auto; margin-inline: -16px; max-width: calc(100% + 32px); }
-.lab-page-layout--beside .lab-page-stage { margin-right: 0; max-width: calc(100% + 16px); }
+/* One page: a 1:1 window onto the design, never scaled. The example pane fills the space beside the detail panel, which is always at the right
+   of the window (a fixed column); a page wider than the pane scrolls sideways inside it. */
+.lab-page-layout--single .lab-page-stage { align-self: stretch; margin: 0; padding-bottom: 0; overflow: auto; background: var(--color-card); border-radius: var(--radius); }
 .lab-page-layout--single .lab-page-viewport { padding: 0; border: 0; border-radius: 0; }
-.lab-page-layout--single .lab-sidebar { flex: 1 1 340px; min-width: min(100%, 320px); display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; overflow-y: visible; }
-.lab-page-layout--beside .lab-sidebar { grid-template-columns: minmax(0, 1fr); max-width: 440px; }
 .lab-page-stage--fit .lab-page-col { flex: 1 1 0; min-width: 0; }
 .lab-page-stage--fit .lab-page-viewport { width: auto; }
 /* A section whose motion plays when it scrolls in is hidden until then; its own motion starts as it appears. */
@@ -594,7 +594,7 @@ html, body {
 .lab-dist-ghost { position: absolute; top: 6px; width: 12px; height: 12px; border: 1px dashed var(--color-spec); border-radius: var(--radius-xs); }
 .lab-token-example--distance .lab-dist-box { position: absolute; left: 0; top: 6px; width: 12px; height: 12px; border-radius: var(--radius-xs); }
 
-.lab-token-name { display: inline-flex; align-items: center; height: 24px; padding: 0 6px; background: var(--color-chip); border-radius: var(--radius-xs);    word-break: break-all; font: var(--type-code); }
+.lab-token-name, .lab-scale-chip { display: inline-flex; align-items: center; height: 24px; padding: 0 6px; background: var(--color-chip); border-radius: var(--radius-xs);    word-break: break-all; font: var(--type-code); }
 
 /* Imported components: rendered at their Figma frame size (see getFramedMarkup) */
 .lab-preview-area--framed { min-width: 0; }
@@ -679,22 +679,21 @@ html, body {
 .lab-scale-panel { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 24px; }
 .lab-scale-panel p { margin: 0; }
 .lab-scale-panel__current { color: var(--color-text-muted); font: var(--type-ui-2); }
-.lab-scale-panel__summary { font-weight: 500; }
-.lab-scale-panel__summary--error { color: var(--color-danger, #b3261e); }
-.lab-scale-panel__how { color: var(--color-text-muted);  max-width: 60ch; font: var(--type-ui-2); }
-.lab-scale-row--renamed td:first-child code { text-decoration: line-through; text-decoration-color: var(--color-text-muted); }
+.lab-scale-panel__summary { color: var(--red-500); font: var(--type-ui-1); }
+.lab-scale-panel__summary--error { color: var(--red-500); }
+.lab-scale-panel__how { color: var(--color-text-muted); max-width: 60ch; font: var(--type-caption); }
 .lab-scale-row:not(.lab-scale-row--renamed) { color: var(--color-text-muted); }
 .lab-scale-table { table-layout: fixed; width: 100%; }
 .lab-scale-apply { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .lab-scale-apply__actions { display: flex; gap: 8px; }
-.lab-scale-panel__flash { background: var(--color-card); border-radius: 6px; font-weight: 500; padding: 10px 12px; }
+.lab-scale-panel__flash { background: var(--color-card); border-radius: var(--radius); padding: 10px 12px; font: var(--type-ui-2-strong); }
 
-/* Settings: a dialog opened by the gear beside the theme toggle. */
+/* Settings: a dialog opened by the gear in the header. */
 .lab-settings { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 12px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3); color: var(--color-text); max-height: 86vh; max-width: min(860px, 94vw); overflow: auto; padding: 0 24px 24px; width: 100%; }
 .lab-settings::backdrop { background: rgba(0, 0, 0, 0.4); }
 .lab-settings__header { align-items: center; background: var(--color-bg); display: flex; justify-content: space-between; padding: 16px 0 8px; position: sticky; top: 0; z-index: 1; }
 .lab-settings__title {     margin: 0; font: var(--type-heading-4); }
-.lab-settings__heading {   margin: 8px 0 4px; font: var(--type-ui-1); }
+.lab-settings__heading { margin: 8px 0 4px; font: var(--type-ui-2-strong); }
 .lab-settings__intro { color: var(--color-text-muted);  margin: 0 0 12px; max-width: 64ch; font: var(--type-ui-2); }
 
 /* States (an interaction version): buttons to move between them, and where it is now. */
@@ -802,7 +801,7 @@ html, body {
 .lab-ask__copy { width: auto; flex: none; margin: 0; font: var(--type-ui-2); }
 .lab-ask__tip { margin: 16px 0 0;  color: var(--color-text-muted); font: var(--type-caption); }
 
-/* The avatar beside the theme switch: the person who set the lab up, initials on a light circle (the kit's 32px avatar). */
+/* The avatars beside the gear: the person who set the lab up, initials on a light circle (the kit's 32px avatar). */
 .lab-avatars { display: inline-flex; align-items: center; margin-left: 4px; padding-left: 8px; }
 .lab-avatars[hidden] { display: none; }
 .lab-avatars .lab-avatar { margin-left: -8px; box-shadow: 0 0 0 2px var(--color-bg); }
@@ -821,3 +820,16 @@ html, body {
 .lab-tokens-subtabs.lab-actionbar { justify-content: flex-start; }
 .lab-presets__intro { flex-wrap: nowrap; justify-content: flex-end; }
 .lab-presets__intro .lab-btn { flex: none; width: auto; margin: 0; }
+
+/* Settings uses the system's few type styles: the title, ui-2-strong for section headings and summaries, ui-2 for text and labels, caption for hints and notes. */
+.lab-settings .lab-control-label { font: var(--type-ui-2); color: var(--color-text); }
+.lab-settings .lab-scale-changes { margin: 0; }
+.lab-settings__section { margin-bottom: 24px; }
+.lab-settings__section:last-child { margin-bottom: 0; }
+.lab-scale-table code { font: var(--type-code); }
+.lab-scale-apply > .lab-btn { width: auto; align-self: flex-start; margin: 0; }
+
+/* A token a scale would change ("Now" in What changes): red 500 on red 50; the ones it becomes are the usual gray chips. */
+.lab-scale-chip--changed { background: var(--red-50); color: var(--red-500); }
+[data-theme="dark"] .lab-scale-chip--changed { background: var(--red-900); color: var(--red-300); }
+[data-theme="dark"] .lab-scale-panel__summary, [data-theme="dark"] .lab-scale-panel__summary--error { color: var(--red-300); }

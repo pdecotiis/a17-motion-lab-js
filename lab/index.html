@@ -26,7 +26,6 @@
       </nav>
       <div class="lab-header__controls">
         <button class="lab-btn lab-btn--icon" id="settings-btn" aria-label="Settings" aria-haspopup="dialog" title="Settings"></button>
-        <button class="lab-btn lab-btn--icon" id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark"></button>
         <span class="lab-avatars" id="lab-avatars" hidden></span>
       </div>
     </header>
@@ -45,6 +44,14 @@
       <h2 id="settings-title" class="lab-settings__title">Settings</h2>
       <button type="button" class="lab-btn lab-btn--icon" id="settings-close" aria-label="Close settings"></button>
     </header>
+    <section class="lab-settings__section" aria-labelledby="settings-theme-title">
+      <h3 id="settings-theme-title" class="lab-settings__heading">Theme</h3>
+      <p class="lab-settings__intro">Light or dark.</p>
+      <div class="lab-segmented" role="group" aria-label="Theme">
+        <button type="button" class="lab-segmented__btn" id="theme-light" aria-pressed="true">Light</button>
+        <button type="button" class="lab-segmented__btn" id="theme-dark" aria-pressed="false">Dark</button>
+      </div>
+    </section>
     <section class="lab-settings__section" aria-labelledby="settings-runtime-title">
       <h3 id="settings-runtime-title" class="lab-settings__heading">Motion library</h3>
       <p class="lab-settings__intro">What plays the motion in the lab. CSS plays each version's easing curve. Motion (motion.dev) plays every motion as a real spring, to see what a spring would feel like. Exports never change with this.</p>

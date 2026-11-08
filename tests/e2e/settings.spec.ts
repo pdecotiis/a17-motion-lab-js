@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { SAMPLES_PRESENT, SAMPLES_NEEDED } from '../samples.js';
 
-// Settings: the gear beside the theme toggle opens a dialog with the things you change rarely. Today
+// Settings: the gear in the header opens a dialog with the things you change rarely. Today
 // that is the Global scale: how the distance, duration, delay, opacity and scale tokens get their
 // values.
 // A safety net: the dev server these tests run against is the real one, so a click that was meant to
@@ -26,13 +26,12 @@ test.describe('Settings', () => {
     await page.goto('/?view=component&component=card&version=v1');
   });
 
-  test('the gear sits in the top nav beside the theme toggle, and opens the settings', async ({ page }) => {
+  test('the gear sits in the top nav, and opens the settings', async ({ page }) => {
     const buttons = page.locator('.lab-header__controls > button');
-    // Two icon buttons, in this order (the icons are SVG, so the buttons have no text).
-    await expect(buttons).toHaveCount(2);
+    // One icon button, the gear (the icon is SVG, so the button has no text); the theme switch is in Settings.
+    await expect(buttons).toHaveCount(1);
     await expect(buttons.nth(0)).toHaveAttribute('id', 'settings-btn');
-    await expect(buttons.nth(1)).toHaveAttribute('id', 'theme-toggle');
-    await expect(buttons.locator('svg.lab-icon')).toHaveCount(2);
+    await expect(buttons.locator('svg.lab-icon')).toHaveCount(1);
     await expect(page.locator('#settings-btn')).toHaveAttribute('aria-label', 'Settings');
     await expect(dialog(page)).toBeHidden();
     await openSettings(page);
@@ -68,13 +67,17 @@ test.describe('Settings', () => {
       'Minor third (1.2 (6:5))', 'Major third (1.25 (5:4))', 'Perfect fourth (1.333 (4:3))', 'Golden ratio (1.618: wide steps)', 'Fibonacci (1, 2, 3, 5, 8… times the base)',
     ]);
     // the token count is the file's; how many version files change depends on the project's components
+    // no label: the dropdown lives in the Global scale section
+    await expect(page.locator('.lab-settings label', { hasText: 'Preview a scale' })).toHaveCount(0);
     await expect(page.locator('#scale-summary')).toHaveText(/^Major third would rename \d+ tokens and change \d+ version files\.$/);
     await expect(page.locator('.lab-scale-table')).toHaveCount(5);
     await expect(page.locator('.lab-scale-table[data-kind="distance"] tbody tr')).toHaveCount(8);
     await expect(page.locator('#scale-command')).toHaveText('npm run tokens:scale -- --all major-third');
 
-    const row = page.locator('.lab-scale-table[data-kind="distance"] tbody tr', { hasText: 'distance.20' });
-    await expect(row.locator('td').nth(1)).toContainText('distance.8');
+    const row = page.locator('.lab-scale-table[data-kind="distance"] tbody tr', { hasText: 'distance-20' });
+    await expect(row.locator('td').nth(0).locator('.lab-scale-chip--changed')).toHaveText('distance-20');
+    await expect(row.locator('td').nth(1).locator('.lab-scale-chip')).toHaveText('distance-8');
+    await expect(row.locator('td').nth(1)).not.toContainText('8px');
     await expect(row.locator('td').nth(2)).toContainText('card/v1');
     await expect(row).toHaveClass(/lab-scale-row--renamed/);
   });
@@ -85,8 +88,8 @@ test.describe('Settings', () => {
     await page.selectOption('#scale-preview-select', 'golden-ratio');
     await expect(page.locator('#scale-summary')).toContainText('Golden ratio would rename');
     await expect(page.locator('#scale-command')).toHaveText('npm run tokens:scale -- --all golden-ratio');
-    const row = page.locator('.lab-scale-table[data-kind="distance"] tbody tr', { hasText: 'distance.20' });
-    await expect(row.locator('td').nth(1)).toContainText('distance.17');
+    const row = page.locator('.lab-scale-table[data-kind="distance"] tbody tr', { hasText: 'distance-20' });
+    await expect(row.locator('td').nth(1)).toContainText('distance-17');
     await page.click('#settings-close');
     await page.goto('/?view=tokens');
     await page.click('.lab-tokens-subtab:has-text("Distance")');

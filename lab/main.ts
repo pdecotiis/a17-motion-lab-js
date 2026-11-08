@@ -86,7 +86,7 @@ const brandEl = document.querySelector<HTMLElement>('.lab-header__brand');
 // The Beta tag is the template's: a project shows its own name instead.
 if (projectName) document.querySelector<HTMLElement>('.lab-header__brand .lab-badge')?.setAttribute('hidden', '');
 
-// The avatars beside the theme switch. Alone, one: who set the lab up on this computer (the computer's git user). With
+// The avatars beside the gear. Alone, one: who set the lab up on this computer (the computer's git user). With
 // others, a stack of everyone who has worked in the project, you first, from the project's own history (the dev server's
 // /__lab/team, lab/lib/team.ts). A built copy has no one to show, so it shows none.
 const avatarsEl = document.getElementById('lab-avatars');
@@ -244,23 +244,19 @@ if (reducedMotion) notice.classList.remove('lab-notice--hidden');
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 
-// The button shows what it will switch to: the moon in the light theme, the sun in the dark one.
-const themeToggle = document.getElementById('theme-toggle')!;
-function renderThemeToggle(): void {
-  themeToggle.innerHTML = currentTheme === 'dark' ? ICONS.sun : ICONS.moon;
-  const label = currentTheme === 'dark' ? 'Switch to the light theme' : 'Switch to the dark theme';
-  themeToggle.setAttribute('aria-label', label);
-  themeToggle.title = label;
+// Light or dark, a switch in Settings (the header has only the gear and the avatars).
+const themeButtons = { light: document.getElementById('theme-light')!, dark: document.getElementById('theme-dark')! };
+function applyTheme(theme: 'light' | 'dark'): void {
+  currentTheme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  themeButtons.light.setAttribute('aria-pressed', String(theme === 'light'));
+  themeButtons.dark.setAttribute('aria-pressed', String(theme === 'dark'));
 }
-renderThemeToggle();
-themeToggle.addEventListener('click', () => {
-  currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', currentTheme);
-  renderThemeToggle();
-});
+themeButtons.light.addEventListener('click', () => applyTheme('light'));
+themeButtons.dark.addEventListener('click', () => applyTheme('dark'));
 
 // ── Settings ───────────────────────────────────────────────────────────────
-// The gear beside the theme toggle opens the settings: things you change rarely. Today, the Global
+// The gear in the header opens the settings: things you change rarely. The theme, the motion library and the Global
 // scale (how the distance, duration, delay, opacity and scale tokens get their values).
 
 const settingsDialog = document.getElementById('settings-dialog') as HTMLDialogElement;
@@ -1318,20 +1314,6 @@ function renderPageView(params: URLSearchParams): void {
   document.getElementById('viewbar-title')!.textContent = pageConfig.title || pageName;
   const stage = document.getElementById('page-stage')!;
 
-  // One page: the detail panels sit to the right of the window when the lab window is wide enough for both, then as a single
-  // column; when they have wrapped under it they lie in a row. The layout notices which, as the window is resized.
-  const layoutEl = main.querySelector<HTMLElement>('.lab-page-layout--single');
-  const railEl = layoutEl?.querySelector<HTMLElement>('.lab-sidebar');
-  if (layoutEl && railEl) {
-    const setBeside = (): void => {
-      layoutEl.classList.toggle('lab-page-layout--beside', railEl.getBoundingClientRect().left >= stage.getBoundingClientRect().right - 1);
-    };
-    const besideObserver = new ResizeObserver(setBeside);
-    besideObserver.observe(layoutEl);
-    besideObserver.observe(stage);
-    onViewLeave(() => besideObserver.disconnect());
-    setBeside();
-  }
   const motionMapPanel = document.getElementById('motion-map-panel')!;
 
   // One column per page version shown: the page, in a fixed-height window you scroll (like a browser window),
