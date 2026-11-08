@@ -94,3 +94,29 @@ test.describe('the page view\'s two panes', () => {
     });
   }
 });
+
+test.describe('dragging the detail panel', () => {
+  test('the handle changes the panel width, it is kept after a reload, and a double click resets it', async ({ page }) => {
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await page.goto('/?view=page');
+    const rail = page.locator('.lab-sidebar');
+    const handle = page.locator('.lab-panel-resizer');
+    expect(Math.round((await rail.boundingBox())!.width)).toBe(360);
+    const box = (await handle.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + 200);
+    await page.mouse.down();
+    await page.mouse.move(box.x - 120, box.y + 200, { steps: 5 });
+    await page.mouse.up();
+    const wider = Math.round((await rail.boundingBox())!.width);
+    expect(wider).toBeGreaterThan(440);
+    await page.reload();
+    expect(Math.round((await rail.boundingBox())!.width)).toBe(wider);
+    const again = (await page.locator('.lab-panel-resizer').boundingBox())!;
+    await page.mouse.dblclick(again.x + again.width / 2, again.y + 200);
+    expect(Math.round((await rail.boundingBox())!.width)).toBe(360);
+    // the keyboard nudges it, within limits
+    await page.locator('.lab-panel-resizer').focus();
+    await page.keyboard.press('ArrowLeft');
+    expect(Math.round((await rail.boundingBox())!.width)).toBe(376);
+  });
+});
