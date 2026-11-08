@@ -457,6 +457,68 @@ function addPanelResizer(main: HTMLElement): void {
   });
 }
 
+// ── Preview mode ───────────────────────────────────────────────────────────
+// `&preview=1` on a component or page view shows just that, filling the window: no header, top bar or panel, so the design and the
+// motion are all there is. It is the same view with the chrome hidden (CSS, `body.lab-preview-mode`), so it plays exactly as it does
+// there. Keys: R replays, the arrow keys move between versions, Esc leaves. A small bar shows the name and the keys while the pointer moves.
+const isPreview = (params: URLSearchParams): boolean => params.get('preview') === '1' && (params.get('view') === 'component' || params.get('view') === 'page');
+function previewHref(on: boolean): string {
+  const sp = new URLSearchParams(window.location.search);
+  if (on) sp.set('preview', '1'); else sp.delete('preview');
+  return `?${sp.toString()}`;
+}
+let previewBarTimer = 0;
+function syncPreviewMode(params: URLSearchParams): void {
+  const on = isPreview(params);
+  document.body.classList.toggle('lab-preview-mode', on);
+  document.getElementById('lab-preview-bar')?.remove();
+  window.clearTimeout(previewBarTimer);
+  if (!on) return;
+  const view = params.get('view');
+  const name = view === 'page' ? (getPageConfig(params.get('page') ?? defaultPageName())?.title ?? 'Page') : (params.get('component') ?? defaultComponentName());
+  const bar = document.createElement('div');
+  bar.id = 'lab-preview-bar';
+  bar.className = 'lab-preview-bar lab-preview-bar--shown';
+  bar.innerHTML = `<span class="lab-preview-bar__name"></span><span class="lab-preview-bar__keys">R replay · ← → versions · Esc exit</span><button type="button" class="lab-btn lab-btn--sm" id="preview-exit">Exit preview</button>`;
+  bar.querySelector('.lab-preview-bar__name')!.textContent = name;
+  document.body.appendChild(bar);
+  bar.querySelector('#preview-exit')!.addEventListener('click', () => navigate(previewHref(false)));
+  const show = (): void => {
+    bar.classList.add('lab-preview-bar--shown');
+    window.clearTimeout(previewBarTimer);
+    previewBarTimer = window.setTimeout(() => bar.classList.remove('lab-preview-bar--shown'), 2500);
+  };
+  document.addEventListener('pointermove', show, { passive: true });
+  onViewLeave(() => document.removeEventListener('pointermove', show));
+  show();
+}
+document.addEventListener('keydown', event => {
+  if (!document.body.classList.contains('lab-preview-mode') || event.metaKey || event.ctrlKey || event.altKey) return;
+  if ((event.target as HTMLElement | null)?.closest('input, textarea, select')) return;
+  const view = new URLSearchParams(window.location.search).get('view');
+  if (event.key === 'Escape') { event.preventDefault(); navigate(previewHref(false)); return; }
+  if (event.key === 'r' || event.key === 'R') {
+    event.preventDefault();
+    document.getElementById(view === 'page' ? 'replay-all-btn' : 'replay-btn')?.click();
+    return;
+  }
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+  const step = event.key === 'ArrowRight' ? 1 : -1;
+  event.preventDefault();
+  if (view === 'component') {
+    const tabs = [...document.querySelectorAll<HTMLElement>('.lab-version-tab')];
+    const at = tabs.findIndex(t => t.classList.contains('lab-version-tab--active'));
+    tabs[at + step]?.click();
+  } else {
+    const select = document.getElementById('page-version-select') as HTMLSelectElement | null;
+    if (!select) return;
+    const next = select.selectedIndex + step;
+    if (next < 0 || next >= select.options.length) return;
+    select.selectedIndex = next;
+    select.dispatchEvent(new Event('change'));
+  }
+});
+
 // The page header the top-level views share (Components, Pages, Presets, Tokens): the view's name large, on the page
 // colour, with a rule under it. Whatever the view has (tabs, a toolbar) follows it.
 function heroEl(title: string, description?: string): HTMLElement {
@@ -855,7 +917,7 @@ function renderComponentView(params: URLSearchParams): void {
           <li><a href="${libraryHref()}" id="breadcrumb-library">Components</a></li>
           <li aria-current="page" id="breadcrumb-current"></li>
         </ol>
-      </nav>`, '<button class="lab-btn" id="generate-spec-btn" type="button" disabled title="Writes the spec and the code for the open version (coming soon)">Generate spec</button>')}
+      </nav>`, '<button class="lab-btn" id="preview-btn" type="button" title="Show just the component, filling the window">Preview</button><button class="lab-btn" id="generate-spec-btn" type="button" disabled title="Writes the spec and the code for the open version (coming soon)">Generate spec</button>')}
     <div class="lab-component-layout">
       <div class="lab-preview-area${framed ? ' lab-preview-area--framed' : ''}">
         <div class="lab-preview" id="preview-primary">
@@ -917,6 +979,7 @@ function renderComponentView(params: URLSearchParams): void {
   `;
 
   addPanelResizer(main);
+  document.getElementById('preview-btn')?.addEventListener('click', () => navigate(previewHref(true)));
   document.getElementById('breadcrumb-current')!.textContent = componentName;
   bindPlaybackBar();
 
@@ -1273,7 +1336,7 @@ function renderPageView(params: URLSearchParams): void {
   const pv = params.get('pv');
   const active = versions.find(v => v.id === pv) ?? versions[0]!;
   const compareParam = params.get('compare');
-  const compareWith = versions.find(v => v.id === compareParam && v.id !== active.id);
+  const compareWith = isPreview(params) ? undefined : versions.find(v => v.id === compareParam && v.id !== active.id);
 
   // What is on screen: the saved version's choices with any unsaved changes (?mm=) on top.
   const savedMap = resolveMotionMap(active.motionMap, pageConfig, modules);
@@ -1290,7 +1353,7 @@ function renderPageView(params: URLSearchParams): void {
   // to exact size and scrolls.
   const actualSize = params.get('size') === 'actual';
   // One page can also be fitted: scaled down (never up) to the example pane, the scale shown (?size=fit); Compare always fits unless "Actual size".
-  const fitOne = !compareWith && params.get('size') === 'fit';
+  const fitOne = !compareWith && (params.get('size') === 'fit' || (isPreview(params) && params.get('size') !== 'actual'));
   const fit = compareWith ? !actualSize : fitOne;
 
   main.innerHTML = `
@@ -1299,10 +1362,10 @@ function renderPageView(params: URLSearchParams): void {
           <li><a href="?view=pages" id="breadcrumb-pages">Pages</a></li>
           <li aria-current="page" id="viewbar-title"></li>
         </ol>
-      </nav>`, compareWith ? '' : `<select id="page-size-select" class="lab-select" aria-label="Page size" title="Page size">
+      </nav>`, `${compareWith ? '' : '<button class="lab-btn" id="preview-btn" type="button" title="Show just the page, filling the window">Preview</button>'}` + (compareWith ? '' : `<select id="page-size-select" class="lab-select" aria-label="Page size" title="Page size">
         <option value="actual"${fitOne ? '' : ' selected'}>Actual size</option>
         <option value="fit"${fitOne ? ' selected' : ''}>Fit to window</option>
-      </select>`)}
+      </select>`))}
     <div class="lab-page-layout${compareWith ? '' : ' lab-page-layout--single'}">
       <div class="lab-page-stage${compareWith ? ' lab-page-stage--compare' : ''}${fit ? ' lab-page-stage--fit' : ''}" id="page-stage"></div>
       <aside class="lab-sidebar">
@@ -1355,6 +1418,7 @@ function renderPageView(params: URLSearchParams): void {
 
   bindPlaybackBar();
   addPanelResizer(main);
+  document.getElementById('preview-btn')?.addEventListener('click', () => navigate(previewHref(true)));
   document.getElementById('viewbar-title')!.textContent = pageConfig.title || pageName;
   const stage = document.getElementById('page-stage')!;
 
@@ -2378,6 +2442,7 @@ function route(): void {
     frame: `${params.get('component') ?? defaultComponentName()} frame`,
   };
   document.title = titleFor(what[view] ?? '', projectName);
+  syncPreviewMode(params);
 
   navBtns.forEach(btn => {
     const isActive = btn.dataset['view'] === navView;
