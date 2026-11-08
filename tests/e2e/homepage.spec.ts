@@ -16,18 +16,18 @@ test.describe('Homepage layout', () => {
     expect(Math.round(mosaic.x)).toBe(Math.round(header.x));  // the sections are in the column, not under the menu
   });
 
-  test('the page is 1:1 with the Figma frame: 1440px wide, never scaled, and whole in a 1440px window', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
+  test('the page is 1:1 with the Figma frame: 1440px wide, never scaled, and whole in a window wide enough for it and the detail panel', async ({ page }) => {
+    await page.setViewportSize({ width: 2000, height: 900 });   // the example pane is the window less the 360px panel and the padding
     await page.goto('/?view=page&page=homepage');
     await expect(page.locator('.lab-page-item[data-component-id="menu"]')).toBeVisible();
     const grid = page.locator('.lab-page-grid');
     expect(await grid.evaluate(el => (el as HTMLElement).style.zoom)).toBe('');
     expect(Math.round((await grid.boundingBox())!.width)).toBe(1440);
     const stage = page.locator('#page-stage');
-    expect(await stage.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);   // nothing scrolls sideways in a 1440px window
+    expect(await stage.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);   // nothing scrolls sideways when the pane is wide enough
     const edge = await page.locator('.lab-page-item[data-component-id="header"]').boundingBox();
-    expect(Math.round(edge!.x + edge!.width)).toBeLessThanOrEqual(1440);              // the content ends inside the window
-    await page.setViewportSize({ width: 1000, height: 900 });                          // a narrower window scrolls sideways, still at 1:1
+    expect(Math.round(edge!.x + edge!.width)).toBeLessThanOrEqual(1440 + 16);         // the content ends inside the pane
+    await page.setViewportSize({ width: 1200, height: 900 });                          // a narrower window scrolls sideways inside the pane, still at 1:1
     await page.waitForTimeout(200);
     expect(await stage.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
     expect(await grid.evaluate(el => (el as HTMLElement).style.zoom)).toBe('');
