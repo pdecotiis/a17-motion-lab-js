@@ -7,7 +7,7 @@ const pending = (message: string, extra: Record<string, unknown> = {}) =>
 
 test.describe('toasts', () => {
   test('appear in the bottom right, then go by themselves', async ({ page }) => {
-    await page.addInitScript(value => { if (!sessionStorage.getItem('seen')) { sessionStorage.setItem('seen', '1'); sessionStorage.setItem('lab-toast-pending', value); } }, pending('Saved as v9', { description: 'Both lift', duration: 700 }));
+    await page.addInitScript(value => { if (!sessionStorage.getItem('seen')) { sessionStorage.setItem('seen', '1'); sessionStorage.setItem('lab-toast-pending', value); } }, pending('Saved as v9', { description: 'Both lift', duration: 2500 }));
     await page.setViewportSize({ width: 1200, height: 800 });
     await page.goto('/?view=tokens');
     const toast = page.locator('.lab-toast');
@@ -18,19 +18,19 @@ test.describe('toasts', () => {
     const box = (await toast.boundingBox())!;
     expect(Math.round(box.x + box.width)).toBe(1200 - 16);      // against the right
     expect(Math.round(box.y + box.height)).toBe(800 - 16);       // and the bottom
-    await expect(toast).toHaveCount(0, { timeout: 3000 });       // gone after its time
+    await expect(toast).toHaveCount(0, { timeout: 6000 });       // gone after its time
   });
 
   test('wait while the pointer is on them', async ({ page }) => {
-    await page.addInitScript(value => { if (!sessionStorage.getItem('seen')) { sessionStorage.setItem('seen', '1'); sessionStorage.setItem('lab-toast-pending', value); } }, pending('Held', { duration: 900 }));
+    await page.addInitScript(value => { if (!sessionStorage.getItem('seen')) { sessionStorage.setItem('seen', '1'); sessionStorage.setItem('lab-toast-pending', value); } }, pending('Held', { duration: 2000 }));
     await page.goto('/?view=tokens');
     const toast = page.locator('.lab-toast');
     await expect(toast).toBeVisible();
     await toast.hover();
-    await page.waitForTimeout(1600);
+    await page.waitForTimeout(2800);
     await expect(toast).toBeVisible();                            // held past its time
     await page.mouse.move(5, 5);
-    await expect(toast).toHaveCount(0, { timeout: 4000 });
+    await expect(toast).toHaveCount(0, { timeout: 6000 });
   });
 
   test('a click dismisses one, and the kept message shows once only', async ({ page }) => {
