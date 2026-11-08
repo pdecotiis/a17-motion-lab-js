@@ -114,7 +114,7 @@ function buildScaleSettings(container: HTMLElement, deps: ScaleSettingsDeps): HT
         const td = tr.insertCell();
         if (!token) { td.textContent = empty; td.className = 'lab-text-muted'; return; }
         const chip = document.createElement('code');
-        chip.className = 'lab-token-name' + (changed ? ' lab-token-name--changed' : '');
+        chip.className = 'lab-scale-chip' + (changed ? ' lab-scale-chip--changed' : '');
         chip.textContent = tokenDisplayName(token.path);
         chip.title = `${token.path}: ${token.value}`;
         td.appendChild(chip);

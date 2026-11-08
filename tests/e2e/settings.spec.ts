@@ -75,8 +75,8 @@ test.describe('Settings', () => {
     await expect(page.locator('#scale-command')).toHaveText('npm run tokens:scale -- --all major-third');
 
     const row = page.locator('.lab-scale-table[data-kind="distance"] tbody tr', { hasText: 'distance-20' });
-    await expect(row.locator('td').nth(0).locator('.lab-token-name--changed')).toHaveText('distance-20');
-    await expect(row.locator('td').nth(1).locator('.lab-token-name')).toHaveText('distance-8');
+    await expect(row.locator('td').nth(0).locator('.lab-scale-chip--changed')).toHaveText('distance-20');
+    await expect(row.locator('td').nth(1).locator('.lab-scale-chip')).toHaveText('distance-8');
     await expect(row.locator('td').nth(1)).not.toContainText('8px');
     await expect(row.locator('td').nth(2)).toContainText('card/v1');
     await expect(row).toHaveClass(/lab-scale-row--renamed/);

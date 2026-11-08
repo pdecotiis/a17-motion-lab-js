@@ -598,7 +598,7 @@ html, body {
 .lab-dist-ghost { position: absolute; top: 6px; width: 12px; height: 12px; border: 1px dashed var(--color-spec); border-radius: var(--radius-xs); }
 .lab-token-example--distance .lab-dist-box { position: absolute; left: 0; top: 6px; width: 12px; height: 12px; border-radius: var(--radius-xs); }
 
-.lab-token-name { display: inline-flex; align-items: center; height: 24px; padding: 0 6px; background: var(--color-chip); border-radius: var(--radius-xs);    word-break: break-all; font: var(--type-code); }
+.lab-token-name, .lab-scale-chip { display: inline-flex; align-items: center; height: 24px; padding: 0 6px; background: var(--color-chip); border-radius: var(--radius-xs);    word-break: break-all; font: var(--type-code); }
 
 /* Imported components: rendered at their Figma frame size (see getFramedMarkup) */
 .lab-preview-area--framed { min-width: 0; }
@@ -834,6 +834,6 @@ html, body {
 .lab-scale-apply > .lab-btn { width: auto; align-self: flex-start; margin: 0; }
 
 /* A token a scale would change ("Now" in What changes): red 500 on red 50; the ones it becomes are the usual gray chips. */
-.lab-token-name--changed { background: var(--red-50); color: var(--red-500); }
-[data-theme="dark"] .lab-token-name--changed { background: var(--red-900); color: var(--red-300); }
+.lab-scale-chip--changed { background: var(--red-50); color: var(--red-500); }
+[data-theme="dark"] .lab-scale-chip--changed { background: var(--red-900); color: var(--red-300); }
 [data-theme="dark"] .lab-scale-panel__summary, [data-theme="dark"] .lab-scale-panel__summary--error { color: var(--red-300); }
