@@ -350,7 +350,7 @@ test.describe('Top bar of the component and page views', () => {
     const toolbar = await box(page, '.lab-toolbar');
     expect(crumb.x).toBeLessThan(toolbar.x);
     await expect(page.locator('.lab-viewbar #speed-control')).toHaveCount(1);
-    await expect(page.locator('.lab-viewbar #replay-btn')).toHaveText('Replay');
+    await expect(page.locator('.lab-viewbar #replay-btn')).toHaveText('Play');
   });
 
   test('Replay is not in the Version panel any more', async ({ page }) => {
@@ -365,7 +365,7 @@ test.describe('Top bar of the component and page views', () => {
     await expect.poll(() => page.locator('[data-motion-target]').first().evaluate(el => el.getAnimations().length)).toBeGreaterThan(0);
   });
 
-  test('the page view has the same bar: the page name on the left, speed and Replay All on the right, above the page, with the controls to its right', async ({ page }) => {
+  test('the page view has the same bar: the page name on the left, speed and Play on the right, above the page, with the controls to its right', async ({ page }) => {
     await page.goto('/?view=page');
     const bar = await box(page, '.lab-viewbar');
     const stage = await box(page, '#page-stage');
@@ -373,7 +373,7 @@ test.describe('Top bar of the component and page views', () => {
     expect(bar.y + bar.height).toBeLessThanOrEqual(stage.y);
     expect(rail.x).toBeGreaterThanOrEqual(stage.x + stage.width - 1);   // the controls are always to the right of the page window
     await expect(page.locator('#viewbar-title')).not.toBeEmpty();
-    await expect(page.locator('.lab-viewbar #replay-all-btn')).toHaveText('Replay All');
+    await expect(page.locator('.lab-viewbar #replay-all-btn')).toHaveText('Play');
     await expect(page.locator('.lab-sidebar #replay-all-btn')).toHaveCount(0);
     await expect(page.locator('.lab-viewbar #speed-control')).toHaveCount(1);
   });
@@ -386,13 +386,13 @@ test.describe('One primary button per page', () => {
   test('the component view has one, Replay', async ({ page }) => {
     await page.goto('/?view=component');
     await expect(primaries(page)).toHaveCount(1);
-    await expect(primaries(page)).toHaveText('Replay');
+    await expect(primaries(page)).toHaveText('Play');
   });
 
-  test('the page view has one, Replay All: Save as new version is a plain button', async ({ page }) => {
+  test('the page view has one, Play: Save as new version is a plain button', async ({ page }) => {
     await page.goto('/?view=page');
     await expect(primaries(page)).toHaveCount(1);
-    await expect(primaries(page)).toHaveText('Replay All');
+    await expect(primaries(page)).toHaveText('Play');
     await expect(page.locator('#save-page-version-btn')).not.toHaveClass(/lab-btn--primary/);
   });
 
