@@ -853,3 +853,17 @@ html, body {
 .lab-toast__title { font: var(--type-ui-2-strong); }
 .lab-toast__description { margin-top: 2px; color: var(--color-text-muted); overflow-wrap: anywhere; font: var(--type-caption); }
 @media (prefers-reduced-motion: reduce) { .lab-toast, .lab-toast--leaving { transform: none; transition: opacity 120ms; } }
+
+/* Preview mode (`&preview=1`, syncPreviewMode in lab/main.ts): just the component or page, filling the window. The same view with the chrome hidden. */
+.lab-preview-mode .lab-header, .lab-preview-mode .lab-notice, .lab-preview-mode .lab-viewbar, .lab-preview-mode .lab-sidebar, .lab-preview-mode .lab-panel-resizer { display: none; }
+.lab-preview-mode #main-content { padding: 0; overflow: auto; }
+.lab-preview-mode .lab-component-layout, .lab-preview-mode .lab-page-layout { display: block; min-height: 100vh; --page-preview-height: 100vh; }
+.lab-preview-mode .lab-preview-area { min-height: 100vh; }
+.lab-preview-mode .lab-preview { min-height: 100vh; border-radius: 0; background: var(--color-bg); }
+.lab-preview-mode .lab-page-layout--single .lab-page-stage { background: var(--color-bg); border-radius: 0; min-height: 100vh; }
+.lab-preview-bar { position: fixed; left: 50%; bottom: 16px; z-index: 40; display: flex; align-items: center; gap: 16px; padding: 8px 8px 8px 16px; background: var(--color-bg); border: 1px solid var(--color-subtle); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); opacity: 0; transform: translate(-50%, 8px); transition: opacity 200ms, transform 200ms; pointer-events: none; font: var(--type-ui-2); }
+.lab-preview-bar--shown { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.lab-preview-bar__name { font: var(--type-ui-2-strong); }
+.lab-preview-bar__keys { color: var(--color-text-muted); font: var(--type-caption); }
+.lab-preview-bar__name, .lab-preview-bar__keys { white-space: nowrap; }
+.lab-preview-mode .lab-page-layout--single .lab-page-grid { margin-inline: auto; }
