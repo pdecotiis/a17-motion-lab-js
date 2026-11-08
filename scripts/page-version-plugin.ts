@@ -69,6 +69,9 @@ export function pageVersionPlugin(root: string): Plugin {
             host: req.headers.host,
             body: Buffer.concat(chunks).toString('utf8'),
           });
+          // The new file is outside the lab's root, so the server does not see it arrive: forget what it knew of the version files
+          // (they are read with a glob) so the page that reloads next finds the new version.
+          if (out.status === 200 && req.method === 'POST') server.moduleGraph.invalidateAll();
           res.statusCode = out.status;
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify(out.body));
