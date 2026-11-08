@@ -32,6 +32,7 @@ import {
 import { getStepRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
 import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
+import { toast, toastAfterReload, showPendingToast } from './lib/toast.js';
 import type { Json } from './lib/scale-apply.js';
 import { defaultStaggerOf, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken } from './lib/stagger.js';
 import { buildExportCode, EXPORT_FORMATS, EXPORT_LABELS, type ExportFormat } from './lib/export-code.js';
@@ -1323,6 +1324,13 @@ function renderPageView(params: URLSearchParams): void {
           ${compareWith ? `<label class="lab-check"><input type="checkbox" id="page-actual-size"${actualSize ? ' checked' : ''}> Actual size (scroll sideways)</label>` : ''}
           <p class="lab-lineage" id="page-version-note"></p>
           <button class="lab-btn" id="save-page-version-btn">Save as new version</button>
+          <div class="lab-save-name" id="page-version-namebar" hidden>
+            <input class="lab-input" id="page-version-name" type="text" maxlength="80" placeholder="Name this version" aria-label="Name this page version" autocomplete="off">
+            <div class="lab-save-name__actions">
+              <button class="lab-btn lab-btn--primary" id="page-version-confirm" type="button">Save</button>
+              <button class="lab-btn" id="page-version-cancel" type="button">Cancel</button>
+            </div>
+          </div>
           <p class="lab-text-muted lab-controls__hint" id="page-version-status"></p>
         </section>
         <section class="lab-controls" aria-label="Motion map">
@@ -1628,33 +1636,53 @@ function renderPageView(params: URLSearchParams): void {
       status.textContent = 'Saving needs the dev server (npm run dev). Ask Claude to save it, or run the lab with npm run dev.';
     }
   });
-  saveBtn.addEventListener('click', async () => {
-    const label = prompt('Name this page version:');
-    if (!label || !label.trim()) return;
-    saveBtn.disabled = true;
+  // The name is asked in the panel itself (the app's browser pane has no native prompt()): Save shows a field, Enter or Save saves.
+  const nameBar = document.getElementById('page-version-namebar')!;
+  const nameInput = document.getElementById('page-version-name') as HTMLInputElement;
+  const confirmBtn = document.getElementById('page-version-confirm') as HTMLButtonElement;
+  const cancelBtn = document.getElementById('page-version-cancel') as HTMLButtonElement;
+  const askName = (asking: boolean): void => {
+    nameBar.hidden = !asking;
+    saveBtn.hidden = asking;
+    if (asking) { nameInput.value = ''; nameInput.focus(); } else saveBtn.focus();
+  };
+  saveBtn.addEventListener('click', () => { status.textContent = ''; askName(true); });
+  cancelBtn.addEventListener('click', () => askName(false));
+  nameInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); confirmBtn.click(); }
+    else if (e.key === 'Escape') { e.preventDefault(); askName(false); }
+  });
+  confirmBtn.addEventListener('click', async () => {
+    const label = nameInput.value.trim();
+    if (!label) { nameInput.focus(); return; }
+    confirmBtn.disabled = true;
+    cancelBtn.disabled = true;
     status.textContent = 'Saving…';
     try {
       const res = await fetch(PAGE_VERSION_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          page: pageName, label: label.trim(), motionMap, stagger: choiceToStagger(pageStagger), forkedFrom: active.id,
+          page: pageName, label, motionMap, stagger: choiceToStagger(pageStagger), forkedFrom: active.id,
         }),
       });
       const out = (await res.json()) as { id?: string; error?: string };
       if (!res.ok || !out.id) throw new Error(out.error ?? `The server said ${res.status}`);
-      // Once the page reloads it opens the new version, with nothing unsaved.
+      // Once the page reloads it opens the new version, with nothing unsaved, and says so in a toast.
       const sp = new URLSearchParams(window.location.search);
       sp.set('pv', out.id);
       sp.delete('mm');
       sp.delete('pageStagger');
       window.history.replaceState(null, '', `?${sp.toString()}`);
-      status.textContent = `Saved as ${out.id}. Reloading…`;
+      status.textContent = '';
+      toastAfterReload(`Saved as ${out.id}`, { description: label });
       // The dev server reloads the page when the file appears; this is for when it does not.
-      window.setTimeout(() => window.location.reload(), 1200);
+      window.setTimeout(() => window.location.reload(), 600);
     } catch (e) {
-      status.textContent = `Could not save: ${(e as Error).message}`;
-      saveBtn.disabled = false;
+      status.textContent = '';
+      toast('Could not save', { kind: 'error', description: (e as Error).message });
+      confirmBtn.disabled = false;
+      cancelBtn.disabled = false;
     }
   });
 }
@@ -2380,3 +2408,4 @@ function route(): void {
 }
 
 route();
+showPendingToast();

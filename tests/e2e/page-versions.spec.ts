@@ -176,10 +176,13 @@ test.describe('Saving a page version', () => {
     await page.goto('/?view=page&page=home&pv=v2');
     await page.selectOption('#motion-map-panel select >> nth=2', 'v2');
     await page.selectOption('#stagger-select', 'none');
-    page.once('dialog', d => d.accept('Both lift, no stagger'));
     await expect(page.locator('#save-page-version-btn')).toBeEnabled();
     await page.click('#save-page-version-btn');
-    await expect(page.locator('#page-version-status')).toContainText('Saved as v3');
+    await page.fill('#page-version-name', 'Both lift, no stagger');
+    await page.click('#page-version-confirm');
+    // the page reloads onto the new version, and a toast says it was saved
+    await expect(page.locator('.lab-toast')).toContainText('Saved as v3');
+    await expect(page.locator('.lab-toast')).toContainText('Both lift, no stagger');
     expect(posted).toEqual({
       page: 'home',
       label: 'Both lift, no stagger',
@@ -200,10 +203,11 @@ test.describe('Saving a page version', () => {
       return route.fulfill({ json: { id: 'v3' } });
     });
     await page.goto('/?view=page&page=home');
-    page.once('dialog', d => d.accept('Same again'));
     await expect(page.locator('#save-page-version-btn')).toBeEnabled();
     await page.click('#save-page-version-btn');
-    await expect(page.locator('#page-version-status')).toContainText('Saved as v3');
+    await page.fill('#page-version-name', 'Same again');
+    await page.click('#page-version-confirm');
+    await expect(page.locator('.lab-toast')).toContainText('Saved as v3');
     expect(posted).not.toHaveProperty('stagger');
   });
 
@@ -214,9 +218,16 @@ test.describe('Saving a page version', () => {
       return route.fulfill({ json: { available: true, id: 'v3' } });
     });
     await page.goto('/?view=page&page=home');
-    page.once('dialog', d => d.dismiss());
     await expect(page.locator('#save-page-version-btn')).toBeEnabled();
     await page.click('#save-page-version-btn');
+    await expect(page.locator('#page-version-name')).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#page-version-namebar')).toBeHidden();
+    await expect(page.locator('#save-page-version-btn')).toBeVisible();
+    // Cancel does the same, and an empty name saves nothing
+    await page.click('#save-page-version-btn');
+    await page.click('#page-version-confirm');
+    await page.click('#page-version-cancel');
     expect(posts).toBe(0);
   });
 
@@ -226,11 +237,13 @@ test.describe('Saving a page version', () => {
       return route.fulfill({ status: 400, json: { error: 'Component "card" has no version "v9".' } });
     });
     await page.goto('/?view=page&page=home');
-    page.once('dialog', d => d.accept('Broken'));
     await expect(page.locator('#save-page-version-btn')).toBeEnabled();
     await page.click('#save-page-version-btn');
-    await expect(page.locator('#page-version-status')).toHaveText('Could not save: Component "card" has no version "v9".');
-    await expect(page.locator('#save-page-version-btn')).toBeEnabled();
+    await page.fill('#page-version-name', 'Broken');
+    await page.click('#page-version-confirm');
+    await expect(page.locator('.lab-toast--error')).toContainText('Could not save');
+    await expect(page.locator('.lab-toast--error')).toContainText('Component "card" has no version "v9".');
+    await expect(page.locator('#page-version-confirm')).toBeEnabled();   // the name is still there to try again
   });
 
   test('a built copy has no endpoint: the button is off and says to use the dev server', async ({ page }) => {
