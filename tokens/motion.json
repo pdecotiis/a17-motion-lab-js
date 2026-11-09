@@ -372,6 +372,14 @@
     }
   },
   "delay": {
+    "15": {
+      "$type": "duration",
+      "$value": "15ms",
+      "$description": "The menu entrance: each row starts this long after the one before (menu-delay-highlight-hop in the original Motion Lab).",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
     "40": {
       "$type": "duration",
       "$value": "40ms",

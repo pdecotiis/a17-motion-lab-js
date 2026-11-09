@@ -8,6 +8,7 @@
   padding: var(--size-24, 24px);
   background: var(--background-default);
   box-sizing: border-box;
+  overflow: hidden;   /* the sidebar collapses to a narrower width: what no longer fits is clipped */
   font-feature-settings: "lnum" 1, "pnum" 1;
 }
 
@@ -18,6 +19,7 @@
   width: 100%;
 }
 
+.menu__logo-clip { display: block; width: 181px; height: 48px; flex: none; }
 .menu__logo { display: block; width: 181px; height: 48px; flex: none; }
 
 .menu__submenu {
@@ -77,6 +79,7 @@
 }
 
 .menu__actions { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.menu__action { display: flex; align-items: center; }
 
 .menu__button {
   display: flex;
