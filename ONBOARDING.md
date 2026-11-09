@@ -6,9 +6,9 @@ For designers. You work with Claude in the Claude desktop app; it does the techn
 
 | | |
 |---|---|
-| Project | _the client's name_ |
-| Where the code lives | _the git host and the project's address, e.g. `https://…/project.git`_ |
-| Who to ask for access or help | _a name and a way to reach them_ |
+| Project | Jane Street |
+| Where the code lives | GitHub: `https://github.com/pdecotiis/a17-motion-lab-js.git` |
+| Who to ask for access or help | Paul DeCotiis, on Slack or by email |
 
 ## Before you start
 
