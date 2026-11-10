@@ -30,7 +30,7 @@ import {
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
   type ComponentFilter,
 } from './lib/version-meta.js';
-import { getStepRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
+import { getStepRefs, presetStateLines, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
 import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
 import { toast, toastAfterReload, showPendingToast } from './lib/toast.js';
@@ -1293,6 +1293,16 @@ function renderComponentView(params: URLSearchParams): void {
       link.title = 'View in Tokens';
       chip.append(code, where, link);
       tokensList.appendChild(chip);
+    }
+    if (step.preset) {
+      const states = document.createElement('dl');
+      states.className = 'lab-token-states';
+      for (const line of presetStateLines(step.preset, runtime)) {
+        const dt = document.createElement('dt'); dt.textContent = line.state;
+        const dd = document.createElement('dd'); dd.textContent = line.parts.map(x => (x.includes('.') && x in raw ? tokenDisplayName(x) : x)).join(' · ');
+        states.append(dt, dd);
+      }
+      tokensList.appendChild(states);
     }
     if (step.hardcoded.length > 0) {
       const warn = document.createElement('div');

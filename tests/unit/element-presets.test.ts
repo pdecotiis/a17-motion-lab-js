@@ -3,7 +3,7 @@ import { parsePresets } from '../../lab/lib/entrance-presets.js';
 import { interactionOfPreset } from '../../lab/lib/preset-interaction.js';
 import { validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { validateInteraction } from '../../lab/lib/interaction.js';
-import { getStepRefs } from '../../lab/lib/token-refs.js';
+import { getStepRefs, presetStateLines } from '../../lab/lib/token-refs.js';
 import { buildPresetsCss } from '../../lab/lib/css-output.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
@@ -95,11 +95,19 @@ describe('the shared presets.css', () => {
 describe('the Details panel\'s tokens used', () => {
   it('has a group for an element\'s preset, in hover, press and release words', () => {
     const v: MotionVersion = { id: 'v9', label: 'Card', model: { model: 'tween', ...T }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }], elements: { root: 'card' }, lineage: 'test' };
-    const group = getStepRefs(v, raw).find(s => s.layer === 'component · card preset')!;
+    const group = getStepRefs(v, raw).find(s => s.layer === 'card preset')!;
     expect(group).toBeDefined();
     const where = (token: string) => group.uses.find(u => u.token === token)?.where ?? [];
     expect(where('scale.95')).toEqual(['press scale']);
     expect(where('duration.100')).toEqual(['leave duration', 'press duration']);
     expect(where('duration.250')).toEqual(['hover, release duration']);
+  });
+  it('has a short list of the preset\'s states: hovered, pressed, release', () => {
+    expect(presetStateLines('card')).toEqual([
+      { state: 'hovered', parts: ['tint 4%', 'duration.100', 'easing.productive-standard'] },
+      { state: 'pressed', parts: ['scale.95', 'tint 8%', 'duration.100', 'easing.productive-standard'] },
+      { state: 'release', parts: ['duration.250', 'easing.productive-entrance'] },
+    ]);
+    expect(presetStateLines('card', 'motion')[0]!.parts).toEqual(['tint 4%', 'duration.100']);
   });
 });
