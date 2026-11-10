@@ -13,8 +13,11 @@ for (const runtime of ['css', 'motion']) {
     expect(await size('grid')).toEqual([0, 0]); // the three bentos are closed
     await page.locator('[data-motion="t-tab-trading"]').click();
     await page.waitForTimeout(1500);
-    expect(await size('t-big')).toEqual([352, 536]);
-    expect(await size('t-card')).toEqual([712, 264]);
+    // Trading: three columns of two cards, 352 x 264 each; the big picture has gone and the four extra cells are shown
+    expect(await size('t-card')).toEqual([352, 264]);
+    expect(await size('t-small')).toEqual([352, 264]);
+    for (const n of ['t-x1', 't-x2', 't-x3', 't-x4']) { expect(await size(n)).toEqual([352, 264]); await expect(page.locator(`[data-motion="${n}"]`)).toHaveCSS('opacity', '1'); }
+    await expect(page.locator('[data-motion="t-big"]')).toHaveCSS('opacity', '0');
     await page.locator('[data-motion="t-tab-technology"]').click();
     await page.waitForTimeout(1500);
     expect(await size('t-big')).toEqual([532, 536]);

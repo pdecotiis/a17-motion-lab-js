@@ -225,7 +225,7 @@
 
 .grid-container-mosaic-routing__bento {
   display: grid;
-  grid-template-columns: 712px 352px;
+  grid-template-columns: 712px 352px 0px;
   grid-template-rows: 264px 264px;
   gap: 8px;
   width: 1072px;
@@ -240,6 +240,11 @@
   min-height: 0;
 }
 .grid-container-mosaic-routing__big { grid-area: 1 / 1 / 3 / 2; }
+/* Four more cells for Trading's three columns of two (they are clear and sit on the third column, which is closed, in the other tabs). */
+.grid-container-mosaic-routing__x1 { grid-area: 1 / 1 / 2 / 2; opacity: 0; }
+.grid-container-mosaic-routing__x2 { grid-area: 1 / 3 / 2 / 4; opacity: 0; }
+.grid-container-mosaic-routing__x3 { grid-area: 2 / 1 / 3 / 2; opacity: 0; }
+.grid-container-mosaic-routing__x4 { grid-area: 2 / 3 / 3 / 4; opacity: 0; }
 .grid-container-mosaic-routing__small { grid-area: 1 / 2 / 2 / 3; }
 .grid-container-mosaic-routing__tcard { grid-area: 2 / 2 / 3 / 3; display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-5); background: var(--background-accent-primary); }
 
