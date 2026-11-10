@@ -31,4 +31,5 @@
 .card-routing-columns__arrow { display: block; width: 24px; height: 24px; }
 
 .card-routing-columns__image { position: relative; flex: none; height: 469.333px; overflow: hidden; border-radius: var(--radius-xl); }
-.card-routing-columns__photo { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; }
+/* The picture keeps its full size and the container is a mask over it: as the container grows it uncovers the picture (nothing fades or scales). */
+.card-routing-columns__photo { position: absolute; top: 0; left: 0; display: block; width: 100%; height: 469.333px; max-width: none; object-fit: cover; }

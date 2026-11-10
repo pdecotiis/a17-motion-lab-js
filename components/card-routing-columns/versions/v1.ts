@@ -1,7 +1,7 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 
-// Three colour cards cascade in with the card entrance preset, rest for a quick beat (300ms), and then the pictures open: each column's picture grows in
-// (from no height to 469px) over 300ms, one after another, 40ms apart. In the first and third columns the picture opens below its card; in the middle column it
+// Three colour cards cascade in with the card entrance preset, rest for a quick beat (300ms), and then the pictures open: each column's picture is uncovered by its
+// container growing (from no height to 469px) over 300ms, one after another, 40ms apart. In the first and third columns the picture opens below its card; in the middle column it
 // opens above, so that card is pushed down to the bottom of its column as the picture grows. The cards use the card preset for hover and press.
 // States: cards (the three cards alone: the Figma design's first example) and open (the second). Replay plays it again; the state buttons move between them.
 type State = 'cards' | 'open';
@@ -14,10 +14,10 @@ const IMAGES: [string, string | undefined][] = [['image-1', undefined], ['image-
 const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> = {};
 // the gap between a column's cells only exists once its picture does
 for (const col of COLUMNS) layers[col] = { states: each(s => ({ rowGap: s === 'open' ? '8px' : '0px' })), transitions: each(() => GROW) };
-// the pictures: no height and clear, then their full height
+// the pictures: no height, then their full height; the container masks the picture in (the picture itself does not fade or scale)
 for (const [image, delay] of IMAGES) {
   const timing = { ...GROW, ...(delay ? { delay } : {}) };
-  layers[image] = { states: each(s => ({ height: s === 'open' ? '469.333px' : '0px', opacity: s === 'open' ? 1 : 0 })), transitions: { cards: GROW, open: timing } };
+  layers[image] = { states: each(s => ({ height: s === 'open' ? '469.333px' : '0px' })), transitions: { cards: GROW, open: timing } };
 }
 
 export const v1: MotionVersion = {
