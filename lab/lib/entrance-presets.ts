@@ -19,6 +19,14 @@ export interface PresetTiming { duration: string; easing: string }
 
 export type PresetStatus = 'system' | 'experimental';
 
+/** How an element that uses the preset responds to the pointer (a button, a card). Optional: a preset may only enter.
+ *  hover: a tint (black at `tint`, shown as a slight darkening) over `timing`, and back the same way.
+ *  press: scales to `scale` (a scale token) and darkens to `tint` over `timing`; release goes back over `release`. */
+export interface PresetInteraction {
+  hover?: { tint: number; timing: PresetTiming };
+  press?: { scale: string; tint: number; timing: PresetTiming; release: PresetTiming };
+}
+
 export interface EntrancePreset {
   /** A distance token: how far it rises from. */
   rise: string;
@@ -26,6 +34,8 @@ export interface EntrancePreset {
   scale?: string;
   /** The rise (and scale). */
   move: PresetTiming;
+  /** Hover and press (the same name is used for an element's states: see the version's `elements`). */
+  interaction?: PresetInteraction;
   /** The opacity fade, when it has timing of its own (a second track). */
   fade?: PresetTiming;
   /** `system` (approved) or `experimental`, like a token. A preset with no status is experimental. */
@@ -37,7 +47,7 @@ export interface PresetTable { separateFade: boolean; presets: Record<string, En
 
 const NAME = /^[a-z][a-z0-9-]*$/;
 const TIMING_KEYS = ['duration', 'easing'];
-const PRESET_KEYS = ['rise', 'scale', 'move', 'fade', 'status', 'description'];
+const PRESET_KEYS = ['rise', 'scale', 'move', 'fade', 'interaction', 'status', 'description'];
 
 function timing(value: unknown, where: string): PresetTiming {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error(`${where} must be { duration, easing }`);
@@ -46,6 +56,34 @@ function timing(value: unknown, where: string): PresetTiming {
   if (typeof t['duration'] !== 'string' || !t['duration'].startsWith('duration.')) throw new Error(`${where}.duration must be a duration token such as "duration.250"`);
   if (typeof t['easing'] !== 'string' || !t['easing'].startsWith('easing.')) throw new Error(`${where}.easing must be an easing token such as "easing.productive-entrance"`);
   return { duration: t['duration'], easing: t['easing'] };
+}
+
+function tintOf(value: unknown, where: string): number {
+  if (typeof value !== 'number' || value < 0 || value > 0.5) throw new Error(`${where} must be a number from 0 to 0.5 (black's share: 0.04 is 4%)`);
+  return value;
+}
+
+function interactionOf(value: unknown, name: string): PresetInteraction {
+  const where = `Preset "${name}".interaction`;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error(`${where} must be an object with hover and/or press`);
+  const v = value as Record<string, unknown>;
+  for (const k of Object.keys(v)) if (k !== 'hover' && k !== 'press') throw new Error(`${where} has an unknown key "${k}" (use hover and press)`);
+  if (v['hover'] === undefined && v['press'] === undefined) throw new Error(`${where} needs hover and/or press`);
+  const out: PresetInteraction = {};
+  if (v['hover'] !== undefined) {
+    const h = v['hover'] as Record<string, unknown>;
+    if (typeof h !== 'object' || h === null) throw new Error(`${where}.hover must be { tint, timing }`);
+    for (const k of Object.keys(h)) if (k !== 'tint' && k !== 'timing') throw new Error(`${where}.hover has an unknown key "${k}"`);
+    out.hover = { tint: tintOf(h['tint'], `${where}.hover.tint`), timing: timing(h['timing'], `${where}.hover.timing`) };
+  }
+  if (v['press'] !== undefined) {
+    const h = v['press'] as Record<string, unknown>;
+    if (typeof h !== 'object' || h === null) throw new Error(`${where}.press must be { scale, tint, timing, release }`);
+    for (const k of Object.keys(h)) if (!['scale', 'tint', 'timing', 'release'].includes(k)) throw new Error(`${where}.press has an unknown key "${k}"`);
+    if (typeof h['scale'] !== 'string' || !h['scale'].startsWith('scale.')) throw new Error(`${where}.press.scale must be a scale token such as "scale.97"`);
+    out.press = { scale: h['scale'], tint: tintOf(h['tint'], `${where}.press.tint`), timing: timing(h['timing'], `${where}.press.timing`), release: timing(h['release'], `${where}.press.release`) };
+  }
+  return out;
 }
 
 /** Reads tokens/presets.json: the shape of every preset, or an error that says which one and what is wrong. */
@@ -70,6 +108,7 @@ export function parsePresets(data: unknown): PresetTable {
       if (typeof p['scale'] !== 'string' || !p['scale'].startsWith('scale.')) throw new Error(`Preset "${name}".scale must be a scale token such as "scale.95"`);
       out.scale = p['scale'];
     }
+    if (p['interaction'] !== undefined) out.interaction = interactionOf(p['interaction'], name);
     if (p['fade'] !== undefined) out.fade = timing(p['fade'], `Preset "${name}".fade`);
     if (p['status'] !== undefined) {
       if (p['status'] !== 'system' && p['status'] !== 'experimental') throw new Error(`Preset "${name}".status must be "system" or "experimental"`);
@@ -105,6 +144,12 @@ export function validatePresetTokens(table: PresetTable, raw: Record<string, unk
     if (p.scale) check(name, 'scale', p.scale, 'scale');
     check(name, 'move duration', p.move.duration, 'duration');
     check(name, 'move easing', p.move.easing, 'easing');
+    const ix = p.interaction;
+    if (ix?.hover) { check(name, 'hover duration', ix.hover.timing.duration, 'duration'); check(name, 'hover easing', ix.hover.timing.easing, 'easing'); }
+    if (ix?.press) {
+      check(name, 'press scale', ix.press.scale, 'scale');
+      for (const [k, t] of [['press', ix.press.timing], ['release', ix.press.release]] as const) { check(name, `${k} duration`, t.duration, 'duration'); check(name, `${k} easing`, t.easing, 'easing'); }
+    }
     if (p.fade) {
       check(name, 'fade duration', p.fade.duration, 'duration');
       check(name, 'fade easing', p.fade.easing, 'easing');

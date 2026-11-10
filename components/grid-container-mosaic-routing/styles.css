@@ -86,6 +86,8 @@
 .grid-container-mosaic-routing__tile--yellow { background: var(--background-accent-1); }
 .grid-container-mosaic-routing__tile--green { background: var(--background-accent-2); }
 .grid-container-mosaic-routing__tile--green .grid-container-mosaic-routing__title { color: var(--text-on-accent-2); }
+/* The arrow (a dark SVG) takes the heading's light text colour (about #f5f4f2) on the green tile. */
+.grid-container-mosaic-routing__tile--green .grid-container-mosaic-routing__arrow { filter: brightness(0) invert(0.96); }
 .grid-container-mosaic-routing__tile--orange { cursor: pointer; }
 
 .grid-container-mosaic-routing__tile--lilac { background: var(--background-accent-3); }

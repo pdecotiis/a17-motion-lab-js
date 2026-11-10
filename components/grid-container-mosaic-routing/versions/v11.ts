@@ -100,6 +100,9 @@ export const v11: MotionVersion = {
   model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-entrance' },
   keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
   layers: cardsEnter,
+  // The colour cards and bars are buttons (they switch the carousel): each responds to the pointer by the card preset (a tint on hover,
+  // a slight scale on press, released a little slower), apart from the carousel's own states.
+  elements: { 'tile-5': 'card', 'tile-3': 'card', 'tile-1': 'card' },
   interaction: {
     initial: 'cards',
     hold: '150ms', // the colour cards are held for a short beat before the scene morphs

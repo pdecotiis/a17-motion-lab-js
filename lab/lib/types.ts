@@ -147,6 +147,9 @@ export interface MotionVersion {
   entrance?: PresetStep;
   // States and the transitions between them, and what triggers them (hover, press, focus, click).
   interaction?: Interaction;
+  // Elements inside the component that respond to the pointer by a preset's own hover and press (a button, a card), keyed by data-motion name:
+  // { search: 'button' }, or `root` for the component itself ({ root: 'card' }). Separate from the component's states: the state buttons, holds and triggers of `interaction` never touch them.
+  elements?: Record<string, string>;
   stagger?: string;
   trigger?: MotionTrigger;               // absent = not specified; the spec says so rather than guessing
   reducedMotion?: ReducedMotionPolicy;   // absent = 'fade'

@@ -36,6 +36,10 @@
       "scale": "scale.95",
       "move": { "duration": "duration.300", "easing": "easing.productive-entrance" },
       "fade": { "duration": "duration.300", "easing": "easing.productive-entrance" },
+      "interaction": {
+        "hover": { "tint": 0.04, "timing": { "duration": "duration.100", "easing": "easing.productive-standard" } },
+        "press": { "scale": "scale.98", "tint": 0.08, "timing": { "duration": "duration.100", "easing": "easing.productive-standard" }, "release": { "duration": "duration.220", "easing": "easing.productive-entrance" } }
+      },
       "status": "system",
       "description": "All cards: editorial, feature, quote, bento, mosaic tiles. In Figma the scale uses expressive-entrance; a preset has one move easing for the rise and the scale, so both take productive-entrance."
     },
@@ -43,6 +47,10 @@
       "rise": "distance.8",
       "move": { "duration": "duration.140", "easing": "easing.productive-standard" },
       "fade": { "duration": "duration.100", "easing": "easing.productive-entrance" },
+      "interaction": {
+        "hover": { "tint": 0.04, "timing": { "duration": "duration.100", "easing": "easing.productive-standard" } },
+        "press": { "scale": "scale.97", "tint": 0.08, "timing": { "duration": "duration.100", "easing": "easing.productive-standard" }, "release": { "duration": "duration.140", "easing": "easing.productive-entrance" } }
+      },
       "status": "system",
       "description": "Header buttons, pagination, recirculation."
     }

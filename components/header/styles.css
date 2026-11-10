@@ -21,11 +21,10 @@
   padding: 0;
   border: 0;
   border-radius: var(--radius-full);
-  position: relative;
+  background: var(--background-quaternary);
   cursor: pointer;
 }
-.header__search-fill { position: absolute; inset: 0; border-radius: inherit; background: var(--background-quaternary); }
-.header__search img { position: relative; display: block; }
+.header__search img { display: block; }
 
 .header__actions { display: flex; align-items: center; gap: var(--size-8); }
 
