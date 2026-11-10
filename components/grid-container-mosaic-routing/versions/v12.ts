@@ -25,7 +25,7 @@ const CLOSED = { width: WIDTH, height: '72px', gridTemplateColumns: '1072px 0px 
 const THIRDS = { width: WIDTH, height: '324px', gridTemplateColumns: '352px 352px 172px 172px', gridTemplateRows: '120px 196px', columnGap: '8px' };
 // Machine Learning: its small first picture's column is closed (so the 4px column gap on each side of it makes the 8px gutter) and the cover is the third.
 const ML = { width: WIDTH, height: '324px', gridTemplateColumns: '354px 354px 0px 352px', gridTemplateRows: '120px 196px', columnGap: '4px' };
-const LAYOUTS: Record<Tab, { grid: Record<string, string>; second?: Record<string, string> }> = {
+const LAYOUTS: Record<Tab, { grid: Record<string, string>; small1?: Record<string, string>; small2?: Record<string, string>; second?: Record<string, string>; wide?: Record<string, string> }> = {
   default: { grid: ML, second: { marginLeft: '4px' } },
   trading: { grid: THIRDS },
   technology: { grid: THIRDS },
