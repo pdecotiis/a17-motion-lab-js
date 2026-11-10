@@ -49,7 +49,7 @@ test.describe('Page versions', () => {
   test('changes are unsaved: flagged, kept in the URL, and gone once they match the saved version again', async ({ page }) => {
     await page.goto('/?view=page&page=home&pv=v2');
     await page.selectOption('#motion-map-panel select >> nth=0', 'v2');
-    await expect(page.locator('#page-version-note')).toHaveText('Unsaved changes. Save them as a new version to keep them.');
+    await expect(page.locator('#page-version-note')).toHaveText('Unsaved changes. Save them over this version, or as a new one.');
     await page.waitForFunction(() => window.location.search.includes('mm='));
     await page.goto(page.url());
     await expect(page.locator('#page-version-note')).toContainText('Unsaved changes');
@@ -251,5 +251,65 @@ test.describe('Saving a page version', () => {
     await page.goto('/?view=page&page=home');
     await expect(page.locator('#save-page-version-btn')).toBeDisabled();
     await expect(page.locator('#page-version-status')).toContainText('Saving needs the dev server');
+  });
+});
+
+test.describe('Saving over a version', () => {
+  const mock = async (page: import('@playwright/test').Page, posts: Record<string, unknown>[]) => {
+    await page.route(ENDPOINT, route => {
+      const req = route.request();
+      if (req.method() === 'GET') return route.fulfill({ json: { available: true } });
+      posts.push(JSON.parse(req.postData() ?? '{}') as Record<string, unknown>);
+      return route.fulfill({ json: { id: 'v2' } });
+    });
+  };
+
+  test('Save is off until the motion map changes, then saves over the version on screen with no name asked for', async ({ page }) => {
+    const posts: Record<string, unknown>[] = [];
+    await mock(page, posts);
+    await page.goto('/?view=page&page=home&pv=v2');
+    await expect(page.locator('#save-over-btn')).toBeDisabled();
+    await page.selectOption('#motion-map-panel select >> nth=2', 'v2');
+    await expect(page.locator('#save-over-btn')).toBeEnabled();
+    await expect(page.locator('#page-version-note')).toContainText('over this version');
+    await page.click('#save-over-btn');
+    await expect(page.locator('.lab-toast')).toContainText('Saved v2');
+    expect(posts).toHaveLength(1);
+    expect(posts[0]).toMatchObject({ page: 'home', overwrite: 'v2', motionMap: { 'card-3': 'v2' } });
+    expect(posts[0]).not.toHaveProperty('label');
+    await expect(page).toHaveURL(/pv=v2/);
+    expect(page.url()).not.toContain('mm=');
+  });
+
+  test('Save as new version is still there and asks for a name', async ({ page }) => {
+    const posts: Record<string, unknown>[] = [];
+    await mock(page, posts);
+    await page.goto('/?view=page&page=home&pv=v2');
+    await page.selectOption('#motion-map-panel select >> nth=2', 'v2');
+    await page.click('#save-page-version-btn');
+    await expect(page.locator('#page-version-name')).toBeFocused();
+    await expect(page.locator('#save-over-btn')).toBeHidden();   // the row is replaced by the name field while naming
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#save-over-btn')).toBeVisible();
+    expect(posts).toHaveLength(0);
+  });
+
+  test('a failed save over says why and leaves Save usable', async ({ page }) => {
+    await page.route(ENDPOINT, route => {
+      if (route.request().method() === 'GET') return route.fulfill({ json: { available: true } });
+      return route.fulfill({ status: 400, json: { error: 'There is no saved version "v9" to save over.' } });
+    });
+    await page.goto('/?view=page&page=home&pv=v2');
+    await page.selectOption('#motion-map-panel select >> nth=2', 'v2');
+    await page.click('#save-over-btn');
+    await expect(page.locator('.lab-toast--error')).toContainText('no saved version');
+    await expect(page.locator('#save-over-btn')).toBeEnabled();
+  });
+
+  test('a built copy has no endpoint: Save is off too', async ({ page }) => {
+    await page.route(ENDPOINT, route => route.fulfill({ status: 404, body: 'Not found' }));
+    await page.goto('/?view=page&page=home&pv=v2');
+    await page.selectOption('#motion-map-panel select >> nth=2', 'v2');
+    await expect(page.locator('#save-over-btn')).toBeDisabled();
   });
 });

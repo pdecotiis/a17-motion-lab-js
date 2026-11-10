@@ -408,24 +408,32 @@ html, body {
 
 /* Version tabs */
 .lab-version-tabs { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+/* A version: one grey row (the tint is on the row), the label as the button that opens it and the small Archive button inside, at the right. */
+.lab-version-row { display: flex; align-items: center; gap: 8px; height: var(--control-height); padding-right: 8px; border-radius: var(--radius-control); background: var(--color-tint); transition: background 120ms; }
+.lab-version-row:hover { background: var(--color-tint-hover); }
+.lab-version-row:has(.lab-version-tab:active) { background: var(--color-tint-pressed); }
+.lab-version-row--active { background: var(--color-tint-hover); }
+.lab-version-row--active:hover { background: var(--color-tint-pressed); }
+.lab-version-row--archived, .lab-version-row--archived:hover { background: var(--color-tint); }
 .lab-version-tab {
-  height: var(--control-height);
-  padding: 0 16px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 16px;
   border: none;
   border-radius: var(--radius-control);
-  background: var(--color-tint);
+  background: transparent;
   color: var(--color-text-muted);
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font: inherit;
-  transition: background 120ms, color 120ms;
+  transition: color 120ms;
 }
-.lab-version-tab:hover { background: var(--color-tint-hover); color: var(--color-text); }
-.lab-version-tab:active { background: var(--color-tint-pressed); }
+.lab-version-row:hover .lab-version-tab, .lab-version-tab--active { color: var(--color-text); }
 .lab-version-tab:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-.lab-version-tab--active { background: var(--color-tint-hover); color: var(--color-text); }
-.lab-version-tab--active:hover { background: var(--color-tint-pressed); color: var(--color-text); }
-.lab-version-tab--active:active { background: var(--color-tint-pressed); }
 
 /* Page view: one column per page version shown (two when comparing).
    Each page sits in a fixed-height window you scroll, like a browser window, so a motion that plays when a
@@ -867,3 +875,17 @@ html, body {
 .lab-preview-bar__keys { color: var(--color-text-muted); font: var(--type-caption); }
 .lab-preview-bar__name, .lab-preview-bar__keys { white-space: nowrap; }
 .lab-preview-mode .lab-page-layout--single .lab-page-grid { margin-inline: auto; }
+
+/* Save (over this version) beside Save as new version, in the Page versions panel. */
+.lab-save-row { display: flex; gap: 8px; margin-top: 6px; }
+.lab-save-row .lab-btn { width: auto; margin: 0; }
+.lab-save-row #save-page-version-btn { flex: 1; }
+.lab-save-row[hidden] { display: none; }
+
+/* A version's Archive button: 24px, quiet, inside the version's grey row at the right. An archived version stays in place, its label faded, with
+   the button turned to Unarchive. */
+.lab-version-archive { flex: none; height: 24px; padding: 0 8px; border: 1px solid var(--color-subtle); border-radius: 4px; background: transparent; color: var(--color-text-muted); cursor: pointer; font: var(--type-caption); transition: background 120ms, color 120ms; }
+.lab-version-archive:hover:not(:disabled) { background: var(--color-tint-hover); color: var(--color-text); }
+.lab-version-archive:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.lab-version-archive:disabled { opacity: 0.4; cursor: default; }
+.lab-version-tab--archived, .lab-version-row:hover .lab-version-tab--archived { opacity: 0.5; cursor: default; color: var(--color-text-muted); }

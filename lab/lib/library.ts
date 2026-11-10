@@ -31,7 +31,9 @@ export function buildLibraryEntries(
     const module = modules[name]!;
     if (query && !normalize(name).includes(query)) continue;
     if (!componentPasses(module, filter) || module.versions.length === 0) continue;
-    const previewVersion = module.versions.find(v => v.id === module.defaultVersion) ?? module.versions[0]!;
+    // An archived version is not what a card previews: the default if it is in play, else the first that is.
+    const inPlay = module.versions.filter(v => v.archived !== true);
+    const previewVersion = inPlay.find(v => v.id === module.defaultVersion) ?? inPlay[0] ?? module.versions.find(v => v.id === module.defaultVersion) ?? module.versions[0]!;
     entries.push({ name, previewVersion, status: getComponentStatus(module), totalVersions: module.versions.length });
   }
   return entries;

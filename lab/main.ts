@@ -33,6 +33,7 @@ import { getStepRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex, typ
 import { buildVersionCss } from './lib/css-output.js';
 import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
 import { toast, toastAfterReload, showPendingToast } from './lib/toast.js';
+import { archivedIdsOf, applyArchived, isArchived, activeVersions } from './lib/archived.js';
 import type { Json } from './lib/scale-apply.js';
 import { defaultStaggerOf, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken } from './lib/stagger.js';
 import { buildExportCode, EXPORT_FORMATS, EXPORT_LABELS, type ExportFormat } from './lib/export-code.js';
@@ -196,6 +197,36 @@ applyTokensToDom(cssVars);
 for (const [path, module] of Object.entries(motionModules)) {
   const name = path.match(/\/components\/([^/]+)\/motion\.ts$/)?.[1];
   if (name && module) registerComponent(name, module as ComponentModule);
+}
+// Archived versions: each component's archived.json names them (see lab/lib/archived.ts); they stay where they are, marked, and shown disabled.
+const archivedFiles = import.meta.glob<unknown>('../components/*/archived.json', { eager: true, import: 'default' });
+for (const [path, config] of Object.entries(archivedFiles)) {
+  const name = path.split('/')[2];
+  const mod = name ? motionModules[`../components/${name}/motion.ts`] : undefined;
+  if (mod) applyArchived(mod.versions, archivedIdsOf(config));
+}
+const VERSION_ARCHIVE_ENDPOINT = '/__lab/version-archive';
+// Is there a dev server to write the archived list with? (A built copy has none.)
+const archiveServerReady: Promise<boolean> = fetch(VERSION_ARCHIVE_ENDPOINT).then(r => (r.ok ? r.json() : null)).then((i: { available?: boolean } | null) => i?.available === true).catch(() => false);
+// Archive or unarchive a version: the dev server writes components/<name>/archived.json, then the version is marked and the view drawn again.
+async function setVersionArchived(componentName: string, versionId: string, archived: boolean): Promise<void> {
+  try {
+    const res = await fetch(VERSION_ARCHIVE_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ component: componentName, version: versionId, archived }) });
+    const out = (await res.json()) as { archived?: string[]; error?: string };
+    if (!res.ok || !out.archived) throw new Error(out.error ?? `The server said ${res.status}`);
+    const mod = motionModules[`../components/${componentName}/motion.ts`];
+    if (mod) applyArchived(mod.versions, out.archived);
+    toast(archived ? 'Version archived' : 'Version unarchived', { description: `${componentName} ${versionId}` });
+    const sp = new URLSearchParams(window.location.search);
+    // The version on screen was just archived: show the default (or the first version still in play) instead.
+    if (archived && sp.get('version') === versionId && mod) {
+      const next = activeVersions(mod.versions).find(v => v.id === mod.defaultVersion) ?? activeVersions(mod.versions)[0];
+      if (next) { sp.set('version', next.id); window.history.replaceState(null, '', `?${sp.toString()}`); }
+    }
+    renderComponentView(sp);
+  } catch (e) {
+    toast(archived ? 'Could not archive' : 'Could not unarchive', { kind: 'error', description: (e as Error).message });
+  }
 }
 
 // Build usage index from all registered versions
@@ -506,7 +537,7 @@ document.addEventListener('keydown', event => {
   const step = event.key === 'ArrowRight' ? 1 : -1;
   event.preventDefault();
   if (view === 'component') {
-    const tabs = [...document.querySelectorAll<HTMLElement>('.lab-version-tab')];
+    const tabs = [...document.querySelectorAll<HTMLElement>('.lab-version-tab:not(:disabled)')];
     const at = tabs.findIndex(t => t.classList.contains('lab-version-tab--active'));
     tabs[at + step]?.click();
   } else {
@@ -988,9 +1019,13 @@ function renderComponentView(params: URLSearchParams): void {
   const mod = motionModules[`../components/${componentName}/motion.ts`];
   const allVersions: MotionVersion[] = mod?.versions ?? [];
 
+  const inPlay = activeVersions(allVersions).length;
   allVersions.forEach(v => {
+    const row = document.createElement('div');
+    row.className = 'lab-version-row' + (v.id === versionId ? ' lab-version-row--active' : '') + (isArchived(v) ? ' lab-version-row--archived' : '');
     const btn = document.createElement('button');
-    btn.className = 'lab-version-tab' + (v.id === versionId ? ' lab-version-tab--active' : '');
+    btn.className = 'lab-version-tab' + (v.id === versionId ? ' lab-version-tab--active' : '') + (isArchived(v) ? ' lab-version-tab--archived' : '');
+    btn.disabled = isArchived(v);
     btn.dataset['versionId'] = v.id;
     btn.setAttribute('role', 'tab');
     btn.setAttribute('aria-selected', v.id === versionId ? 'true' : 'false');
@@ -1001,7 +1036,20 @@ function renderComponentView(params: URLSearchParams): void {
       window.history.replaceState(null, '', `?${sp.toString()}`);
       renderComponentView(sp);
     });
-    versionTabs.appendChild(btn);
+    // The Archive button, to the right of the version's label: Unarchive once it is archived (the version stays, disabled).
+    const archive = document.createElement('button');
+    archive.type = 'button';
+    archive.className = 'lab-version-archive';
+    archive.dataset['archiveFor'] = v.id;
+    archive.textContent = isArchived(v) ? 'Unarchive' : 'Archive';
+    const lastOne = !isArchived(v) && inPlay <= 1;
+    archive.disabled = lastOne;
+    archive.title = lastOne ? 'Keep at least one version in play' : isArchived(v) ? `Bring ${v.id} back` : `Archive ${v.id}: it stays here, disabled`;
+    archive.setAttribute('aria-label', `${isArchived(v) ? 'Unarchive' : 'Archive'} ${v.id}: ${v.label}`);
+    archive.addEventListener('click', () => { archive.disabled = true; void setVersionArchived(componentName, v.id, !isArchived(v)); });
+    void archiveServerReady.then(ready => { if (!ready) { archive.disabled = true; archive.title = 'Archiving needs the dev server (npm run dev)'; } });
+    row.append(btn, archive);
+    versionTabs.appendChild(row);
   });
 
   // Lineage of the open version, and the component's version history
@@ -1386,7 +1434,10 @@ function renderPageView(params: URLSearchParams): void {
           </div>
           ${compareWith ? `<label class="lab-check"><input type="checkbox" id="page-actual-size"${actualSize ? ' checked' : ''}> Actual size (scroll sideways)</label>` : ''}
           <p class="lab-lineage" id="page-version-note"></p>
-          <button class="lab-btn" id="save-page-version-btn">Save as new version</button>
+          <div class="lab-save-row" id="page-version-save-row">
+            <button class="lab-btn" id="save-over-btn" type="button">Save</button>
+            <button class="lab-btn" id="save-page-version-btn" type="button">Save as new version</button>
+          </div>
           <div class="lab-save-name" id="page-version-namebar" hidden>
             <input class="lab-input" id="page-version-name" type="text" maxlength="80" placeholder="Name this version" aria-label="Name this page version" autocomplete="off">
             <div class="lab-save-name__actions">
@@ -1574,9 +1625,14 @@ function renderPageView(params: URLSearchParams): void {
     addColumn(`${compareWith.id}: ${compareWith.label}`, null, () => compareMap, () => compareChoice);
   }
 
+  // Save (over this version) is for a version that is a saved file and has unsaved changes; the implicit Default has no file to save over.
+  const overBtn = document.getElementById('save-over-btn') as HTMLButtonElement;
+  let serverAvailable = true;
+  const isSavedFile = Object.keys(pageVersionModules).some(p => p.split('/')[2] === pageName && p.endsWith(`/${active.id}.json`));
   function updateNote(): void {
     const note = document.getElementById('page-version-note')!;
-    if (hasUnsaved()) note.textContent = 'Unsaved changes. Save them as a new version to keep them.';
+    updateSaveOver();
+    if (hasUnsaved()) note.textContent = 'Unsaved changes. Save them over this version, or as a new one.';
     else if (active.forkedFrom) note.textContent = `Forked from ${active.forkedFrom}`;
     else note.textContent = '';
     const name = stage.querySelector('.lab-page-col__name');
@@ -1624,6 +1680,7 @@ function renderPageView(params: URLSearchParams): void {
         opt.value = v.id;
         opt.textContent = `${v.id}: ${v.label}`;
         if (motionMap[pc.id] === v.id) opt.selected = true;
+        if (isArchived(v) && motionMap[pc.id] !== v.id) { opt.disabled = true; opt.textContent += ' (archived)'; }
         sel.appendChild(opt);
       });
       sel.addEventListener('change', () => {
@@ -1697,7 +1754,43 @@ function renderPageView(params: URLSearchParams): void {
   fetch(PAGE_VERSION_ENDPOINT).then(r => r.ok ? r.json() : null).catch(() => null).then((info: { available?: boolean } | null) => {
     if (info?.available !== true) {
       saveBtn.disabled = true;
+      serverAvailable = false;
+      updateSaveOver();
       status.textContent = 'Saving needs the dev server (npm run dev). Ask Claude to save it, or run the lab with npm run dev.';
+    }
+  });
+  // Save: over the version on screen, with no name to ask for: its motion map and stagger become what is on screen.
+  function updateSaveOver(): void {
+    const ok = serverAvailable && isSavedFile && hasUnsaved();
+    overBtn.disabled = !ok;
+    overBtn.title = !isSavedFile ? 'This version has no saved file to save over: use Save as new version'
+      : !hasUnsaved() ? 'Nothing has changed since this version was saved'
+      : `Save the changes over ${active.id}: ${active.label}`;
+  }
+  updateSaveOver();
+  overBtn.addEventListener('click', async () => {
+    overBtn.disabled = true;
+    status.textContent = 'Saving…';
+    try {
+      const res = await fetch(PAGE_VERSION_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: pageName, overwrite: active.id, motionMap, stagger: choiceToStagger(pageStagger) }),
+      });
+      const out = (await res.json()) as { id?: string; error?: string };
+      if (!res.ok || !out.id) throw new Error(out.error ?? `The server said ${res.status}`);
+      const sp = new URLSearchParams(window.location.search);
+      sp.set('pv', out.id);
+      sp.delete('mm');
+      sp.delete('pageStagger');
+      window.history.replaceState(null, '', `?${sp.toString()}`);
+      status.textContent = '';
+      toastAfterReload(`Saved ${out.id}`, { description: active.label });
+      window.setTimeout(() => window.location.reload(), 600);
+    } catch (e) {
+      status.textContent = '';
+      toast('Could not save', { kind: 'error', description: (e as Error).message });
+      updateSaveOver();
     }
   });
   // The name is asked in the panel itself (the app's browser pane has no native prompt()): Save shows a field, Enter or Save saves.
@@ -1707,7 +1800,7 @@ function renderPageView(params: URLSearchParams): void {
   const cancelBtn = document.getElementById('page-version-cancel') as HTMLButtonElement;
   const askName = (asking: boolean): void => {
     nameBar.hidden = !asking;
-    saveBtn.hidden = asking;
+    document.getElementById('page-version-save-row')!.hidden = asking;
     if (asking) { nameInput.value = ''; nameInput.focus(); } else saveBtn.focus();
   };
   saveBtn.addEventListener('click', () => { status.textContent = ''; askName(true); });

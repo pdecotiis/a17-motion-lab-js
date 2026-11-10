@@ -405,8 +405,9 @@ test.describe('One primary button per page', () => {
 
   test('a version tab that is on is the light gray, not black', async ({ page }) => {
     await page.goto('/?view=component');
-    const tab = page.locator('.lab-version-tab--active');
-    await expect.poll(() => tab.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0.08)');
+    // the grey is on the version's row (the label and the small Archive button sit inside it)
+    const row = page.locator('.lab-version-row--active');
+    await expect.poll(() => row.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0.08)');
   });
 
   test('Apply in Settings is the primary button', async ({ page }) => {
