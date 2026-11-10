@@ -23,7 +23,15 @@ const TITLE_COLOR: Record<Tab, string> = { ml: 'var(--text-on-accent-primary)', 
 const MORPH = { model: 'tween' as const, duration: 'duration.300', easing: 'easing.productive-standard' };
 // A picture or title swap is one dissolve that runs the whole length of the morph (300ms, the same curve), so the cells and what is in them move as one.
 const SWAP = { model: 'tween' as const, duration: 'duration.300', easing: 'easing.productive-standard' };
-const swap = (_tab: Tab) => each(() => SWAP);
+// The picture coming in goes on top at once (its wrapper's stacking order switches at once) and dissolves in as the cells morph; the one going out
+// stays fully there underneath until the new one is whole, then clears. So the two are never both half there, and nothing pops, whichever way the tabs go.
+// (The shortest duration token is 100ms, so the switch lands about 50ms in, while the new picture is still almost clear.)
+const INSTANT = { model: 'tween' as const, duration: 'duration.100', easing: 'easing.productive-entrance' };
+// The new picture starts to show a beat (40ms) after the switch, so it never appears part-way: it dissolves in over 220ms.
+const SWAP_IN = { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-standard', delay: 'delay.40' };
+const CLEAR = { model: 'tween' as const, duration: 'duration.100', easing: 'easing.productive-exit', delay: 'duration.300' };
+const swap = (tab: Tab) => each(s => (s === tab ? SWAP_IN : CLEAR));
+const order = () => each(() => INSTANT);
 const FADE = { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-entrance' };
 const each = <T>(f: (s: Tab) => T): Record<string, T> => Object.fromEntries(TABS.map(s => [s, f(s)]));
 const timing = (t: typeof MORPH | typeof FADE) => each(() => t);
@@ -46,9 +54,12 @@ const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> =
 };
 for (const tab of TABS) {
   // Pictures: stacked in their cell, one shown.
-  for (const part of ['big', 'small']) layers[`t-${part}-${tab}`] = { states: each(s => ({ opacity: s === tab ? 1 : 0 })), transitions: swap(tab) };
+  for (const part of ['big', 'small']) {
+    layers[`t-${part}-${tab}`] = { states: each(s => ({ opacity: s === tab ? 1 : 0 })), transitions: swap(tab) };
+    layers[`t-${part}-${tab}-z`] = { states: each(s => ({ zIndex: s === tab ? 2 : 1 })), transitions: order() };
+  }
   // Titles: stacked, one shown, in the card's text colour (dark on orange and yellow, light on green).
-  layers[`t-title-${tab}`] = { states: each(s => ({ opacity: s === tab ? 1 : 0, color: TITLE_COLOR[tab] })), transitions: swap(tab) };
+  layers[`t-title-${tab}`] = { states: each(s => ({ opacity: s === tab ? 1 : 0, color: TITLE_COLOR[tab] })), transitions: timing(SWAP) };
   // The selected tab's pill is the page colour; the others are clear.
   layers[`t-tab-${tab}`] = { states: each(s => ({ backgroundColor: s === tab ? 'rgba(245, 244, 242, 1)' : 'rgba(245, 244, 242, 0)' })), transitions: timing(FADE) };
 }

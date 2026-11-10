@@ -249,10 +249,12 @@
 .grid-container-mosaic-routing__tcard { grid-area: 2 / 2 / 3 / 3; display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-5); background: var(--background-accent-primary); }
 
 /* Each picture fills its cell; the three in a cell are stacked and a version shows one (the first by default). */
-/* A picture keeps its size (the largest its cell gets) and sits at the cell's top-left corner, so a cell that morphs reveals or hides it: it never scales, and it never slides as the cell's centre moves. */
-.grid-container-mosaic-routing__tphoto { position: absolute; top: 0; left: 0; display: block; width: 352px; height: 264px; max-width: none; object-fit: cover; opacity: 0; }
-.grid-container-mosaic-routing__big .grid-container-mosaic-routing__tphoto { width: 712px; height: 536px; }
+/* A picture fills its cell (cover), so it follows the cell as the cell morphs, with nothing clipped or left bare; the pictures of a cell are stacked and a version shows one. */
+.grid-container-mosaic-routing__tphoto { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
 .grid-container-mosaic-routing__tphoto:first-child { opacity: 1; }
+/* A stacked picture sits in a wrapper that carries its stacking order (so a version can put the picture coming in on top of the one going out, whichever way the tabs go). */
+.grid-container-mosaic-routing__tphotowrap { position: absolute; inset: 0; z-index: 1; }
+.grid-container-mosaic-routing__tphotowrap:first-of-type > .grid-container-mosaic-routing__tphoto { opacity: 1; }
 
 .grid-container-mosaic-routing__theading { position: relative; }
 .grid-container-mosaic-routing__ttitle {
