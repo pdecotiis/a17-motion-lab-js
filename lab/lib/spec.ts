@@ -128,6 +128,10 @@ function triggerLines(version: MotionVersion): string[] {
       t.states.forEach(st => led.add(st));
       return `| arrows | the page (not while typing in a field) | ${TRIGGER_WORDS['arrows']} | steps through ${t.states.map(st => `**${st}**`).join(', ')}, left to right: left goes to the one before, right to the one after, and it stops at the ends |`;
     }
+    if (t.on === 'interval') {
+      t.toggle.forEach(st => led.add(st));
+      return `| interval | a timer | every ${t.every} after the last change | goes to the next of ${t.toggle.map(s => `**${s}**`).join(', ')}, back to **${t.toggle[0]}** after the last; a click starts the wait again; not under reduced motion (the GSAP and Motion \`attach…(el)\` functions run it, the CSS has no timer) |`;
+    }
     const where = t.target ? `the element marked \`data-motion="${t.target}"\`` : 'the component itself';
     if (t.on === 'click') {
       const states = 'set' in t ? [t.set] : t.toggle;

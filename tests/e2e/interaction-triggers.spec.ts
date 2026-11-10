@@ -35,6 +35,7 @@ const SETUP = async (page: Page) => {
     make('foc', 280, [{ on: 'focus', state: 'a' }], '<button id="focbtn" style="margin:10px">focus me</button><input id="focin" style="margin:10px;width:60px">');
     make('clk', 360, [{ on: 'click', set: 'a' }]);
     make('tog', 440, [{ on: 'click', toggle: ['rest', 'b'] }]);
+    make('int', 680, [{ on: 'interval', every: '400ms', toggle: ['rest', 'a', 'b'] }, { on: 'click', set: 'rest' }]);
     make('arw', 600, [{ on: 'arrows', states: ['rest', 'a', 'b'] }]);
     make('lay', 520, [{ on: 'click', target: 'inner', set: 'a' }], '<span data-motion="inner" id="laybtn" style="display:inline-block;margin:10px">layer</span>');
   });
@@ -50,6 +51,17 @@ test.describe('Interaction triggers', () => {
     await expect(page.locator('#hov')).toHaveAttribute('data-state', 'a');
     await page.mouse.move(600, 600);
     await expect(page.locator('#hov')).toHaveAttribute('data-state', 'rest');
+  });
+
+  test('an interval steps through its states by itself, and a click starts the wait again', async ({ page }) => {
+    expect(await stateOf(page, 'int')).toBe('rest');
+    await expect(page.locator('#int')).toHaveAttribute('data-state', 'a', { timeout: 1500 });
+    await expect(page.locator('#int')).toHaveAttribute('data-state', 'b', { timeout: 1500 });
+    await expect(page.locator('#int')).toHaveAttribute('data-state', 'rest', { timeout: 1500 });   // round to the first
+    await page.evaluate(() => (window as unknown as { __int: { detach: () => void } }).__int.detach());
+    const at = await stateOf(page, 'int');
+    await page.waitForTimeout(900);
+    expect(await stateOf(page, 'int')).toBe(at);                                                   // detached: the timer is gone
   });
 
   test('a touch has no hover: a touch pointer entering does nothing', async ({ page }) => {
