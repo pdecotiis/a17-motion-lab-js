@@ -1,0 +1,26 @@
+{
+  "name": "grid-container-mosaic-tabs",
+  "layerName": "tabs + grid container/mosaic <slot>",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23804-26659",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23804:26659"
+  },
+  "importedAt": "2026-11-10",
+  "frame": {
+    "width": 1136,
+    "height": 672
+  },
+  "designWidth": 1136,
+  "variables": [],
+  "assets": [
+    "arrow-right.svg",
+    "photo-1.png",
+    "photo-2.png",
+    "photo-3.png"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "Built by hand from the Figma frame (the tabs and the mosaic slot), not through the import tool: the markup, styles and assets are the component's own, and there is no baseline screenshot."
+  ]
+}
