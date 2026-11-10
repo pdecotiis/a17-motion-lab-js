@@ -30,8 +30,14 @@
 .card-routing-shuffle__play::after { content: ""; position: absolute; left: 19px; top: 15px; border-left: 14px solid #fff; border-top: 9px solid transparent; border-bottom: 9px solid transparent; }
 .card-routing-shuffle__shuffle { display: block; margin: var(--space-5, 24px) 0 0; height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #171717; color: #fff; font: inherit; font-size: 14px; cursor: pointer; }
 .card-routing-shuffle__cell[data-motion="y0"] { height: 232px; margin-bottom: 8px; }
-.card-routing-shuffle__cell[data-motion="p0"] { height: 472px; margin-bottom: 8px; }
-.card-routing-shuffle__cell[data-motion="p1"] { height: 472px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="p0a"] { height: 472px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="p0b"] { height: 0px; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="i0"] { height: 0px; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="g1"] { height: 0px; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="p1a"] { height: 472px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="p1b"] { height: 0px; margin-bottom: 0px; }
 .card-routing-shuffle__cell[data-motion="i1"] { height: 232px; margin-bottom: 8px; }
 .card-routing-shuffle__cell[data-motion="g2"] { height: 232px; margin-bottom: 8px; }
-.card-routing-shuffle__cell[data-motion="v2"] { height: 472px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="p2a"] { height: 472px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="v2"] { height: 0px; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="y2"] { height: 0px; margin-bottom: 0px; }
