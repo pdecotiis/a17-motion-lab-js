@@ -8,6 +8,7 @@
     "predev": "node scripts/doctor.mjs --quick",
     "dev": "vite",
     "build": "vite build",
+    "build:small": "vite build && vite-node scripts/optimize-dist.ts --",
     "typecheck": "vite-node scripts/typecheck.ts",
     "postinstall": "node scripts/setup-git.mjs",
     "test": "vitest run",

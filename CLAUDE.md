@@ -348,6 +348,7 @@ When a designer wants a standard entrance ("the eyebrow, title and text rise in 
 | `npm run tokens:scale -- <kind> <scale>` or `-- --all <scale>` | Regenerate distance, duration, delay, opacity and/or scale from a scale (`--dry-run` to preview) |
 | `npm run dev`        | Start Vite dev server (http://localhost:5173, also http://motionlab.localhost:5173: any `*.localhost` name reaches your own computer with no setup, which `.dev` or `.lab` would not; the desktop preview opens the `.localhost` one) |
 | `npm run build`      | Build to `dist/` with relative paths            |
+| `npm run build:small` | `build`, then the big photos in `dist/assets` recompressed (JPEG 80, at most 1600px; only opaque PNGs, with `sips`, so on a Mac) and every reference rewritten: a folder to share is a few MB instead of tens (`scripts/optimize-dist.ts`, `lab/lib/dist-optimize.ts`) |
 | `npm run typecheck`  | TypeScript type check (no emit)                 |
 | `npm run test`       | Run Vitest unit tests                           |
 | `npm run test:e2e`   | Run Playwright E2E tests (starts dev server; `PORT=5200 npm run test:e2e` when another server holds 5173) |
