@@ -1,10 +1,10 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 import { CELLS, LAYOUTS, STATE_ORDER, sizeOf } from '../layouts.js';
 
-// v1: a 3 x 3 bento that shuffles. Each column is a stack of cells and every cell is its own layer that changes height (and the gap under it) to its place in
-// the next arrangement, so a cell that grows pushes the ones next to it, which collapse, and a new one comes in from the top or bottom. The shuffle button
-// below goes to the next arrangement on each click, and back to the first after the last. The colour cards come in first with the card entrance preset and
-// respond to the pointer with the card preset (hover tint, press scale). Every cell masks its picture, which fills it.
+// v1: the page's bento, reduced to its core. Three columns, each a colour card and a picture (the card on top, at the bottom, on top, as the page has them);
+// the only thing that changes is how a column's three rows are split: the card takes 0, 1 or 2 rows and the picture the rest, so the two trade height and
+// nothing else moves. The shuffle button below goes to the next arrangement on each click, and back to the first after the last. The cards come in first with
+// the card entrance preset and respond to the pointer with the card preset (hover tint, press scale). Each cell crops its picture.
 const MOVE = { model: 'tween' as const, duration: 'duration.400', easing: 'easing.expressive-standard' };
 const each = <T>(f: (s: string) => T): Record<string, T> => Object.fromEntries(STATE_ORDER.map(s => [s, f(s)]));
 
@@ -27,7 +27,7 @@ export const v1: MotionVersion = {
     layers,
     triggers: [{ on: 'click', toggle: STATE_ORDER as [string, string, ...string[]], target: 'shuffle' }],
   },
-  elements: { shuffle: 'button', y0: 'card', y2: 'card', i0: 'card', i1: 'card', g1: 'card', g2: 'card' },
+  elements: { shuffle: 'button', y0: 'card', i1: 'card', g2: 'card' },
   lineage: 'new, from the Figma "9 cell grid" frames (page home, xl · open)',
 };
 

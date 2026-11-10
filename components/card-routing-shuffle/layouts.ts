@@ -1,28 +1,31 @@
-// The arrangements of the 3 x 3 bento. The grid never changes: three columns, 712 tall (three rows of 232 and two gaps of 8), 1056 wide between the 8px gaps.
-// Each column is a vertical stack of cells in a fixed order, and an arrangement says how many rows each cell takes (0 = collapsed) and how wide each column
-// Cells push each other: a cell that grows pushes its neighbours, which collapse (height or width, never both), and a cell that is new to the arrangement
-// comes in from the top or the bottom edge of its column (the first or last in its order) and pushes the rest. Cells can never overlap.
-// width and height at the same time.
+// The bento, reduced to its core: three columns in a fixed frame (352 wide, 712 tall: three rows of 232 and two gaps of 8). Every column holds one colour card and
+// one picture, in the order the page has them (a card on top in the first and last column, at the bottom in the middle one). The one thing that changes is how
+// the column's three rows are split: the card takes 0, 1 or 2 rows and the picture takes the rest (a card of 0 rows is gone and the picture fills the column).
+// The card and its picture trade height, so they push each other and never overlap, and a cell only ever changes in height. Any number of cards may show.
 export type Layout = Record<string, number>;
 
-/** Each column's cells, top to bottom. p = picture, v = video, y / i / g = the yellow (Machine Learning), indigo (Trading) and green (Technology) card. */
-export const COLUMNS: string[][] = [
-  ['y0', 'p00', 'p01', 'i0'],
-  ['g1', 'p10', 'p11', 'i1'],
-  ['g2', 'p20', 'p21', 'v2'],
-];
+/** Each column's cells, top to bottom: the colour card (y = yellow Machine Learning, i = indigo Trading, g = green Technology) and the picture (p) or video (v). */
+export const COLUMNS: string[][] = [['y0', 'p0'], ['p1', 'i1'], ['g2', 'v2']];
 export const CELLS = COLUMNS.flat();
 export const kindOf = (id: string): 'picture' | 'video' | 'yellow' | 'indigo' | 'green' =>
   id[0] === 'v' ? 'video' : id[0] === 'y' ? 'yellow' : id[0] === 'i' ? 'indigo' : id[0] === 'g' ? 'green' : 'picture';
 export const isColour = (id: string): boolean => ['yellow', 'indigo', 'green'].includes(kindOf(id));
+const CARD = ['y0', 'i1', 'g2'], PICTURE = ['p0', 'p1', 'v2'];
 
-// stacks (rows per cell)
-const A = { y0: 1, p00: 2, p10: 2, i1: 1, g2: 1, p20: 2 };                         // the page: a card on top, at the bottom, on top
-const B = { p00: 2, i0: 1, g1: 1, p10: 2, p20: 2, v2: 1 };                         // indigo comes in from the bottom, green from the top
-const C = { y0: 1, p00: 1, p01: 1, p10: 1, p11: 1, i1: 1, g2: 1, p20: 1, p21: 1 }; // nine cells
-const D = { y0: 2, p00: 1, p10: 1, i1: 2, g2: 2, p20: 1 };                         // the cards two rows tall
+/** An arrangement from the rows each column's card takes: [first, middle, last]. */
+const layoutOf = (cards: [number, number, number]): Layout =>
+  Object.fromEntries(cards.flatMap((c, i) => [[CARD[i]!, c], [PICTURE[i]!, 3 - c]]));
 
-export const LAYOUTS: Record<string, Layout> = { default: A, 'layout-2': D, 'layout-3': C, 'layout-4': B };
+export const LAYOUTS: Record<string, Layout> = {
+  default: layoutOf([1, 1, 1]),     // the page
+  'layout-2': layoutOf([2, 1, 1]),
+  'layout-3': layoutOf([2, 2, 1]),
+  'layout-4': layoutOf([2, 2, 2]),
+  'layout-5': layoutOf([1, 0, 2]),
+  'layout-6': layoutOf([0, 0, 0]),  // no cards at all
+  'layout-7': layoutOf([0, 2, 1]),
+  'layout-8': layoutOf([1, 2, 0]),
+};
 export const STATE_ORDER = Object.keys(LAYOUTS);
 
 export const COL_W = 352, ROW_H = 232, GAP = 8;
@@ -31,11 +34,10 @@ export type Box = { x: number; y: number; w: number; h: number };
 /** Where a cell is and how big, in pixels: its column's stack, from the top, a gap after every cell that shows. */
 export function boxOf(layout: Layout, id: string): Box {
   const col = COLUMNS.findIndex(c => c.includes(id));
-  const x = col * (COL_W + GAP);
   let y = 0;
   for (const other of COLUMNS[col]!) {
     const rows = layout[other] ?? 0;
-    if (other === id) return { x, y, w: COL_W, h: rows ? rows * ROW_H + (rows - 1) * GAP : 0 };
+    if (other === id) return { x: col * (COL_W + GAP), y, w: COL_W, h: rows ? rows * ROW_H + (rows - 1) * GAP : 0 };
     if (rows) y += rows * ROW_H + (rows - 1) * GAP + GAP;
   }
   throw new Error(`no such cell: ${id}`);
