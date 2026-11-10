@@ -198,6 +198,7 @@
   opacity: 0;
 }
 .grid-container-mosaic-routing__tabs {
+  position: relative;
   display: flex;
   align-self: flex-start;
   gap: 0;
@@ -220,8 +221,12 @@
   white-space: nowrap;
   cursor: pointer;
 }
-/* the first tab is selected until a version says otherwise */
-.grid-container-mosaic-routing__tab:first-child { background: var(--background-default); }
+/* The tabs have the widths of the Figma tab items (188, 106 and 138), so the selected tab's pill can slide between known positions. The pill is behind them; it starts on the first tab. */
+.grid-container-mosaic-routing__tab { position: relative; z-index: 1; padding: 0; }
+.grid-container-mosaic-routing__tab:nth-child(1) { width: 188px; }
+.grid-container-mosaic-routing__tab:nth-child(2) { width: 106px; }
+.grid-container-mosaic-routing__tab:nth-child(3) { width: 138px; }
+.grid-container-mosaic-routing__pill { position: absolute; top: 4px; left: 4px; width: 188px; height: 40px; border-radius: var(--radius-full); background: var(--background-default); }
 
 .grid-container-mosaic-routing__bento {
   display: grid;

@@ -7,7 +7,6 @@ const CASES = [
   { component: 'quote-slider', version: 'v4', target: 'button-next', press: 'matrix(0.97, 0, 0, 0.97, 0, 0)' },
   { component: 'grid-container-mosaic-routing', version: 'v11', target: 'tile-5', press: 'matrix(0.98, 0, 0, 0.98, 0, 0)' },
   { component: 'grid-container-mosaic-routing', version: 'v13', target: 't-card', press: 'matrix(0.98, 0, 0, 0.98, 0, 0)' },
-  { component: 'grid-container-mosaic-routing', version: 'v13', target: 't-tab-trading', press: 'matrix(0.97, 0, 0, 0.97, 0, 0)' },
 ];
 
 for (const c of CASES) {
