@@ -779,8 +779,12 @@ function lockElementsDuringEntrance(el: HTMLElement, version: MotionVersion): vo
   elementRuns.set(el, run);
   const { players, targets } = elementPlayersFor(el, version);
   players.forEach(p => p.setLocked(true));
-  // The entrance starts a frame or two from now (the component's states reset first); wait for everything playing inside the component.
-  void new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))).then(async () => {
+  // The entrance starts a few frames from now (the component's states reset first, and a stagger or delay is part of the animation): wait until
+  // nothing inside the component is running or about to run, then let go.
+  const busy = (): boolean => el.getAnimations({ subtree: true }).some(a => a.playState === 'running');
+  void new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => r())))).then(async () => {
+    const until = performance.now() + 15000;
+    while (busy() && performance.now() < until && elementRuns.get(el) === run) await new Promise(r => window.setTimeout(r, 50));
     await Promise.all(activeAnimations.filter(h => el.contains(h.target)).map(h => h.done ?? Promise.resolve()));
     if (elementRuns.get(el) !== run) return;
     if (runtime === 'css') targets.forEach(t => t.getAnimations().forEach(a => a.cancel()));

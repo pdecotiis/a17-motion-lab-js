@@ -9,11 +9,17 @@ const section = (page: Page, id: string, column = 0) => page.locator('.lab-page-
 const animations = (page: Page, id: string, column = 0) => section(page, id, column).evaluate(el => el.getAnimations({ subtree: true }).length);
 const scrollTo = (page: Page, where: 'top' | 'bottom', column = 0) =>
   page.locator(WINDOW).nth(column).evaluate((el, w) => { el.scrollTop = w === 'top' ? 0 : el.scrollHeight; }, where);
-// The first animation on the section's root: when it starts.
-const rootDelay = (page: Page, id: string) => section(page, id).evaluate(el => {
-  const target = el.querySelector('[data-motion-target]')!;
-  return (target.getAnimations()[0]!.effect as KeyframeEffect).getTiming().delay as number;
+// The delay of the first animation started on the section's root: when it starts. It is recorded as the animation is made (a version whose elements
+// use a preset lets go of its entrance animation once it ends, so it may no longer be there to read).
+const recordDelays = (page: Page) => page.addInitScript(() => {
+  const animate = Element.prototype.animate;
+  Element.prototype.animate = function (this: Element, keyframes: Keyframe[] | PropertyIndexedKeyframes | null, options?: number | KeyframeAnimationOptions) {
+    const el = this as HTMLElement;
+    if (el.hasAttribute('data-motion-target') && el.dataset['firstDelay'] === undefined) el.dataset['firstDelay'] = String(typeof options === 'object' ? options.delay ?? 0 : 0);
+    return animate.call(this, keyframes, options);
+  };
 });
+const rootDelay = (page: Page, id: string) => section(page, id).evaluate(el => Number(el.querySelector<HTMLElement>('[data-motion-target]')!.dataset['firstDelay']));
 
 test.describe('Page preview: a window you scroll', () => {
   test('the page sits in a fixed-height window that scrolls', async ({ page }) => {
@@ -57,6 +63,7 @@ test.describe('Page preview: a window you scroll', () => {
   });
 
   test('sections in view as the page opens are staggered by their place; one that scrolls in plays on its own', async ({ page }) => {
+    await recordDelays(page);
     await page.goto('/?view=page&page=home&pv=v3');
     await expect(section(page, 'card-2')).not.toHaveClass(/waiting/);
     expect(await rootDelay(page, 'card-1')).toBe(0);
