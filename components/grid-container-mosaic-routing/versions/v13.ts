@@ -21,11 +21,9 @@ const COLOR: Record<Tab, string> = { ml: 'var(--background-accent-primary)', tra
 const TITLE_COLOR: Record<Tab, string> = { ml: 'var(--text-on-accent-primary)', trading: 'var(--text-on-accent-1)', technology: 'var(--text-on-accent-2)' };
 
 const MORPH = { model: 'tween' as const, duration: 'duration.300', easing: 'easing.productive-standard' };
-// A picture or title swap is seamless, whichever way it goes: the one coming in fades in first (over the one going out, or beneath it), and only then
-// does the one going out clear, quickly, so the two are never both half there.
-const SWAP_IN = { model: 'tween' as const, duration: 'duration.140', easing: 'easing.productive-entrance' };
-const SWAP_OUT = { model: 'tween' as const, duration: 'duration.100', easing: 'easing.productive-exit', delay: 'duration.140' };
-const swap = (tab: Tab) => each(s => (s === tab ? SWAP_IN : SWAP_OUT));
+// A picture or title swap is one dissolve that runs the whole length of the morph (300ms, the same curve), so the cells and what is in them move as one.
+const SWAP = { model: 'tween' as const, duration: 'duration.300', easing: 'easing.productive-standard' };
+const swap = (_tab: Tab) => each(() => SWAP);
 const FADE = { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-entrance' };
 const each = <T>(f: (s: Tab) => T): Record<string, T> => Object.fromEntries(TABS.map(s => [s, f(s)]));
 const timing = (t: typeof MORPH | typeof FADE) => each(() => t);

@@ -249,8 +249,8 @@
 .grid-container-mosaic-routing__tcard { grid-area: 2 / 2 / 3 / 3; display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-5); background: var(--background-accent-primary); }
 
 /* Each picture fills its cell; the three in a cell are stacked and a version shows one (the first by default). */
-/* A picture keeps its size (the largest its cell gets) and is centred in the cell, so a cell that morphs reveals or hides it and never scales it. */
-.grid-container-mosaic-routing__tphoto { position: absolute; top: 50%; left: 50%; display: block; width: 352px; height: 264px; max-width: none; transform: translate(-50%, -50%); object-fit: cover; opacity: 0; }
+/* A picture keeps its size (the largest its cell gets) and sits at the cell's top-left corner, so a cell that morphs reveals or hides it: it never scales, and it never slides as the cell's centre moves. */
+.grid-container-mosaic-routing__tphoto { position: absolute; top: 0; left: 0; display: block; width: 352px; height: 264px; max-width: none; object-fit: cover; opacity: 0; }
 .grid-container-mosaic-routing__big .grid-container-mosaic-routing__tphoto { width: 712px; height: 536px; }
 .grid-container-mosaic-routing__tphoto:first-child { opacity: 1; }
 
