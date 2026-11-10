@@ -59,3 +59,28 @@ for (const runtime of ['css', 'motion']) {
     expect([await w('col-1'), await w('col-2'), await w('col-3')]).toEqual([352, 352, 352]);
   });
 }
+
+// v4: four columns, four cards; each click on a picture (even the same one) gives a new arrangement; the bento's height never changes.
+for (const runtime of ['css', 'motion']) {
+  test(`card-routing-columns v4 (${runtime}): a new arrangement each click, the same height, every card there`, async ({ page }) => {
+    await page.goto(`/?view=component&component=card-routing-columns&version=v4&runtime=${runtime}`);
+    await page.locator('[data-motion="grid"]').waitFor();
+    await page.waitForTimeout(4000);
+    const cols = () => page.evaluate(() => ['col-1', 'col-2', 'col-3', 'col-4'].map(n => { const r = document.querySelector(`[data-motion="${n}"]`)!.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
+    expect(await cols()).toEqual([[262, 505], [262, 505], [262, 505], [262, 505]]);   // four equal columns of card and square
+    const widths = async () => (await cols()).map(c => c[0]);
+    const click = async () => { await page.locator('[data-motion="image-2"]').click(); await page.waitForTimeout(1100); };
+    await click();                                   // wide
+    expect(await widths()).toEqual([216, 400, 216, 216]);
+    await click();                                   // pair (2 and 3)
+    expect(await widths()).toEqual([216, 308, 308, 216]);
+    await click();                                   // stagger
+    expect(await widths()).toEqual([226, 330, 266, 226]);
+    await click();                                   // back to equal
+    expect(await widths()).toEqual([262, 262, 262, 262]);
+    await page.locator('[data-motion="image-4"]').click(); await page.waitForTimeout(1100);
+    expect(await widths()).toEqual([216, 216, 216, 400]);
+    for (const c of await cols()) expect(c[1]).toBe(505);   // the same height, whatever the widths
+    for (const n of ['card-1', 'card-2', 'card-3', 'card-4']) expect(await page.evaluate(name => Math.round(document.querySelector(`[data-motion="${name}"]`)!.getBoundingClientRect().width), n)).toBeGreaterThanOrEqual(216);
+  });
+}

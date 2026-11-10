@@ -37,3 +37,8 @@
 /* v3: a picture is a button (click it and the bento rearranges). */
 .card-routing-columns__image { cursor: pointer; }
 .card-routing-columns__card { cursor: pointer; }
+
+/* v4: a fourth column (a card and a picture) for a four-by-two bento. It has no width in every other version; v4's states give it its track. */
+.card-routing-columns__col--4 { width: 0; min-width: 0; overflow: hidden; }
+.card-routing-columns__card--4 { background: var(--background-accent-primary); }
+.card-routing-columns__card--4 .card-routing-columns__title { color: var(--text-on-accent-primary); }
