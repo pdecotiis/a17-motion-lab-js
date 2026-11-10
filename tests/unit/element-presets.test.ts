@@ -3,6 +3,7 @@ import { parsePresets } from '../../lab/lib/entrance-presets.js';
 import { interactionOfPreset } from '../../lab/lib/preset-interaction.js';
 import { validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { validateInteraction } from '../../lab/lib/interaction.js';
+import { getStepRefs } from '../../lab/lib/token-refs.js';
 import { buildPresetsCss } from '../../lab/lib/css-output.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
@@ -88,5 +89,17 @@ describe('the shared presets.css', () => {
   });
   it('writes none for a preset that only enters', () => {
     expect(css).not.toContain('.motion-interaction-title');
+  });
+});
+
+describe('the Details panel\'s tokens used', () => {
+  it('has a group for an element\'s preset, in hover, press and release words', () => {
+    const v: MotionVersion = { id: 'v9', label: 'Card', model: { model: 'tween', ...T }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }], elements: { root: 'card' }, lineage: 'test' };
+    const group = getStepRefs(v, raw).find(s => s.layer === 'component · card preset')!;
+    expect(group).toBeDefined();
+    const where = (token: string) => group.uses.find(u => u.token === token)?.where ?? [];
+    expect(where('scale.95')).toEqual(['press scale']);
+    expect(where('duration.100')).toEqual(['leave duration', 'press duration']);
+    expect(where('duration.250')).toEqual(['hover, release duration']);
   });
 });

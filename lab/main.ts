@@ -1272,6 +1272,7 @@ function renderComponentView(params: URLSearchParams): void {
       title.className = 'lab-tokens-layer';
       title.textContent = step.layer ?? 'root';
       title.title = !step.layer ? 'The component root (data-motion-target)'
+        : step.layer.includes(' preset') ? `${step.layer.split(' · ')[0]}: how it responds to the pointer, from the ${step.layer.split(' · ')[1]?.replace(' preset', '')} preset (shared by the project, in tokens/presets.json)`
         : step.layer.includes(' ') ? `${step.layer}: one track of an entrance preset`
         : `The element marked data-motion="${step.layer}"`;
       tokensList.appendChild(title);

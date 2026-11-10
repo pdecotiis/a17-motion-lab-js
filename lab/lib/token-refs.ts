@@ -2,6 +2,7 @@ import type { MotionVersion, EntranceVersion, PageConfig, StateValues, Transitio
 import type { Runtime } from './runtime.js';
 import { findRefs } from './token-compiler.js';
 import { hasEntrance, stepsOf } from './motion-models.js';
+import { versionForElementPreset } from './preset-interaction.js';
 
 export interface TokenRefs {
   tokens: string[];
@@ -119,6 +120,16 @@ export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>
   // A version with an entrance and states: the states' tokens are a group of their own, after the entrance's.
   if (version.interaction && hasEntrance(version)) {
     steps.push(stepRefs('states', { ...version, model: version.model! } as EntranceVersion, raw, false, runtime, globalBounce));
+  }
+  // Elements that use a preset's hover and press: a group each, "<element> · <preset>", with what hovered and pressed use ("into pressed duration", "pressed transform").
+  for (const [name, preset] of Object.entries(version.elements ?? {})) {
+    const group = stepRefs(`${name === 'root' ? 'component' : name} · ${preset} preset`, versionForElementPreset(version, preset) as EntranceVersion, raw, false, runtime, globalBounce);
+    // In the designer's words: pressing, letting go (into hovered), and leaving (into default); the scale is the press's.
+    const words = (where: string): string => where
+      .replace('into pressed ', 'press ').replace('into hovered ', 'hover, release ').replace('into default ', 'leave ')
+      .replace('pressed transform', 'press scale').replace('hovered filter', 'hover tint').replace('pressed filter', 'press tint');
+    group.uses = group.uses.map(u => ({ ...u, where: [...new Set(u.where.map(words))] }));
+    steps.push(group);
   }
   return steps;
 }
