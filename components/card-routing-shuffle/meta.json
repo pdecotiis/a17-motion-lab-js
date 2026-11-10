@@ -1,0 +1,16 @@
+{
+  "name": "card-routing-shuffle",
+  "layerName": "9 cell grid",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23876-217413",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23876:217413"
+  },
+  "importedAt": "2026-11-10",
+  "frame": { "width": 1136, "height": 760 },
+  "designWidth": 1136,
+  "variables": [],
+  "assets": [],
+  "fontFallbacks": [],
+  "issues": ["Hand-built from six Figma frames of a 3 x 3 grid (arrangements of it); colours only, the pictures and the video are placeholders."]
+}
