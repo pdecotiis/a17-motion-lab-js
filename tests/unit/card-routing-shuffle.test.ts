@@ -1,23 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { LAYOUTS, CELLS, COLOUR_CELLS, STATE_ORDER, overlapsBetween, pixelsOf } from '../../components/card-routing-shuffle/layouts';
+import { LAYOUTS, COLUMNS, CELLS, STATE_ORDER, boxOf, isColour, overlapsBetween, pixelsOf } from '../../components/card-routing-shuffle/layouts';
 import { versions } from '../../components/card-routing-shuffle/motion';
 import { validateVersionMeta } from '../../lab/lib/version-meta';
 
 describe('card-routing-shuffle', () => {
   it('has valid version meta', () => { expect(() => validateVersionMeta(versions)).not.toThrow(); });
   for (const [name, layout] of Object.entries(LAYOUTS)) {
-    it(`${name}: the visible cells tile the 3 x 3 exactly, and a column holds one colour card at most`, () => {
-      expect(Object.keys(layout).sort()).toEqual([...CELLS].sort());
-      const grid = Array.from({ length: 9 }, () => 0);
-      for (const id of CELLS) {
-        const [c, r, cs, rs, hidden] = layout[id]!;
-        if (hidden) continue;
-        for (let y = r; y < r + rs; y++) for (let x = c; x < c + cs; x++) grid[y * 3 + x]!++;
+    it(`${name}: every column adds up to three rows, each colour shows once, a column holds one colour card at most`, () => {
+      for (const id of Object.keys(layout)) expect(CELLS, id).toContain(id);
+      for (const col of COLUMNS) {
+        expect(col.reduce((n, id) => n + (layout[id] ?? 0), 0), col.join()).toBe(3);
+        expect(col.filter(id => isColour(id) && (layout[id] ?? 0) > 0).length, col.join()).toBeLessThanOrEqual(1);
       }
-      expect(grid).toEqual(Array.from({ length: 9 }, () => 1));
-      const cols: number[] = [];
-      for (const id of COLOUR_CELLS) { const [c, , cs, , hidden] = layout[id]!; if (!hidden) for (let x = c; x < c + cs; x++) cols.push(x); }
-      expect(new Set(cols).size).toBe(cols.length);
+      const colours = CELLS.filter(id => isColour(id) && (layout[id] ?? 0) > 0).map(id => id[0]);
+      expect(new Set(colours).size).toBe(colours.length);
+      // the stacks fill the grid: 712 tall
+      for (const col of COLUMNS) { const shown = col.map(id => boxOf(layout, id)).filter(b => b.h > 0); const last = shown[shown.length - 1]!; expect(last.y + last.h).toBe(712); }
     });
   }
   it('cells push each other: from every arrangement to the next (and round to the first), no two cells can overlap on the way', () => {
@@ -26,8 +24,11 @@ describe('card-routing-shuffle', () => {
       expect(overlapsBetween(LAYOUTS[name]!, LAYOUTS[next]!), `${name} -> ${next}`).toEqual([]);
     });
   });
-  it('a covered cell shrinks in one dimension only', () => {
-    expect(pixelsOf([0, 1, 1, 1, 'h-'])).toEqual({ transform: 'translate(0px, 240px)', width: '352px', height: '0px' });
-    expect(pixelsOf([1, 0, 2, 1])).toEqual({ transform: 'translate(360px, 0px)', width: '712px', height: '232px' });
+  it('a cell never changes width, so it never changes in both width and height', () => {
+    for (const layout of Object.values(LAYOUTS)) for (const id of CELLS) expect(boxOf(layout, id).w).toBe(352);
+  });
+  it('writes the pixels of a cell', () => {
+    expect(pixelsOf(LAYOUTS['layout-2']!, 'p01')).toEqual({ transform: 'translate(0px, 0px)', width: '352px', height: '472px' });
+    expect(pixelsOf(LAYOUTS['layout-2']!, 'p02')).toEqual({ transform: 'translate(0px, 480px)', width: '352px', height: '0px' });
   });
 });

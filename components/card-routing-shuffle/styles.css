@@ -6,7 +6,7 @@
   background: var(--background-default);
   box-sizing: border-box;
 }
-.card-routing-shuffle__grid { position: relative; width: 1072px; height: 712px; }
+.card-routing-shuffle__grid { position: relative; overflow: hidden; width: 1072px; height: 712px; }
 .card-routing-shuffle__cell { position: absolute; top: 0; left: 0; width: 352px; height: 232px; overflow: hidden; border-radius: var(--size-24); box-sizing: border-box; }
 .card-routing-shuffle__cell--pic { background: #e0e0de; }
 .card-routing-shuffle__cell--video { background: #b4b4b2; }
@@ -16,12 +16,18 @@
 .card-routing-shuffle__play { position: absolute; left: 24px; bottom: 24px; width: 48px; height: 48px; border-radius: 50%; background: rgba(0, 0, 0, 0.25); }
 .card-routing-shuffle__play::after { content: ""; position: absolute; left: 19px; top: 15px; border-left: 14px solid #fff; border-top: 9px solid transparent; border-bottom: 9px solid transparent; }
 .card-routing-shuffle__shuffle { display: block; margin: var(--space-5, 24px) 0 0; height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #171717; color: #fff; font: inherit; font-size: 14px; cursor: pointer; }
-.card-routing-shuffle__cell[data-motion="c1"] { transform: translate(0px, 0px); }
-.card-routing-shuffle__cell[data-motion="c2"] { transform: translate(360px, 0px); }
-.card-routing-shuffle__cell[data-motion="c3"] { transform: translate(720px, 0px); }
-.card-routing-shuffle__cell[data-motion="c4"] { transform: translate(0px, 240px); }
-.card-routing-shuffle__cell[data-motion="c5"] { transform: translate(360px, 240px); }
-.card-routing-shuffle__cell[data-motion="c6"] { transform: translate(720px, 240px); }
-.card-routing-shuffle__cell[data-motion="c7"] { transform: translate(0px, 480px); }
-.card-routing-shuffle__cell[data-motion="c8"] { transform: translate(360px, 480px); }
-.card-routing-shuffle__cell[data-motion="c9"] { transform: translate(720px, 480px); }
+.card-routing-shuffle__cell[data-motion="p01"] { transform: translate(0px, 0px); height: 232px; }
+.card-routing-shuffle__cell[data-motion="p02"] { transform: translate(0px, 240px); height: 232px; }
+.card-routing-shuffle__cell[data-motion="y0"] { transform: translate(0px, 480px); height: 232px; }
+.card-routing-shuffle__cell[data-motion="i0"] { transform: translate(0px, 720px); height: 0px; }
+.card-routing-shuffle__cell[data-motion="v0"] { transform: translate(0px, 720px); height: 0px; }
+.card-routing-shuffle__cell[data-motion="g1"] { transform: translate(360px, 0px); height: 0px; }
+.card-routing-shuffle__cell[data-motion="i1"] { transform: translate(360px, 0px); height: 232px; }
+.card-routing-shuffle__cell[data-motion="p11"] { transform: translate(360px, 240px); height: 232px; }
+.card-routing-shuffle__cell[data-motion="p12"] { transform: translate(360px, 480px); height: 232px; }
+.card-routing-shuffle__cell[data-motion="v1"] { transform: translate(360px, 720px); height: 0px; }
+.card-routing-shuffle__cell[data-motion="p22"] { transform: translate(720px, 0px); height: 0px; }
+.card-routing-shuffle__cell[data-motion="g2"] { transform: translate(720px, 0px); height: 232px; }
+.card-routing-shuffle__cell[data-motion="p21"] { transform: translate(720px, 240px); height: 232px; }
+.card-routing-shuffle__cell[data-motion="v2"] { transform: translate(720px, 480px); height: 232px; }
+.card-routing-shuffle__cell[data-motion="y2"] { transform: translate(720px, 720px); height: 0px; }

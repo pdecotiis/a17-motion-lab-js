@@ -13,7 +13,7 @@ const layoutOf = (s: string) => LAYOUTS[s === 'start' ? 'default' : s]!;
 
 const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> = {};
 for (const id of CELLS) {
-  layers[id] = { states: each(s => pixelsOf(layoutOf(s)[id]!)), transitions: each(() => MOVE) };
+  layers[id] = { states: each(s => pixelsOf(layoutOf(s), id)), transitions: each(() => MOVE) };
 }
 
 export const v1: MotionVersion = {
