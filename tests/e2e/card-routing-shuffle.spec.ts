@@ -12,8 +12,8 @@ for (const runtime of ['css', 'motion']) {
     expect(await box('c1')).toEqual([0, 0, 352, 472]);   // the first picture is tall now
     expect((await box('c4'))[3]).toBe(0);                 // the one it covered has shrunk away
     for (let i = 0; i < 5; i++) { await page.locator('[data-motion="shuffle"]').click(); await page.waitForTimeout(1300); }
-    expect(await box('c1')).toEqual([0, 0, 712, 232]);   // layout 7: wide picture on top
-    for (let i = 0; i < 2; i++) { await page.locator('[data-motion="shuffle"]').click(); await page.waitForTimeout(1300); }
+    expect((await box('c4'))[2]).toBe(712);              // layout 7: the picture in the middle row is wide
+    for (let i = 0; i < 3; i++) { await page.locator('[data-motion="shuffle"]').click(); await page.waitForTimeout(1300); }
     expect(await box('c1')).toEqual([0, 0, 352, 232]);   // and round to the first again
   });
 }

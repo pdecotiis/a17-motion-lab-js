@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LAYOUTS, CELLS, COLOUR_CELLS, pixelsOf } from '../../components/card-routing-shuffle/layouts';
+import { LAYOUTS, CELLS, COLOUR_CELLS, STATE_ORDER, overlapsBetween, pixelsOf } from '../../components/card-routing-shuffle/layouts';
 import { versions } from '../../components/card-routing-shuffle/motion';
 import { validateVersionMeta } from '../../lab/lib/version-meta';
 
@@ -20,8 +20,14 @@ describe('card-routing-shuffle', () => {
       expect(new Set(cols).size).toBe(cols.length);
     });
   }
+  it('cells push each other: from every arrangement to the next (and round to the first), no two cells can overlap on the way', () => {
+    STATE_ORDER.forEach((name, k) => {
+      const next = STATE_ORDER[(k + 1) % STATE_ORDER.length]!;
+      expect(overlapsBetween(LAYOUTS[name]!, LAYOUTS[next]!), `${name} -> ${next}`).toEqual([]);
+    });
+  });
   it('a covered cell shrinks in one dimension only', () => {
-    expect(pixelsOf([0, 1, 1, 1, 'h'])).toEqual({ transform: 'translate(0px, 240px)', width: '352px', height: '0px' });
+    expect(pixelsOf([0, 1, 1, 1, 'h-'])).toEqual({ transform: 'translate(0px, 240px)', width: '352px', height: '0px' });
     expect(pixelsOf([1, 0, 2, 1])).toEqual({ transform: 'translate(360px, 0px)', width: '712px', height: '232px' });
   });
 });
