@@ -12,13 +12,17 @@ const version = (trigger?: MotionVersion['trigger']): MotionVersion => ({
 });
 
 describe('scrollTriggerOf', () => {
+  it('says whether each element plays as it enters (the trigger\'s each)', () => {
+    expect(scrollTriggerOf(version({ on: 'in-view', each: true }))).toEqual({ threshold: 0, once: true, each: true });
+  });
+
   it('waits for the section to scroll in when the trigger is in-view', () => {
-    expect(scrollTriggerOf(version({ on: 'in-view', threshold: 0.2, once: true }))).toEqual({ threshold: 0.2, once: true });
-    expect(scrollTriggerOf(version({ on: 'in-view', threshold: 0.5, once: false }))).toEqual({ threshold: 0.5, once: false });
+    expect(scrollTriggerOf(version({ on: 'in-view', threshold: 0.2, once: true }))).toEqual({ threshold: 0.2, once: true, each: false });
+    expect(scrollTriggerOf(version({ on: 'in-view', threshold: 0.5, once: false }))).toEqual({ threshold: 0.5, once: false, each: false });
   });
 
   it('uses as soon as any of it shows, and only the first time, when the version names neither', () => {
-    expect(scrollTriggerOf(version({ on: 'in-view' }))).toEqual({ threshold: 0, once: true });
+    expect(scrollTriggerOf(version({ on: 'in-view' }))).toEqual({ threshold: 0, once: true, each: false });
   });
 
   it('plays on load when no trigger is specified (the lab never guesses one)', () => {

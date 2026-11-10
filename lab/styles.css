@@ -464,6 +464,8 @@ html, body {
 .lab-page-stage--fit .lab-page-viewport { width: auto; }
 /* A section whose motion plays when it scrolls in is hidden until then; its own motion starts as it appears. */
 .lab-page-item--waiting { visibility: hidden; }
+/* A slot left out of this page version: nothing is shown there. */
+.lab-page-item--left-out { display: none; }
 /* The page lays out at its own width (set in the lab). */
 .lab-page-grid { display: flex; flex-direction: column; gap: 24px; }
 .lab-page-grid--flush { gap: 0; }

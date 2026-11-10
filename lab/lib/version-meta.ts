@@ -102,6 +102,7 @@ export function describeTrigger(trigger: MotionTrigger | undefined): string | nu
     details.push(`${Math.round(trigger.threshold * 100)}% visible`);
   }
   if (trigger.once !== undefined) details.push(trigger.once ? 'first time only' : 'every time');
+  if (trigger.each) details.push('each element as it appears');
   const label = TRIGGER_LABELS[trigger.on];
   return details.length ? `${label} (${details.join(', ')})` : label;
 }

@@ -70,6 +70,30 @@ export function nextPageVersionId(versions: { id: string }[]): string {
 }
 
 // Every slot on its component's default version.
+// What one slot of a page version says. Three forms, all a string in the motion map:
+//   "v2"                  that version of the slot's own component (the usual)
+//   "none"                the slot is left out of this page version (nothing is shown there)
+//   "card-routing@v2"     another component, in the slot's place: the slot keeps its position on the page and shows that component's version
+export const SLOT_NONE = 'none';
+
+export type SlotChoice =
+  | { kind: 'none' }
+  | { kind: 'version'; component: string; version: string; swapped: boolean };
+
+/** The string for a slot that shows another component's version. */
+export function swapChoice(component: string, version: string): string {
+  return `${component}@${version}`;
+}
+
+/** What a slot's entry in a motion map means (not checked against the components: see resolveMotionMap). */
+export function parseSlotChoice(value: string | undefined, slotComponent: string): SlotChoice | { kind: 'default' } {
+  if (value === undefined) return { kind: 'default' };
+  if (value === SLOT_NONE) return { kind: 'none' };
+  const at = value.indexOf('@');
+  if (at > 0) return { kind: 'version', component: value.slice(0, at), version: value.slice(at + 1), swapped: value.slice(0, at) !== slotComponent };
+  return { kind: 'version', component: slotComponent, version: value, swapped: false };
+}
+
 export function defaultMotionMap(page: PageConfig, modules: Record<string, ComponentModule>): MotionMap {
   const map: MotionMap = {};
   for (const slot of page.components) {
@@ -90,7 +114,15 @@ export function resolveMotionMap(
   for (const slot of page.components) {
     const module = modules[slot.component];
     if (!module) continue;
-    const wanted = map[slot.id];
+    const choice = parseSlotChoice(map[slot.id], slot.component);
+    if (choice.kind === 'none') { out[slot.id] = SLOT_NONE; continue; }
+    if (choice.kind === 'version' && choice.swapped) {
+      // another component in this slot, when it and its version exist
+      if (modules[choice.component]?.versions.some(v => v.id === choice.version)) { out[slot.id] = swapChoice(choice.component, choice.version); continue; }
+      out[slot.id] = module.defaultVersion;
+      continue;
+    }
+    const wanted = choice.kind === 'version' ? choice.version : undefined;
     out[slot.id] = wanted !== undefined && module.versions.some(v => v.id === wanted) ? wanted : module.defaultVersion;
   }
   return out;
@@ -110,10 +142,14 @@ export function checkPageVersion(
       problems.push(`${version.id}: "${slot}" is not on page "${page.id}"`);
       continue;
     }
-    const module = modules[component];
-    if (!module) problems.push(`${version.id}: component "${component}" (for "${slot}") does not exist`);
-    else if (!module.versions.some(v => v.id === versionId)) {
-      problems.push(`${version.id}: "${component}" has no version "${versionId}" (for "${slot}")`);
+    const choice = parseSlotChoice(versionId, component);
+    if (choice.kind === 'none') continue;
+    const shown = choice.kind === 'version' ? choice.component : component;
+    const shownVersion = choice.kind === 'version' ? choice.version : versionId;
+    const module = modules[shown];
+    if (!module) problems.push(`${version.id}: component "${shown}" (for "${slot}") does not exist`);
+    else if (!module.versions.some(v => v.id === shownVersion)) {
+      problems.push(`${version.id}: "${shown}" has no version "${shownVersion}" (for "${slot}")`);
     }
   }
   return problems;

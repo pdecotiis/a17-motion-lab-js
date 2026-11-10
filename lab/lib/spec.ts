@@ -229,6 +229,7 @@ export function buildVersionExport(
     return [
       '### When the section scrolls into view',
       '',
+      ...(t.each ? ['This version plays **each element as it appears**, not the section as a whole: observe each animated element (each `[data-motion="…"]` below) and add that element\'s classes when it enters, instead of the section\'s all at once. Elements that enter together start a beat apart.', ''] : []),
       `The classes only play when they are added, so add them as the section enters the screen (${threshold ? `${Math.round(threshold * 100)}% visible` : 'as soon as any of it shows'}, ${once ? 'first time only' : 'every time it enters again'}). A sketch to adapt, where \`.your-section\` is the element the motion runs on:`,
       '',
       '```js',

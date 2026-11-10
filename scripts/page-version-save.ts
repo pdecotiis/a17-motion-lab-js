@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  nextPageVersionId, serializePageVersion, validatePageVersion, type PageVersion,
+  nextPageVersionId, parseSlotChoice, serializePageVersion, validatePageVersion, type PageVersion,
 } from '../lab/lib/page-versions.js';
 import type { MotionMap, PageConfig } from '../lab/lib/types.js';
 
@@ -41,8 +41,12 @@ export function savePageVersion(root: string, input: SavePageVersionInput): Page
   for (const [slot, versionId] of Object.entries(input.motionMap)) {
     const component = slots.get(slot);
     if (component === undefined) throw new Error(`"${slot}" is not on page "${input.page}".`);
-    if (!SAFE_NAME.test(component) || !existsSync(join(root, 'components', component, 'versions', `${versionId}.ts`))) {
-      throw new Error(`Component "${component}" has no version "${versionId}".`);
+    const choice = parseSlotChoice(versionId, component);
+    if (choice.kind === 'none') continue; // left out of this page version
+    const shown = choice.kind === 'version' ? choice.component : component;
+    const shownVersion = choice.kind === 'version' ? choice.version : versionId;
+    if (!SAFE_NAME.test(shown) || !SAFE_NAME.test(shownVersion) || !existsSync(join(root, 'components', shown, 'versions', `${shownVersion}.ts`))) {
+      throw new Error(`Component "${shown}" has no version "${shownVersion}".`);
     }
   }
 
