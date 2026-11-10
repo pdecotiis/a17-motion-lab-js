@@ -1,19 +1,31 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// card-routing-bento v2 plays on scroll: in the homepage's page version v4 it waits, hidden, until its section scrolls into the window, then cascades in.
+// Homepage page version v4 replaces the tab bento (the slot `grid-container-mosaic-routing`) with card-routing-bento v2, whose cells each play as they
+// scroll into view (not the whole bento at once).
 const WINDOW = '.lab-page-viewport';
-const section = (page: Page) => page.locator('.lab-page-col').first().locator('.lab-page-item[data-component-id="card-routing-bento"]');
+const slot = (page: Page) => page.locator('.lab-page-col').first().locator('.lab-page-item[data-component-id="grid-container-mosaic-routing"]');
 
-test('the card routing bento waits until it scrolls into view, then plays once', async ({ page }) => {
+test('the card routing bento takes the tab bento\'s place, and each cell plays as it scrolls in', async ({ page }) => {
   await page.goto('/?view=page&page=homepage&pv=v4');
-  await expect(section(page)).toHaveClass(/waiting/);
-  expect(await section(page).evaluate(el => el.getAnimations({ subtree: true }).length)).toBe(0);
-  await section(page).evaluate(el => el.scrollIntoView({ block: 'center' }));
-  await expect(section(page)).not.toHaveClass(/waiting/);
-  await page.waitForTimeout(300);
-  expect(await section(page).evaluate(el => el.getAnimations({ subtree: true }).length)).toBeGreaterThan(0);
-  // once: scrolling back up does not make it wait again
+  // the slot shows the new component, not the tab bento
+  await expect(slot(page).locator('[data-motion="cell-9"]')).toHaveCount(1);
+  await expect(slot(page).locator('[data-motion="t-block"]')).toHaveCount(0);
+  // the section is not held back, but a cell far below the window waits, hidden, with nothing playing on it
+  await expect(slot(page)).not.toHaveClass(/waiting/);
+  const last = slot(page).locator('[data-motion="cell-9"]');
+  await expect(last).toHaveCSS('opacity', '0');
+  expect(await last.evaluate(el => el.getAnimations().length)).toBe(0);
+  // scrolled to, it plays, and stays once played
+  await last.evaluate(el => el.scrollIntoView({ block: 'center' }));
+  await expect.poll(() => last.evaluate(el => el.getAnimations().length)).toBeGreaterThan(0);
+  await page.waitForTimeout(1500);
+  await expect(last).toHaveCSS('opacity', '1');
   await page.locator(WINDOW).evaluate(el => { el.scrollTop = 0; });
   await page.waitForTimeout(300);
-  await expect(section(page)).not.toHaveClass(/waiting/);
+  await expect(last).toHaveCSS('opacity', '1');
+});
+
+test('the other page versions keep the tab bento in that slot', async ({ page }) => {
+  await page.goto('/?view=page&page=homepage&pv=v1');
+  await expect(slot(page).locator('[data-motion="t-block"]')).toHaveCount(1);
 });

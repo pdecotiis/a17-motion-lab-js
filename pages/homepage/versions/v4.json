@@ -1,13 +1,12 @@
 {
   "id": "v4",
-  "label": "Card routing bento on scroll",
+  "label": "Card routing bento replaces the tab bento",
   "motionMap": {
     "menu": "v2",
     "header": "v3",
     "page-header-title": "v1",
-    "grid-container-mosaic-routing": "v13",
+    "grid-container-mosaic-routing": "card-routing-bento@v2",
     "card-feature": "v2",
-    "card-routing-bento": "v2",
     "prompts-footer-section": "v1"
   }
 }

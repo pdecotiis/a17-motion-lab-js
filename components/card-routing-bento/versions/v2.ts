@@ -57,8 +57,9 @@ export const v2: MotionVersion = {
       grid: { states: each(s => ({ gridTemplateColumns: COLUMNS[s], gridTemplateRows: ROWS[s] })), transitions: each(() => MORPH) },
     },
   },
-  // In production it plays when the section scrolls into view (a fifth of it showing), the first time only; in the Page view it waits, hidden, until then.
-  trigger: { on: 'in-view', threshold: 0.2, once: true },
+  // On scroll each cell plays as it appears (a fifth of it showing), the first time only, not the whole bento at once: in the Page view every cell waits,
+// hidden, for its own turn, and cells that come in together start a beat apart.
+  trigger: { on: 'in-view', threshold: 0.2, once: true, each: true },
   forkedFrom: 'v1',
 };
 
