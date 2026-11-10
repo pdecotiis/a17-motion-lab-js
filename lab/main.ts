@@ -598,6 +598,13 @@ function navigate(href: string): void {
 
 // Any link that goes to another view of the lab (an href that starts with "?") is followed in place; a click with a
 // modifier key, a middle click or a link that opens elsewhere keeps its browser behaviour.
+// A placeholder link in a previewed component (href="#") goes nowhere: left alone it changes the URL, which re-renders the view and
+// restarts the motion the designer is trying to feel.
+document.addEventListener('click', event => {
+  const dead = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[href="#"]');
+  if (dead && !event.defaultPrevented) event.preventDefault();
+});
+
 document.addEventListener('click', event => {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   const link = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[href^="?"]');

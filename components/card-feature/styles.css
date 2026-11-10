@@ -164,6 +164,8 @@
   width: var(--interactive-height-lg);
   height: var(--interactive-height-lg);
   border-radius: var(--radius-full);
+  position: relative;
 }
+.card-feature__button-fill { position: absolute; inset: 0; border-radius: inherit; }
 
-.card-feature__button img { display: block; width: 24px; height: 24px; }
+.card-feature__button img { position: relative; display: block; width: 24px; height: 24px; }
