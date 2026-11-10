@@ -1,0 +1,64 @@
+/* Card routing bento (Figma "card routing"): three columns by six rows of cells, 8px apart: colour cards (a title and an arrow) and pictures, the pictures
+   one or two cells across and tall. Each cell is its own layer (cell-1 … cell-9), so a version can move them one by one. */
+.card-routing-bento {
+  width: var(--layout-container);
+  padding: var(--space-7) var(--layout-margin) 0;
+  background: var(--background-default);
+  box-sizing: border-box;
+  font-feature-settings: "lnum" 1, "pnum" 1;
+}
+
+.card-routing-bento__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: var(--layout-gutter);
+  width: 1072px;
+  height: 1404px;
+}
+
+.card-routing-bento__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--size-24);
+  border-radius: var(--size-24);
+  min-width: 0;
+  min-height: 0;
+}
+.card-routing-bento__card--primary { background: var(--background-accent-primary); }
+.card-routing-bento__card--2 { background: var(--background-accent-2); }
+.card-routing-bento__card--3 { background: var(--background-accent-3); }
+
+.card-routing-bento__heading { display: flex; flex-direction: column; align-items: flex-start; }
+
+.card-routing-bento__title {
+  margin: 0;
+  width: 100%;
+  font-family: var(--heading-family);
+  font-weight: var(--heading-weight);
+  font-size: var(--font-size-20);
+  line-height: 1.3;
+  color: var(--text-on-accent-primary);
+}
+.card-routing-bento__card--2 .card-routing-bento__title { color: var(--text-on-accent-2); }
+.card-routing-bento__card--3 .card-routing-bento__title { color: var(--text-on-accent-3); }
+
+.card-routing-bento__actions { display: flex; align-items: flex-end; width: 100%; }
+.card-routing-bento__arrow { display: block; width: 24px; height: 24px; }
+
+.card-routing-bento__image {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  min-width: 0;
+  min-height: 0;
+}
+.card-routing-bento__image--accent-1 { background: var(--background-accent-1); }
+
+.card-routing-bento__texture { position: absolute; inset: 0; background: url("assets/texture.png") top left / 240px 240px; opacity: 0.75; }
+.card-routing-bento__photo { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; }
+/* the last picture is cropped in tighter (as the design does): larger than its cell, shifted up and left */
+.card-routing-bento__crop { position: absolute; inset: 0; overflow: hidden; }
+.card-routing-bento__photo--crop { inset: auto; top: -6.01%; left: -20.96%; width: 141.92%; height: 123.61%; object-fit: fill; }

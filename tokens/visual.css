@@ -18,6 +18,7 @@
   --font-size-12: 12px;
   --font-size-14: 14px;
   --font-size-16: 16px;
+  --font-size-20: 20px;
   --font-size-28: 28px;
   --font-size-32: 32px;
   --font-size-42: 42px;
@@ -78,6 +79,7 @@
   --text-on-accent-secondary-primary: #0000008f;
   --text-on-accent-1: #141414;
   --text-on-accent-2: #f5f4f2;
+  --text-on-accent-3: #141414;
   --text-on-accent-primary: #141414;
   --text-secondary: #6b6a68;
   --text-secondary-alpha: #0000008f;

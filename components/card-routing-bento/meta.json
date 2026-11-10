@@ -1,0 +1,35 @@
+{
+  "name": "card-routing-bento",
+  "layerName": "card routing",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23827-61988",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23827:61988"
+  },
+  "importedAt": "2026-11-10",
+  "frame": {
+    "width": 1136,
+    "height": 1452
+  },
+  "designWidth": 1136,
+  "variables": [
+    "font-size/20",
+    "text/on-accent/3"
+  ],
+  "assets": [
+    "arrow-1.svg",
+    "arrow-2.svg",
+    "arrow-3.svg",
+    "photo-1.png",
+    "photo-2.png",
+    "photo-3.png",
+    "photo-4.png",
+    "photo-5.png",
+    "texture.png"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "The pictures are placeholders from the Figma file; the last cell is cropped in tighter than its frame (a larger picture shifted up and left), as the design does.",
+    "A wireframe ratio marker (1:1) sits on the last cell in the design; it is design scaffolding and is not imported."
+  ]
+}
