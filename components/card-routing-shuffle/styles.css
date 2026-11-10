@@ -35,7 +35,7 @@
    a zero-height sticky strip after the grid holds it, and the button sits on the strip's bottom edge */
 .card-routing-shuffle__float { position: sticky; bottom: 32px; z-index: 2; height: 0; }
 .card-routing-shuffle__shuffle {
-  position: absolute; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 24px; border: 0; border-radius: var(--radius-full);
+  position: absolute; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 24px 0 20px; border: 0; border-radius: var(--radius-full);
   background: var(--background-inverse); color: var(--text-inverse); font-family: var(--body-family); font-size: var(--font-size-16); line-height: 24px; cursor: pointer;
 }
 .card-routing-shuffle__shuffle-icon { display: block; flex: none; width: 24px; height: 24px; }
