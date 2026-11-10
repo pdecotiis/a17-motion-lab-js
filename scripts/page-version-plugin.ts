@@ -2,8 +2,9 @@
  * The dev server's /__lab/page-version endpoint: what the Page view's "Save as new version" talks to.
  *   GET   → { available: true }                                     (a built copy has none)
  *   POST  { page, label, motionMap, stagger?, forkedFrom? } → { id } (writes pages/<page>/versions/v<n>.json)
+ *   POST  { page, overwrite: 'v3', motionMap, stagger? }     → { id } (saves over that saved version: its name and lineage stay)
  *
- * Dev server only, never part of `npm run build`. It writes only that one new file and refuses a
+ * Dev server only, never part of `npm run build`. It writes only that one version file (a new one, or the one named to save over) and refuses a
  * request that comes from another site's page (an Origin that isn't this server's own).
  */
 import type { Plugin } from 'vite';
@@ -37,13 +38,14 @@ export function handlePageVersionRequest(root: string, req: PageVersionRequest):
   } catch {
     return { status: 400, body: { error: 'The request is not valid JSON.' } };
   }
-  const { page, label, motionMap, stagger, forkedFrom } = input;
-  if (typeof page !== 'string' || typeof label !== 'string') return { status: 400, body: { error: 'Say which page and what to call the version.' } };
+  const { page, label, motionMap, stagger, forkedFrom, overwrite } = input;
+  if (typeof page !== 'string' || (typeof label !== 'string' && typeof overwrite !== 'string')) return { status: 400, body: { error: 'Say which page and what to call the version.' } };
   if (typeof motionMap !== 'object' || motionMap === null || Array.isArray(motionMap)) return { status: 400, body: { error: 'Send the version of each component.' } };
   try {
     const saved = savePageVersion(root, {
       page,
-      label,
+      label: typeof label === 'string' ? label : undefined,
+      overwrite: typeof overwrite === 'string' ? overwrite : undefined,
       motionMap: motionMap as Record<string, string>,
       stagger: typeof stagger === 'string' ? stagger : undefined,
       forkedFrom: typeof forkedFrom === 'string' ? forkedFrom : undefined,
