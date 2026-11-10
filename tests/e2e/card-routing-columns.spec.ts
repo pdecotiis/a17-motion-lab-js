@@ -18,3 +18,19 @@ for (const runtime of ['css', 'motion']) {
     expect(await box('card-2')).toEqual([352, 235, 477]);    // which has moved to the bottom
   });
 }
+
+// v2: the same sequence with square pictures: 352 x 352, a column 595 tall, the picture itself the square throughout (the container only uncovers it).
+test('card-routing-columns v2: the pictures open to squares', async ({ page }) => {
+  await page.goto('/?view=component&component=card-routing-columns&version=v2');
+  await page.locator('[data-motion="grid"]').waitFor();
+  const box = (n: string) => page.evaluate(name => { const r = document.querySelector(`[data-motion="${name}"]`)!.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }, n);
+  await page.waitForTimeout(3500);
+  expect(await box('image-1')).toEqual([352, 352]);
+  expect(await box('image-2')).toEqual([352, 352]);
+  expect(await box('photo-1')).toEqual([352, 352]);   // the picture is the square too
+  expect(await box('col-2')).toEqual([352, 595]);     // 235 + 8 + 352
+  await page.getByRole('button', { name: 'cards', exact: true }).click();
+  await page.waitForTimeout(900);
+  expect((await box('image-1'))[1]).toBe(0);
+  expect((await box('photo-1'))[1]).toBe(352);         // still the full square: it is uncovered, not squashed
+});
