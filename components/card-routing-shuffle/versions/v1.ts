@@ -12,8 +12,6 @@ const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> =
 for (const id of CELLS) {
   layers[id] = { states: each(s => sizeOf(LAYOUTS[s]!, id)), transitions: each(() => MOVE) };
 }
-// the columns change width (a column that grows takes the width the others give up)
-([0, 1, 2] as const).forEach(c => { layers[`col-${c}`] = { states: each(s => ({ width: `${LAYOUTS[s]!.widths[c]}px` })), transitions: each(() => MOVE) }; });
 
 export const v1: MotionVersion = {
   id: 'v1',
