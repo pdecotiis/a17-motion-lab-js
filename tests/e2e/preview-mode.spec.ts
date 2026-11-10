@@ -63,5 +63,16 @@ test.describe('preview mode', () => {
     await expect(page).not.toHaveURL(/preview=1/);
     await expect(page.locator('.lab-sidebar')).toBeVisible();
   });
-});
 
+  test('the window is white and the design has a subtle hairline around it, adding no size', async ({ page }) => {
+    await page.goto('/?view=component&preview=1');
+    const inner = page.locator('#preview-inner-primary');
+    await expect(inner).toBeVisible();
+    expect(await inner.evaluate(el => { const c = getComputedStyle(el); return [c.outlineStyle, c.outlineWidth, c.borderTopWidth]; })).toEqual(['solid', '1px', '0px']);
+    await expect(page.locator('#preview-primary')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await page.goto('/?view=page&preview=1');
+    test.skip((await page.locator('.lab-page-grid').count()) === 0, 'this project has no pages');
+    await expect(page.locator('.lab-page-viewport')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    expect(await page.locator('.lab-page-grid').evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid');
+  });
+});

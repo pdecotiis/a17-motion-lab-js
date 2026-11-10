@@ -871,6 +871,9 @@ html, body {
 .lab-preview-mode .lab-preview-area { min-height: 100vh; }
 .lab-preview-mode .lab-preview { min-height: 100vh; border-radius: 0; background: var(--color-bg); }
 .lab-preview-mode .lab-page-layout--single .lab-page-stage { background: var(--color-bg); border-radius: 0; min-height: 100vh; }
+/* The window around the design is white, and the design itself (the component's frame, the page) has a subtle hairline around it (an outline, so it adds no size: the design is still 1:1). */
+.lab-preview-mode .lab-page-viewport { background: var(--color-bg); }
+.lab-preview-mode #preview-inner-primary, .lab-preview-mode .lab-page-grid { outline: 1px solid var(--color-subtle); }
 .lab-preview-bar { position: fixed; left: 50%; bottom: 16px; z-index: 40; display: flex; align-items: center; gap: 16px; padding: 8px 8px 8px 16px; background: var(--color-bg); border: 1px solid var(--color-subtle); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); opacity: 0; transform: translate(-50%, 8px); transition: opacity 200ms, transform 200ms; pointer-events: none; font: var(--type-ui-2); }
 .lab-preview-bar--shown { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .lab-preview-bar__name { font: var(--type-ui-2-strong); }
