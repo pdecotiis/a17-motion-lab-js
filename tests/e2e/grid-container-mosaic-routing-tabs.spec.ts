@@ -18,6 +18,8 @@ for (const runtime of ['css', 'motion']) {
     await page.locator('[data-motion="t-tab-technology"]').click();
     await page.waitForTimeout(1500);
     expect(await size('t-big')).toEqual([532, 536]);
+    expect(await size('t-card')).toEqual([532, 536]); // the green card fills the height: two cards
+    expect((await size('t-small'))[1]).toBe(0); // the small picture's row is closed
     await expect(page.locator('[data-motion="t-title-technology"]')).toHaveCSS('opacity', '1');
     await expect(page.locator('[data-motion="t-title-ml"]')).toHaveCSS('opacity', '0');
   });
