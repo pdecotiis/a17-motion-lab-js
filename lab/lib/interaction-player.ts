@@ -185,10 +185,13 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
     if (!names.includes(to)) throw new Error(`Unknown state "${to}" (${names.join(', ')})`);
     if (to === current && !transitioning) return null;
     deps.onChange?.(to, true);
+    moved.forEach(f => f());
     const handle = deps.runtime === 'motion' ? goToMotion(to) : goToCss(to);
     if (handle) deps.onHandle?.(handle);
     return handle;
   };
+  // Things to do whenever the component moves to a new state (the interval trigger starts its wait again).
+  const moved: (() => void)[] = [];
   // Where the component should be now: the state of the latest hold, else the base.
   const settle = (): PlayHandle | null => {
     const top = holds[holds.length - 1];
@@ -231,6 +234,24 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
         t.target ? [...el.querySelectorAll<HTMLElement>(`[data-motion="${t.target}"]`)] : [el];
 
       for (const t of interaction.triggers ?? []) {
+        // Steps to the next state by itself, `every` after the last state change (so a click starts the wait again). Not while locked (an entrance is playing:
+        // it tries again a wait later) and not under reduced motion.
+        if (t.on === 'interval') {
+          const raw = deps.raw[t.every] ?? t.every;
+          const text = String(raw), ms = text.endsWith('ms') ? parseFloat(text) : text.endsWith('s') ? parseFloat(text) * 1000 : parseFloat(text);
+          let timer = 0;
+          const arm = (): void => {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => {
+              if (!locked && !deps.reducedMotion()) { base = t.toggle[(t.toggle.indexOf(base) + 1) % t.toggle.length]!; settle(); }
+              arm();
+            }, ms / deps.playbackRate());
+          };
+          moved.push(arm);
+          arm();
+          cleanups.push(() => { window.clearTimeout(timer); const at = moved.indexOf(arm); if (at >= 0) moved.splice(at, 1); });
+          continue;
+        }
         // Arrow keys step through a list of states, left to right: heard on the whole page, but not while typing in a field.
         if (t.on === 'arrows') {
           listen(document, 'keydown', ev => {

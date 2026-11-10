@@ -152,7 +152,7 @@ function gsapStep(
 // and click (the same rules as the lab's player: a touch never hovers, a press lasts until the pointer is
 // released anywhere, focus is keyboard focus, the latest hold wins and the base state returns) and returns the
 // function that stops listening. Both libraries use the same wiring; only goTo differs.
-function attachLines(version: MotionVersion, base: string): string[] {
+function attachLines(version: MotionVersion, base: string, raw: Record<string, unknown> = {}): string[] {
   const i = version.interaction!;
   const triggers = i.triggers ?? [];
   if (triggers.length === 0) {
@@ -164,17 +164,29 @@ function attachLines(version: MotionVersion, base: string): string[] {
   return [
     '// What starts each move. hover, press and focus hold a state while they last; click sets one (or swaps two).',
     'const triggers = [',
-    ...triggers.map(t => `  ${JSON.stringify(t)},`),
+    ...triggers.map(t => `  ${JSON.stringify(t.on === 'interval' ? { ...t, every: parseMs(t.every, raw) } : t)},`),
     '];',
     '',
     `/** Wire the triggers on \`el\` (and on the data-motion elements they name). Returns a function that removes them. */`,
     `export function attach${base}(el) {`,
     `  let base = ${str(i.initial)};`,
     '  const holds = [];',
-    `  const settle = () => goTo${base}(el, holds.length ? holds[holds.length - 1].state : base);`,
+    '  let timer;',
+    '  const settle = () => { goTo' + base + '(el, holds.length ? holds[holds.length - 1].state : base); rearm(); };',
     '  const off = [];',
+    '  // interval: step to the next state by itself, `every` ms after the last change (not under reduced motion)',
+    '  const rearm = () => {',
+    '    clearTimeout(timer);',
+    '    for (const t of triggers) if (t.on === "interval") timer = setTimeout(() => {',
+    '      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) base = t.toggle[(t.toggle.indexOf(base) + 1) % t.toggle.length];',
+    '      settle();',
+    '    }, t.every);',
+    '  };',
+    '  off.push(() => clearTimeout(timer));',
     '  const on = (node, type, fn) => { node.addEventListener(type, fn); off.push(() => node.removeEventListener(type, fn)); };',
+    '  rearm();',
     '  for (const t of triggers) {',
+    '    if (t.on === "interval") continue;',
     '    if (t.on === "arrows") {',
     '      on(document, "keydown", e => {',
     '        if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;',
@@ -296,7 +308,7 @@ function buildGsapInteraction(version: MotionVersion, raw: Record<string, unknow
     many ? '  return tweens;' : '  return tweens[0];',
     '}',
     '',
-    ...attachLines(version, base),
+    ...attachLines(version, base, raw),
   ];
   return out.join('\n');
 }
@@ -362,7 +374,7 @@ function buildMotionInteraction(version: MotionVersion, raw: Record<string, unkn
     many ? '  return moves;' : '  return moves[0];',
     '}',
     '',
-    ...attachLines(version, base),
+    ...attachLines(version, base, raw),
   ].join('\n');
 }
 

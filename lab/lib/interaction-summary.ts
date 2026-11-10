@@ -162,6 +162,11 @@ export function summarizeInteraction(
       lines.push({ heading: 'Arrow keys', text: `When you press the left or right arrow key, it steps through ${listJoin(t.states)}, left to right: left goes to the one before the current state and right to the one after, and it stops at the ends.` });
       continue;
     }
+    if (t.on === 'interval') {
+      t.toggle.forEach(st => led.add(st));
+      lines.push({ heading: 'Timer', text: `By itself, ${t.every} after the last change, it goes to the next of ${t.toggle.join(', ')}, back to ${t.toggle[0]} after ${t.toggle[t.toggle.length - 1]} (a click starts the wait again; not with reduced motion).` });
+      continue;
+    }
     const { heading, when } = triggerWords(t, component);
     if (t.on === 'click') {
       if ('set' in t && t.set !== undefined) {

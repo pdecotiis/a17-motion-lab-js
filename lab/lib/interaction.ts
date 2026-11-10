@@ -12,7 +12,7 @@ import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 const STRUCTURAL = ['display', 'position', 'content', 'innerHTML'];
 
 /** The events a trigger can listen for. */
-export const TRIGGER_EVENTS: readonly TriggerEvent[] = ['hover', 'press', 'focus', 'click', 'arrows'];
+export const TRIGGER_EVENTS: readonly TriggerEvent[] = ['hover', 'press', 'focus', 'click', 'arrows', 'interval'];
 
 const NAME = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -55,6 +55,13 @@ function validateTrigger(version: MotionVersion, t: InteractionTrigger, names: s
   if (!TRIGGER_EVENTS.includes(t.on)) throw new Error(`${id} has an unknown trigger "${String(t.on)}" (use ${TRIGGER_EVENTS.join(', ')})`);
   if (t.target !== undefined && !NAME.test(t.target)) throw new Error(`${id} trigger target "${t.target}" must be lowercase letters, numbers and hyphens, as in data-motion="${t.target}"`);
   const known = (s: unknown, what: string): void => { if (typeof s !== 'string' || !names.includes(s)) throw new Error(`${id} ${t.on} trigger ${what} "${String(s)}", which is not one of its states (${names.join(', ')})`); };
+  if (t.on === 'interval') {
+    const { every, toggle } = t as { every: unknown; toggle: unknown };
+    if (typeof every !== 'string' || every === '') throw new Error(`${id} interval trigger needs "every": a delay or duration token, or a time such as "5000ms"`);
+    if (!Array.isArray(toggle) || toggle.length < 2 || new Set(toggle).size !== toggle.length) throw new Error(`${id} interval trigger needs a list of two or more different states to step through`);
+    toggle.forEach(s => known(s, 'steps through'));
+    return;
+  }
   if (t.on === 'arrows') {
     const list = (t as { states: string[] }).states;
     if (!Array.isArray(list) || list.length < 2 || new Set(list).size !== list.length) throw new Error(`${id} arrows trigger needs a list of at least two different states, left to right`);
