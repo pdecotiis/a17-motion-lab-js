@@ -511,24 +511,24 @@ function syncPreviewMode(params: URLSearchParams): void {
   const bar = document.createElement('div');
   bar.id = 'lab-preview-bar';
   bar.className = 'lab-preview-bar lab-preview-bar--shown';
-  bar.innerHTML = `<span class="lab-preview-bar__name"></span><span class="lab-preview-bar__keys">R replay · ← → versions · Esc exit</span><button type="button" class="lab-btn lab-btn--sm" id="preview-exit">Exit preview</button>`;
+  bar.innerHTML = `<span class="lab-preview-bar__name"></span><span class="lab-preview-bar__keys">R replay · ← → versions · H hide · Esc exit</span><button type="button" class="lab-btn lab-btn--sm" id="preview-hide">Hide</button><button type="button" class="lab-btn lab-btn--sm" id="preview-exit">Exit preview</button>`;
   bar.querySelector('.lab-preview-bar__name')!.textContent = name;
   document.body.appendChild(bar);
   bar.querySelector('#preview-exit')!.addEventListener('click', () => navigate(previewHref(false)));
-  const show = (): void => {
-    bar.classList.add('lab-preview-bar--shown');
-    window.clearTimeout(previewBarTimer);
-    previewBarTimer = window.setTimeout(() => bar.classList.remove('lab-preview-bar--shown'), 2500);
-  };
-  document.addEventListener('pointermove', show, { passive: true });
-  onViewLeave(() => document.removeEventListener('pointermove', show));
-  show();
+  // The bar says what the keys are for a few seconds when preview opens, then goes: it never comes back because the pointer moved (it got in the way of the
+  // design). The Hide button (or H) puts it away at once, and H brings it back and keeps it until H or Hide again.
+  const hide = (): void => { window.clearTimeout(previewBarTimer); bar.classList.remove('lab-preview-bar--shown'); };
+  bar.querySelector('#preview-hide')!.addEventListener('click', hide);
+  previewBarToggle = () => { if (bar.classList.contains('lab-preview-bar--shown')) hide(); else { window.clearTimeout(previewBarTimer); bar.classList.add('lab-preview-bar--shown'); } };
+  previewBarTimer = window.setTimeout(hide, 4000);
 }
+let previewBarToggle: () => void = () => {};
 document.addEventListener('keydown', event => {
   if (!document.body.classList.contains('lab-preview-mode') || event.metaKey || event.ctrlKey || event.altKey) return;
   if ((event.target as HTMLElement | null)?.closest('input, textarea, select')) return;
   const view = new URLSearchParams(window.location.search).get('view');
   if (event.key === 'Escape') { event.preventDefault(); navigate(previewHref(false)); return; }
+  if (event.key === 'h' || event.key === 'H') { event.preventDefault(); previewBarToggle(); return; }
   if (event.key === 'r' || event.key === 'R') {
     event.preventDefault();
     document.getElementById(view === 'page' ? 'replay-all-btn' : 'replay-btn')?.click();
