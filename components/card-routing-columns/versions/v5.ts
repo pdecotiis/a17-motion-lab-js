@@ -2,9 +2,9 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 import { v1 } from './v1.js';
 
 // v5: the default is three columns of a card above its picture (as v2 opens). Click a picture and the bento animates to ONE card with ONE picture, "2 up",
-// in the order of the links: Machine Learning, then Trading, then Technology. The pair sits side by side on the three-column grid: the card takes ONE
-// grid column (352 wide, the full height) and the picture TWO (712 wide), so each fills whole spaces of the grid, as in the Figma bento; the other two
-// columns close up. Clicking the picture cycles to the next; after Technology the next click goes back to the three. The bento is the same height (595) in
+// in the order of the links: Machine Learning, then Trading, then Technology. The pair sits side by side, divided evenly: two columns, no rows (the card
+// 532 wide and the picture 532, each the full height, 8px apart); the other two columns close up as the pair's grows, so the bento morphs as the other
+// versions do: one cell gets larger as the others get smaller. Clicking the picture cycles to the next; after Technology the next click goes back to the three. The bento is the same height (595) in
 // every arrangement. A card also brings back the three. It opens as v2 does: the cards cascade in, a quick beat, the pictures are masked in.
 // How a column goes from stacked to side by side without a jump: every column is a row of two items. Stacked, the picture is pushed under the card
 // (a top margin) and pulled back to the left edge (a negative left margin); side by side both margins are 0. Nothing but sizes and margins animates.
@@ -36,12 +36,12 @@ const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> =
     }),
     transitions: each(() => GROW),
   };
-  // the card: one grid column wide and the full height side by side; 352 x 235 stacked
-  layers[`card-${n}`] = { states: each(s => ({ width: '352px', height: active(n, s) ? '595px' : '235px' })), transitions: each(() => GROW) };
-  // the picture: two grid columns wide (712) side by side; stacked under the card (352 x 352, up to the left edge) otherwise
+  // the card: half the width (532) and the full height side by side; 352 x 235 stacked
+  layers[`card-${n}`] = { states: each(s => ({ width: active(n, s) ? '532px' : '352px', height: active(n, s) ? '595px' : '235px' })), transitions: each(() => GROW) };
+  // the picture: the other half (532 x 595) side by side; stacked under the card (352 x 352, up to the left edge) otherwise
   layers[`image-${n}`] = {
     states: each(s => active(n, s)
-      ? { width: '712px', height: '595px', marginLeft: '0px', marginTop: '0px' }
+      ? { width: '532px', height: '595px', marginLeft: '0px', marginTop: '0px' }
       : { width: '352px', height: s === 'cards' ? '0px' : '352px', marginLeft: '-360px', marginTop: s === 'cards' ? '0px' : '243px' }),
     transitions: each(s => (s === 'default' && delay ? { ...GROW, delay } : GROW)),
   };

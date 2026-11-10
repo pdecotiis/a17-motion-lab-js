@@ -99,8 +99,8 @@ for (const runtime of ['css', 'motion']) {
     const step = async (image: string) => { await page.locator(`[data-motion="${image}"]`).click(); await page.waitForTimeout(1100); };
     await step('image-2');                                  // from any picture: Machine Learning first
     expect(await widths()).toEqual([1072, 0, 0]);
-    expect(await box('card-1')).toEqual([352, 595]);        // the card: one grid column, the full height
-    expect(await box('image-1')).toEqual([712, 595]);       // the picture: two grid columns, side by side with it
+    expect(await box('card-1')).toEqual([532, 595]);        // the card: half the width, the full height
+    expect(await box('image-1')).toEqual([532, 595]);       // the picture: the other half, side by side (two columns, no rows)
     expect(await heights()).toEqual([595, 595, 595]);       // the same height
     await step('image-1');                                  // then Trading
     expect(await widths()).toEqual([0, 1072, 0]);
