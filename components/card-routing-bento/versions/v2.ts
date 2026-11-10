@@ -6,6 +6,7 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 // States: default (the Figma layout) and top, middle, bottom (the group that is open). For now they are played with the state buttons (and Replay); a
 // timer that steps through them on an interval comes next. The cells cascade in with the card entrance preset, in reading order (the first at once, then
 // each a little later than the one before: 40, 70, 120, 140, 220, 300, 400 and 560ms); the grid itself only fades in, quickly.
+// It plays on scroll.
 type State = 'default' | 'top' | 'middle' | 'bottom';
 const STATES: State[] = ['default', 'top', 'middle', 'bottom'];
 
@@ -56,6 +57,8 @@ export const v2: MotionVersion = {
       grid: { states: each(s => ({ gridTemplateColumns: COLUMNS[s], gridTemplateRows: ROWS[s] })), transitions: each(() => MORPH) },
     },
   },
+  // In production it plays when the section scrolls into view (a fifth of it showing), the first time only; in the Page view it waits, hidden, until then.
+  trigger: { on: 'in-view', threshold: 0.2, once: true },
   forkedFrom: 'v1',
 };
 

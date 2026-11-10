@@ -25,6 +25,10 @@
       "component": "card-feature"
     },
     {
+      "id": "card-routing-bento",
+      "component": "card-routing-bento"
+    },
+    {
       "id": "prompts-footer-section",
       "component": "prompts-footer-section"
     }
