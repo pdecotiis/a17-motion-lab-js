@@ -12,6 +12,8 @@ const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> =
 for (const id of CELLS) {
   layers[id] = { states: each(s => sizeOf(LAYOUTS[s]!, id)), transitions: each(() => MOVE) };
 }
+// the columns change width (a column that grows takes the width the others give up)
+([0, 1, 2] as const).forEach(c => { layers[`col-${c}`] = { states: each(s => ({ width: `${LAYOUTS[s]!.widths[c]}px` })), transitions: each(() => MOVE) }; });
 
 export const v1: MotionVersion = {
   id: 'v1',
@@ -19,7 +21,7 @@ export const v1: MotionVersion = {
   // the grid fades in quickly and the colour cards of the first arrangement rise in one after another (reading order)
   model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-entrance' },
   keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
-  layers: { i1: { preset: 'card' }, g2: { preset: 'card', delay: 'delay.40' }, y0: { preset: 'card', delay: 'delay.70' } },
+  layers: { y0: { preset: 'card' }, g2: { preset: 'card', delay: 'delay.40' }, i1: { preset: 'card', delay: 'delay.70' } },
   interaction: {
     initial: 'default',
     states: each(() => ({})),
