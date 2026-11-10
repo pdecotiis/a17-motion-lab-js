@@ -34,6 +34,9 @@ export const v2: MotionVersion = {
   label: 'Cells expand and collapse',
   model: v1.model,
   keyframes: v1.keyframes,
+  // The three colour cards respond to the pointer by the card preset (a tint on hover, a slight scale on press, released a little slower), apart from the
+  // grid's own states: the cards' size follows the grid, and the preset only moves their tint and scale.
+  elements: { 'cell-1': 'card', 'cell-5': 'card', 'cell-7': 'card' },
   interaction: {
     initial: 'default',
     states: each(() => ({})),
