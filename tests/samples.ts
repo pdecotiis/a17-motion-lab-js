@@ -35,6 +35,7 @@ export const SAMPLE_UNIT_FILES = [
 
 /** E2E spec files that run on the samples throughout. */
 export const SAMPLE_E2E_FILES = [
+  'tests/e2e/element-presets.spec.ts',
   'tests/e2e/compare-view.spec.ts',
   'tests/e2e/component-view.spec.ts',
   'tests/e2e/engine-tokens.spec.ts',
@@ -66,15 +67,19 @@ export const TEMPLATE_TOKEN_E2E_FILES = [
  * code written from them) run only while the file is still the default; everything about the file's shape,
  * its tokens and the pairing rules is tested for any project (tests/unit/presets-table.test.ts).
  */
+const interactionWith = (release: string) => ({
+  hover: { tint: 0.04, timing: { duration: 'duration.100', easing: 'easing.productive-standard' } },
+  press: { scale: 'scale.95', tint: 0.08, timing: { duration: 'duration.100', easing: 'easing.productive-standard' }, release: { duration: release, easing: 'easing.productive-entrance' } },
+});
 export const TEMPLATE_DEFAULT_PRESETS = {
   separateFade: true,
   presets: {
     eyebrow: { rise: 'distance.20', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, status: 'experimental' },
     title: { rise: 'distance.20', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, status: 'experimental' },
     text: { rise: 'distance.20', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, status: 'experimental' },
-    card: { rise: 'distance.20', scale: 'scale.95', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, status: 'experimental' },
+    card: { rise: 'distance.20', scale: 'scale.95', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, interaction: interactionWith('duration.250'), status: 'experimental' },
     media: { rise: 'distance.20', scale: 'scale.95', move: { duration: 'duration.700', easing: 'easing.expressive-entrance' }, fade: { duration: 'duration.250', easing: 'easing.productive-entrance' }, status: 'experimental' },
-    ui: { rise: 'distance.8', move: { duration: 'duration.150', easing: 'easing.productive-standard' }, fade: { duration: 'duration.100', easing: 'easing.productive-entrance' }, status: 'experimental' },
+    ui: { rise: 'distance.8', move: { duration: 'duration.150', easing: 'easing.productive-standard' }, fade: { duration: 'duration.100', easing: 'easing.productive-entrance' }, interaction: interactionWith('duration.150'), status: 'experimental' },
   },
 };
 
@@ -95,7 +100,7 @@ export const TEMPLATE_PRESETS: boolean = (() => {
 export const PRESETS_NEEDED = 'needs the template\'s default presets (tokens/presets.json is customised)';
 
 /** Files that pin the template's default presets, left out entirely when tokens/presets.json is customised. */
-export const PRESET_UNIT_FILES = ['tests/unit/entrance-presets.test.ts'];
+export const PRESET_UNIT_FILES = ['tests/unit/entrance-presets.test.ts', 'tests/unit/element-presets.test.ts'];
 export const PRESET_E2E_FILES = ['tests/e2e/presets.spec.ts'];
 
 /**
