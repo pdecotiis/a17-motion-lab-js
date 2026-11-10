@@ -109,6 +109,7 @@ export interface MotionTrigger {
   on: TriggerType;
   threshold?: number;  // in-view only: fraction of the element visible (0–1) that fires it
   once?: boolean;      // play the first time only (true) or every time the trigger fires (false)
+  each?: boolean;      // in-view only: every animated element (each layer's elements) plays as it enters the view, instead of the whole section at once
 }
 
 // What a visitor with prefers-reduced-motion: reduce gets.

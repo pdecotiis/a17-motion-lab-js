@@ -35,6 +35,7 @@ export const SAMPLE_UNIT_FILES = [
 
 /** E2E spec files that run on the samples throughout. */
 export const SAMPLE_E2E_FILES = [
+  'tests/e2e/page-slot-swap.spec.ts',
   'tests/e2e/element-presets.spec.ts',
   'tests/e2e/compare-view.spec.ts',
   'tests/e2e/component-view.spec.ts',

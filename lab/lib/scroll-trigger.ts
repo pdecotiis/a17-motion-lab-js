@@ -10,13 +10,15 @@ export interface ScrollTrigger {
   threshold: number;
   /** true: the first time it enters only. false: every time it enters again. true when the version names none. */
   once: boolean;
+  /** true: each animated element (each layer's elements) waits for and plays on its own entering the view, not the section as a whole. */
+  each: boolean;
 }
 
 /** The scroll trigger of a version, or null when it plays on load. */
 export function scrollTriggerOf(version: MotionVersion): ScrollTrigger | null {
   const trigger = version.trigger;
   if (!trigger || trigger.on !== 'in-view') return null;
-  return { threshold: trigger.threshold ?? 0, once: trigger.once ?? true };
+  return { threshold: trigger.threshold ?? 0, once: trigger.once ?? true, each: trigger.each ?? false };
 }
 
 /**

@@ -116,7 +116,7 @@ describe('Card tokens', () => {
   });
 
   it('staggers with delay tokens', () => {
-    expect(versions.map(v => v.stagger)).toEqual(['delay.80', 'delay.80', 'delay.80']);
+    expect(versions.map(v => v.stagger)).toEqual(['delay.80', 'delay.80', 'delay.80', 'delay.80']);
   });
 });
 
@@ -126,7 +126,7 @@ describe('Card status and lineage', () => {
   });
 
   it('keeps its versions numbered without gaps', () => {
-    expect(versions.map(v => v.id)).toEqual(['v1', 'v2', 'v3']);
+    expect(versions.map(v => v.id)).toEqual(['v1', 'v2', 'v3', 'v4']);
   });
 
   it('v3 is v1\'s motion played when the card scrolls into view, and says so', () => {

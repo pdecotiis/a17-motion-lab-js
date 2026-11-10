@@ -255,6 +255,10 @@ export function validateMotionVersion(version: MotionVersion): void {
         throw new Error(`MotionVersion "${version.id}" trigger threshold must be a number from 0 to 1`);
       }
     }
+    if (version.trigger.each !== undefined) {
+      if (on !== 'in-view') throw new Error(`MotionVersion "${version.id}" trigger "each" only applies to "in-view"`);
+      if (typeof version.trigger.each !== 'boolean') throw new Error(`MotionVersion "${version.id}" trigger "each" must be true or false`);
+    }
     if (once !== undefined && typeof once !== 'boolean') {
       throw new Error(`MotionVersion "${version.id}" trigger "once" must be true or false`);
     }

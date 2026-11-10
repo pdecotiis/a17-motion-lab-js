@@ -14,7 +14,7 @@ import { registerComponent, getVersion, getDefaultVersion } from './lib/version-
 import { playbackOf, stepsOf, hasEntrance } from './lib/motion-models.js';
 import { getMotionMapFromUrl, setMotionMapInUrl } from './lib/motion-map.js';
 import {
-  choiceToStagger, pageVersionsOf, resolveMotionMap, staggerToChoice, validatePageVersion, type PageVersion,
+  choiceToStagger, pageVersionsOf, parseSlotChoice, resolveMotionMap, SLOT_NONE, staggerToChoice, swapChoice, validatePageVersion, type PageVersion,
 } from './lib/page-versions.js';
 import { prefersReducedMotion } from './lib/reduced-motion.js';
 import { animate as motionAnimate } from 'motion';
@@ -691,7 +691,14 @@ function startInteraction(el: HTMLElement, version: MotionVersion): void {
 
 // The entrance of a version: its root motion and each layer's, cancelling what was playing on the element.
 // Returns every handle, the root's first.
+// A version whose in-view trigger is "each" (a page view sets it for the component's root): the root plays at once, and every layer element waits, hidden,
+// for its own entering the scrolling window, then plays its motion alone. Elements that enter together start a beat apart, in page order.
+interface EachScroll { viewport: HTMLElement; threshold: number; once: boolean; gapMs: number }
+const eachScroll = new WeakMap<HTMLElement, EachScroll>();
+const eachObservers = new WeakMap<HTMLElement, IntersectionObserver>();
+
 function playEntrance(el: HTMLElement, version: MotionVersion, staggerIndex: number): PlayHandle[] {
+  eachObservers.get(el)?.disconnect();
   el.getAnimations({ subtree: true }).forEach(a => a.cancel());
   activeAnimations.filter(h => el.contains(h.target)).forEach(h => h.cancel());
   activeAnimations = activeAnimations.filter(h => !h.finished && !el.contains(h.target));
@@ -699,13 +706,45 @@ function playEntrance(el: HTMLElement, version: MotionVersion, staggerIndex: num
   // Each motion on its element: the root, then each layer's elements. A preset is up to two motions on the
   // same element (its fade and its move); a layer with a stagger starts each of its elements a little after the one before.
   const handles: PlayHandle[] = [];
+  const deferred = new Map<HTMLElement, ReturnType<typeof stepsOf>>();
   for (const entry of stepsOf(version)) {
     const els = entry.name === null ? [el] : [...el.querySelectorAll<HTMLElement>(`[data-motion="${entry.name}"]`)];
     const gap = entry.elementStagger ? parseMsLocal(String(entry.elementStagger in raw ? raw[entry.elementStagger] : entry.elementStagger)) : 0;
+    const each = eachScroll.get(el);
+    if (each && entry.name !== null) { els.forEach(target => { const list = deferred.get(target) ?? []; list.push(entry); deferred.set(target, list); }); continue; }
     els.forEach((target, i) => handles.push(playStep(target, entry.version, staggerIndex, gap * i)));
   }
   activeAnimations.push(...handles);
+  const each = eachScroll.get(el);
+  if (each && deferred.size) waitForEach(el, each, deferred);
   return handles;
+}
+
+function waitForEach(root: HTMLElement, each: EachScroll, deferred: Map<HTMLElement, ReturnType<typeof stepsOf>>): void {
+  const targets = [...deferred.keys()];
+  targets.forEach(t => { t.style.opacity = '0'; });
+  const played = new Set<HTMLElement>();
+  const play = (target: HTMLElement, order: number): void => {
+    played.add(target);
+    target.style.removeProperty('opacity');
+    for (const entry of deferred.get(target)!) {
+      // the layer's own delay (the cascade of the whole entrance) does not apply: this element plays as it enters, a beat after any that entered with it
+      const version = { ...entry.version, model: { ...entry.version.model, delay: '0ms' } } as typeof entry.version;
+      const handle = playStep(target, version, 0, each.gapMs * order);
+      activeAnimations.push(handle);
+      // under CSS the finished animation holds its last frame: let go, so the element's own states (a preset's hover and press) can move it
+      void handle.done?.then(() => { if (runtime === 'css') target.getAnimations().forEach(a => a.cancel()); });
+    }
+  };
+  const observer = new IntersectionObserver(entries => {
+    const entering = entries.filter(e => e.isIntersecting && e.intersectionRatio >= Math.min(each.threshold, 1) && (!each.once || !played.has(e.target as HTMLElement)))
+      .map(e => e.target as HTMLElement)
+      .sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+    entering.forEach((target, i) => { play(target, i); if (each.once) observer.unobserve(target); });
+    if (!each.once) for (const e of entries) if (!e.isIntersecting && played.has(e.target as HTMLElement)) { played.delete(e.target as HTMLElement); (e.target as HTMLElement).style.opacity = '0'; }
+  }, { root: each.viewport, threshold: each.threshold });
+  targets.forEach(t => observer.observe(t));
+  eachObservers.set(root, observer);
 }
 
 // A version with an entrance and states (appears, then hovers and presses): the states are locked while
@@ -1624,6 +1663,15 @@ function renderPageView(params: URLSearchParams): void {
     return column;
   }
 
+  // What a slot shows under a motion map entry: the component and the version of it, or null when the slot is left out.
+  function slotShows(pc: PageComponent, value: string | undefined): { component: string; version: MotionVersion } | null {
+    const choice = parseSlotChoice(value, pc.component);
+    if (choice.kind === 'none') return null;
+    const component = choice.kind === 'version' ? choice.component : pc.component;
+    const id = choice.kind === 'version' ? choice.version : getDefaultVersion(component).id;
+    return { component, version: getVersion(component, id) };
+  }
+
   // The token the page staggers with now, or null for none.
   const staggerTokenFor = (choice: string): string | null => pageStaggerToken(choice, delayTokens, defaultStagger);
 
@@ -1636,13 +1684,17 @@ function renderPageView(params: URLSearchParams): void {
     const wrapper = document.createElement('div');
     wrapper.className = `lab-page-item lab-page-item--${pc.layout ?? 'full'}`;
     wrapper.dataset['componentId'] = pc.id;
-    wrapper.innerHTML = getMarkup(pc.component);
+    // What this page version puts in the slot: the slot's own component (a version of it), another component in its place, or nothing.
+    const shown = slotShows(pc, column.map()[pc.id]);
+    if (shown === null) wrapper.classList.add('lab-page-item--left-out');
+    else wrapper.innerHTML = getMarkup(shown.component);
     if (replace) replace.replaceWith(wrapper); else column.grid.appendChild(wrapper);
+    if (shown === null) { column.slots.set(pc.id, { wrapper, observer: null }); return; }
 
     const target =
       wrapper.querySelector<HTMLElement>('[data-motion-target]') ??
       (wrapper.firstElementChild as HTMLElement);
-    const ver = getVersion(pc.component, column.map()[pc.id] ?? getDefaultVersion(pc.component).id);
+    const ver = shown.version;
     const token = staggerTokenFor(column.choice());
     const play = (staggerAt: number): void => {
       const staggered = token !== null && staggerAt > 0;
@@ -1653,6 +1705,13 @@ function renderPageView(params: URLSearchParams): void {
     column.slots.set(pc.id, slot);
     const trigger = scrollTriggerOf(ver);
     if (!trigger) { play(index); return; }
+    // "each": the section is not held back; its elements wait for their own turn (see waitForEach), the root plays now.
+    if (trigger.each) {
+      eachScroll.set(target, { viewport: column.viewport, threshold: trigger.threshold, once: trigger.once, gapMs: parseMsLocal(String(raw['delay.40'] ?? '40ms')) });
+      play(index);
+      onViewLeave(() => eachObservers.get(target)?.disconnect());
+      return;
+    }
 
     wrapper.classList.add('lab-page-item--waiting');
     let firstNotice = true;
@@ -1729,8 +1788,8 @@ function renderPageView(params: URLSearchParams): void {
     for (const pc of pageConfig.components) {
       const label = slotLabels.get(pc.id);
       if (!label) continue;
-      const ver = getVersion(pc.component, motionMap[pc.id] ?? getDefaultVersion(pc.component).id);
-      label.textContent = pc.id + (scrollTriggerOf(ver) ? ' · plays on scroll' : '');
+      const shown = slotShows(pc, motionMap[pc.id]);
+      label.textContent = pc.id + (shown === null ? ' · left out' : scrollTriggerOf(shown.version) ? ' · plays on scroll' : '');
     }
   }
 
@@ -1748,16 +1807,31 @@ function renderPageView(params: URLSearchParams): void {
       sel.className = 'lab-select';
       sel.dataset['componentId'] = pc.id;
 
-      const pcMod = motionModules[`../components/${pc.component}/motion.ts`];
-      const componentVersions: MotionVersion[] = pcMod?.versions ?? [];
-      componentVersions.forEach(v => {
+      // The slot's own component first (its versions), then "Leave out", then every other component's versions to put in its place.
+      const optionFor = (value: string, text: string, v?: MotionVersion): HTMLOptionElement => {
         const opt = document.createElement('option');
-        opt.value = v.id;
-        opt.textContent = `${v.id}: ${v.label}`;
-        if (motionMap[pc.id] === v.id) opt.selected = true;
-        if (isArchived(v) && motionMap[pc.id] !== v.id) { opt.disabled = true; opt.textContent += ' (archived)'; }
-        sel.appendChild(opt);
-      });
+        opt.value = value;
+        opt.textContent = text;
+        if (motionMap[pc.id] === value) opt.selected = true;
+        if (v && isArchived(v) && motionMap[pc.id] !== value) { opt.disabled = true; opt.textContent += ' (archived)'; }
+        return opt;
+      };
+      const own = document.createElement('optgroup');
+      own.label = pc.component;
+      (motionModules[`../components/${pc.component}/motion.ts`]?.versions ?? []).forEach((v: MotionVersion) => own.appendChild(optionFor(v.id, `${v.id}: ${v.label}`, v)));
+      sel.appendChild(own);
+      const leave = document.createElement('optgroup');
+      leave.label = 'Leave out';
+      leave.appendChild(optionFor(SLOT_NONE, 'Leave this slot out'));
+      sel.appendChild(leave);
+      for (const [path, mod] of Object.entries(motionModules)) {
+        const other = path.split('/')[2]!;
+        if (other === pc.component || !mod?.versions?.length) continue;
+        const group = document.createElement('optgroup');
+        group.label = `Replace with ${other}`;
+        (mod.versions as MotionVersion[]).forEach(v => group.appendChild(optionFor(swapChoice(other, v.id), `${other} / ${v.id}: ${v.label}`, v)));
+        sel.appendChild(group);
+      }
       sel.addEventListener('change', () => {
         motionMap[pc.id] = sel.value;
         syncUrl();
