@@ -255,7 +255,7 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
           for (const e of els) listen(e, 'click', () => {
             if (locked) return;
             if ('set' in t && t.set !== undefined) base = t.set;
-            else if ('toggle' in t && t.toggle !== undefined) base = base === t.toggle[0] ? t.toggle[1] : t.toggle[0];
+            else if ('toggle' in t && t.toggle !== undefined) base = t.toggle[(t.toggle.indexOf(base) + 1) % t.toggle.length]!;
             settle();
           });
           continue;
