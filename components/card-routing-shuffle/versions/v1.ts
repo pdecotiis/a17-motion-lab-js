@@ -3,7 +3,7 @@ import { CELLS, LAYOUTS, STATE_ORDER, sizeOf } from '../layouts.js';
 
 // v1: the page's bento, reduced to its core. Three columns, each a stack of colour cards and pictures, the page's arrangement first (a card on top, at the
 // bottom, on top). The cells trade height, so a cell that grows pushes the ones next to it and they collapse, and a card or picture that is new comes in from the
-// top or the bottom of its column. The shuffle button below goes to the next arrangement on each click, and back to the first after the last. The first cards
+// top or the bottom of its column. The shuffle button goes to the next arrangement on each click, and so does a timer (the ring on the button) every five seconds, back to the first after the last. The first cards
 // come in with the card entrance preset and every card responds to the pointer with the card preset (hover tint, press scale). Each cell crops its picture.
 const MOVE = { model: 'tween' as const, duration: 'duration.400', easing: 'easing.expressive-standard' };
 // The intro: the three colour cards alone ('cards': no pictures yet), then the pictures open (the first move, to the first arrangement), the middle one above its
@@ -34,7 +34,11 @@ export const v1: MotionVersion = {
     states: each(() => ({})),
     transitions: each(() => MOVE),
     layers,
-    triggers: [{ on: 'click', toggle: STATE_ORDER as [string, string, ...string[]], target: 'shuffle' }],
+    triggers: [
+      { on: 'click', toggle: STATE_ORDER as [string, string, ...string[]], target: 'shuffle' },
+      // and by itself: five seconds after the last change (the ring on the button fills over the same five seconds: keep them equal)
+      { on: 'interval', every: '5000ms', toggle: STATE_ORDER as [string, string, ...string[]] },
+    ],
   },
   elements: { shuffle: 'button', y0: 'card', i0: 'card', g1: 'card', i1: 'card', g2: 'card', y2: 'card' },
   lineage: 'new, from the Figma "9 cell grid" frames (page home, xl · open)',

@@ -38,7 +38,19 @@
   position: absolute; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 24px 0 20px; border: 0; border-radius: var(--radius-full);
   background: var(--background-inverse); color: var(--text-inverse); font-family: var(--body-family); font-size: var(--font-size-16); line-height: 24px; cursor: pointer;
 }
-.card-routing-shuffle__shuffle-icon { display: block; flex: none; width: 24px; height: 24px; }
+/* The ring is a timer: it fills over the interval (5s, the same as the version's interval trigger) and then the bento goes to the next arrangement by itself; a
+   click on the button goes there at once and the ring starts again. It restarts because the animation's name changes with the state (the root's data-state),
+   so two animations take turns (a, b). Under reduced motion nothing steps by itself and the ring stays empty. */
+.card-routing-shuffle__ring { display: block; flex: none; width: 24px; height: 24px; transform: rotate(-90deg); }
+.card-routing-shuffle__ring-track { opacity: 0.25; }
+.card-routing-shuffle__ring-fill { stroke-dasharray: 1; stroke-dashoffset: 1; stroke-linecap: round; }
+.card-routing-shuffle[data-state="cards"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-2"] .card-routing-shuffle__ring-fill,
+.card-routing-shuffle[data-state="layout-4"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-6"] .card-routing-shuffle__ring-fill { animation: card-routing-shuffle-ring-b 5s linear forwards; }
+.card-routing-shuffle[data-state="default"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-3"] .card-routing-shuffle__ring-fill,
+.card-routing-shuffle[data-state="layout-5"] .card-routing-shuffle__ring-fill { animation: card-routing-shuffle-ring-a 5s linear forwards; }
+@keyframes card-routing-shuffle-ring-a { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes card-routing-shuffle-ring-b { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .card-routing-shuffle__ring-fill { animation: none !important; stroke-dashoffset: 1; } }
 .card-routing-shuffle__cell[data-motion="y0"] { height: 232px; margin-bottom: 8px; }
 .card-routing-shuffle__cell[data-motion="p0a"] { height: 472px; margin-bottom: 8px; }
 .card-routing-shuffle__cell[data-motion="p0b"] { height: 0px; margin-bottom: 0px; }
