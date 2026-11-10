@@ -96,6 +96,11 @@ for (const runtime of ['css', 'motion']) {
     const heights = async () => [(await box('col-1'))[1], (await box('col-2'))[1], (await box('col-3'))[1]];
     expect(await widths()).toEqual([352, 352, 352]);
     expect(await heights()).toEqual([595, 595, 595]);
+    // each picture sits in its own column (the middle one above its card), nothing hangs out of place
+    const at = (n: string) => page.evaluate(name => { const r = document.querySelector(`[data-motion="${name}"]`)!.getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y)]; }, n);
+    for (const k of [1, 2, 3]) expect((await at(`image-${k}`))[0]).toBe((await at(`col-${k}`))[0]);
+    expect((await at('image-2'))[1]).toBeLessThan((await at('card-2'))[1]);   // the middle picture is above its card
+    expect((await at('card-1'))[1]).toBeLessThan((await at('image-1'))[1]);   // the others have the card above
     const step = async (image: string) => { await page.locator(`[data-motion="${image}"]`).click(); await page.waitForTimeout(1100); };
     await step('image-2');                                  // from any picture: Machine Learning first
     expect(await widths()).toEqual([1072, 0, 0]);
