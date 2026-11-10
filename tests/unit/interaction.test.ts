@@ -128,10 +128,10 @@ describe('triggers', () => {
     expect(() => validateInteraction(withTriggers([{ on: 'hover', state: 'closed' }]))).toThrow('goes to "closed", the resting state');
   });
 
-  it('a click needs either a state to set or two different states to toggle', () => {
+  it('a click needs either a state to set or two or more different states to toggle', () => {
     expect(() => validateInteraction(withTriggers([{ on: 'click' } as never]))).toThrow('either "set" (a state) or "toggle"');
     expect(() => validateInteraction(withTriggers([{ on: 'click', set: 'open', toggle: ['closed', 'open'] } as never]))).toThrow('either "set" (a state) or "toggle"');
-    expect(() => validateInteraction(withTriggers([{ on: 'click', toggle: ['open', 'open'] }]))).toThrow('two different states');
+    expect(() => validateInteraction(withTriggers([{ on: 'click', toggle: ['open', 'open'] }]))).toThrow('two or more different states');
     expect(() => validateInteraction(withTriggers([{ on: 'click', toggle: ['open', 'lost'] }]))).toThrow('toggles "lost"');
   });
 
