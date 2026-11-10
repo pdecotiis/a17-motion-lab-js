@@ -35,7 +35,7 @@ test('card-routing-columns v2: the pictures open to squares', async ({ page }) =
   expect((await box('photo-1'))[1]).toBe(352);         // still the full square: it is uncovered, not squashed
 });
 
-// v3: click a picture and the columns trade width (576 against 240 + 240); a card brings the equal columns back; every card stays visible throughout.
+// v3: click a picture and the columns trade width (600 against 228 + 228); a card brings the equal columns back; every card stays visible throughout.
 for (const runtime of ['css', 'motion']) {
   test(`card-routing-columns v3 (${runtime}): clicking a picture rearranges the bento, and every card is in every arrangement`, async ({ page }) => {
     await page.goto(`/?view=component&component=card-routing-columns&version=v3&runtime=${runtime}`);
@@ -47,12 +47,13 @@ for (const runtime of ['css', 'motion']) {
     expect(await h('image-1')).toBe(352);
     await page.locator('[data-motion="image-2"]').click();
     await page.waitForTimeout(1200);
-    expect([await w('col-1'), await w('col-2'), await w('col-3')]).toEqual([240, 576, 240]);
-    expect(await h('image-1')).toBe(576);                       // the slim pictures grow tall to keep the bottom edge even
-    for (const card of ['card-1', 'card-2', 'card-3']) expect(await w(card)).toBeGreaterThanOrEqual(240); // each card is still there
+    expect([await w('col-1'), await w('col-2'), await w('col-3')]).toEqual([228, 600, 228]);
+    expect(await h('image-1')).toBe(352);                       // the pictures keep their height
+    expect([await h('col-1'), await h('col-2'), await h('col-3')]).toEqual([595, 595, 595]); // and so does the bento, whatever the widths
+    for (const card of ['card-1', 'card-2', 'card-3']) expect(await w(card)).toBeGreaterThanOrEqual(228); // each card is still there
     await page.locator('[data-motion="image-3"]').click();
     await page.waitForTimeout(1200);
-    expect([await w('col-1'), await w('col-2'), await w('col-3')]).toEqual([240, 240, 576]);
+    expect([await w('col-1'), await w('col-2'), await w('col-3')]).toEqual([228, 228, 600]);
     await page.locator('[data-motion="card-1"]').click();
     await page.waitForTimeout(1200);
     expect([await w('col-1'), await w('col-2'), await w('col-3')]).toEqual([352, 352, 352]);
