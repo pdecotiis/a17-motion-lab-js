@@ -21,6 +21,11 @@ const COLOR: Record<Tab, string> = { ml: 'var(--background-accent-primary)', tra
 const TITLE_COLOR: Record<Tab, string> = { ml: 'var(--text-on-accent-primary)', trading: 'var(--text-on-accent-1)', technology: 'var(--text-on-accent-2)' };
 
 const MORPH = { model: 'tween' as const, duration: 'duration.300', easing: 'easing.productive-standard' };
+// A picture or title swap is seamless, whichever way it goes: the one coming in fades in first (over the one going out, or beneath it), and only then
+// does the one going out clear, quickly, so the two are never both half there.
+const SWAP_IN = { model: 'tween' as const, duration: 'duration.140', easing: 'easing.productive-entrance' };
+const SWAP_OUT = { model: 'tween' as const, duration: 'duration.100', easing: 'easing.productive-exit', delay: 'duration.140' };
+const swap = (tab: Tab) => each(s => (s === tab ? SWAP_IN : SWAP_OUT));
 const FADE = { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-entrance' };
 const each = <T>(f: (s: Tab) => T): Record<string, T> => Object.fromEntries(TABS.map(s => [s, f(s)]));
 const timing = (t: typeof MORPH | typeof FADE) => each(() => t);
@@ -43,9 +48,9 @@ const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> =
 };
 for (const tab of TABS) {
   // Pictures: stacked in their cell, one shown.
-  for (const part of ['big', 'small']) layers[`t-${part}-${tab}`] = { states: each(s => ({ opacity: s === tab ? 1 : 0 })), transitions: timing(FADE) };
+  for (const part of ['big', 'small']) layers[`t-${part}-${tab}`] = { states: each(s => ({ opacity: s === tab ? 1 : 0 })), transitions: swap(tab) };
   // Titles: stacked, one shown, in the card's text colour (dark on orange and yellow, light on green).
-  layers[`t-title-${tab}`] = { states: each(s => ({ opacity: s === tab ? 1 : 0, color: TITLE_COLOR[tab] })), transitions: timing(FADE) };
+  layers[`t-title-${tab}`] = { states: each(s => ({ opacity: s === tab ? 1 : 0, color: TITLE_COLOR[tab] })), transitions: swap(tab) };
   // The selected tab's pill is the page colour; the others are clear.
   layers[`t-tab-${tab}`] = { states: each(s => ({ backgroundColor: s === tab ? 'rgba(245, 244, 242, 1)' : 'rgba(245, 244, 242, 0)' })), transitions: timing(FADE) };
 }
