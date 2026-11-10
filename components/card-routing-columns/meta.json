@@ -1,0 +1,28 @@
+{
+  "name": "card-routing-columns",
+  "layerName": "grid container/mosaic <slot>",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=23827-78879",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23827:78879"
+  },
+  "importedAt": "2026-11-10",
+  "frame": {
+    "width": 1136,
+    "height": 808
+  },
+  "designWidth": 1136,
+  "variables": [],
+  "assets": [
+    "arrow-dark.svg",
+    "arrow-light.svg",
+    "photo-1.png",
+    "photo-2.png",
+    "photo-3.png"
+  ],
+  "fontFallbacks": [],
+  "issues": [
+    "Built from the Figma frame with two examples side by side (the three cards alone, then each column with a picture): the stylesheet is the second; the first is a state a version sets.",
+    "The pictures are placeholders from the Figma file."
+  ]
+}

@@ -1,0 +1,34 @@
+/* Card routing columns (Figma "grid container/mosaic <slot>", the second example): three columns of 352, each a colour card (352 x 235) and a picture
+   (352 x 469), 8px apart. In the middle column the picture is above its card. The first example is the three cards alone; a version closes the pictures
+   (height 0, no gap) to start there and opens them. The stylesheet is the open layout. */
+.card-routing-columns {
+  width: var(--layout-container);
+  padding: var(--space-7) var(--layout-margin) 0;
+  background: var(--background-default);
+  box-sizing: border-box;
+  font-feature-settings: "lnum" 1, "pnum" 1;
+}
+.card-routing-columns__grid { display: grid; grid-template-columns: repeat(3, 352px); gap: var(--layout-gutter); width: 1072px; align-items: start; }
+.card-routing-columns__col { display: flex; flex-direction: column; gap: var(--layout-gutter); min-width: 0; }
+
+.card-routing-columns__card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  box-sizing: border-box;
+  flex: none;
+  height: 235px;
+  padding: var(--size-24);
+  border-radius: var(--size-24);
+}
+.card-routing-columns__card--1 { background: var(--background-accent-1); }
+.card-routing-columns__card--2 { background: var(--background-accent-3); }
+.card-routing-columns__card--3 { background: var(--background-accent-2); }
+.card-routing-columns__title { margin: 0; font-family: var(--heading-family); font-weight: var(--heading-weight); font-size: var(--font-size-20); line-height: 1.3; color: var(--text-on-accent-1); }
+.card-routing-columns__card--2 .card-routing-columns__title { color: var(--text-on-accent-3); }
+.card-routing-columns__card--3 .card-routing-columns__title { color: var(--text-on-accent-2); }
+.card-routing-columns__arrow { display: block; width: 24px; height: 24px; }
+
+.card-routing-columns__image { position: relative; flex: none; height: 469.333px; overflow: hidden; border-radius: var(--radius-xl); }
+.card-routing-columns__photo { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; }
