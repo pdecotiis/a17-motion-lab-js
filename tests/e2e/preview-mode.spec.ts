@@ -75,4 +75,27 @@ test.describe('preview mode', () => {
     await expect(page.locator('.lab-page-viewport')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
     expect(await page.locator('.lab-page-grid').evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid');
   });
+
+  test('the little bar does not come back when the pointer moves: Hide (or H) puts it away, H brings it back', async ({ page }) => {
+    await page.goto('/?view=component&preview=1');
+    const bar = page.locator('#lab-preview-bar');
+    await expect(bar).toHaveClass(/lab-preview-bar--shown/);
+    await page.click('#preview-hide');
+    await expect(bar).not.toHaveClass(/lab-preview-bar--shown/);
+    await page.mouse.move(300, 300); await page.mouse.move(600, 500); await page.mouse.move(100, 700);
+    await page.waitForTimeout(300);
+    await expect(bar).not.toHaveClass(/lab-preview-bar--shown/);   // moving the pointer does not show it
+    await page.keyboard.press('h');
+    await expect(bar).toHaveClass(/lab-preview-bar--shown/);
+    await page.waitForTimeout(4500);
+    await expect(bar).toHaveClass(/lab-preview-bar--shown/);       // brought back by hand, it stays
+    await page.keyboard.press('h');
+    await expect(bar).not.toHaveClass(/lab-preview-bar--shown/);
+  });
+
+  test('on its own the bar goes after a few seconds', async ({ page }) => {
+    await page.goto('/?view=component&preview=1');
+    await expect(page.locator('#lab-preview-bar')).toHaveClass(/lab-preview-bar--shown/);
+    await expect(page.locator('#lab-preview-bar')).not.toHaveClass(/lab-preview-bar--shown/, { timeout: 6000 });
+  });
 });
