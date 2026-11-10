@@ -3,7 +3,7 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 // v12 keeps v11's spirit (the three colour cards are there for a beat, then resolve into one topic with its pictures; fast, productive easings; the
 // colour is always there) in a different layout: the cards are STACKED, one above the other as wide bars (Technology, Trading, Machine Learning),
 // and the chosen one grows downward to show its pictures while the others stay as bars. Titles stay visible on every bar, so the closed ones read as
-// a menu. The stack is 484px tall: the cards view is three bars of 156; open, the topic is 324 (a 120 title row with its cover picture, then a row
+// a menu. The stack is 484px tall: the cards view is three bars of 156; open, the topic is 324 (a 120 title row, full width, then a row
 // of pictures) and the other two are 72-tall bars. The component's slot is turned into a column by its state (flexDirection), so v11 and earlier are
 // untouched. Same triggers as v11 (click a bar, or the arrow keys), and the colour bars respond to the pointer by the card preset.
 type Tab = 'default' | 'trading' | 'technology';
@@ -21,7 +21,7 @@ const WIDTH = '1072px';
 // Three bars across the stack's height (484 = 3 × 156 + 2 × 8), a closed bar, and an open topic (324 = 120 + 8 + 196).
 const CARDS_GRID = { width: WIDTH, height: '156px', gridTemplateColumns: '1072px 0px 0px 0px', gridTemplateRows: '156px 0px', columnGap: '0px' };
 const CLOSED = { width: WIDTH, height: '72px', gridTemplateColumns: '1072px 0px 0px 0px', gridTemplateRows: '72px 0px', columnGap: '0px' };
-// Three pictures across (352 each) under a title row: the title card is two columns (712), its cover picture the third.
+// Three pictures across (352 each) under a full-width title row (the title card is set to the stack's width, over the columns beside it).
 const THIRDS = { width: WIDTH, height: '324px', gridTemplateColumns: '352px 352px 172px 172px', gridTemplateRows: '120px 196px', columnGap: '8px' };
 // Machine Learning: its small first picture's column is closed (so the 4px column gap on each side of it makes the 8px gutter) and the cover is the third.
 const ML = { width: WIDTH, height: '324px', gridTemplateColumns: '354px 354px 0px 352px', gridTemplateRows: '120px 196px', columnGap: '4px' };
@@ -32,8 +32,11 @@ const LAYOUTS: Record<Tab, { grid: Record<string, string>; small1?: Record<strin
 };
 
 const NONE = { marginLeft: '0px', marginRight: '0px' };
+// The cell that would sit beside the title card in the top row is hidden (the card runs across it): the cover card of Trading and Technology, and Machine Learning's second picture.
+const HIDDEN: Record<Tab, 'second' | 'small2'> = { default: 'small2', trading: 'second', technology: 'second' };
 // A bar is a row: the title at the left, the arrow at the right, the same shape closed and open (so only its size changes).
-const BAR = { borderRadius: '24px', paddingLeft: '24px', paddingRight: '24px', paddingTop: '0px', paddingBottom: '0px', flexDirection: 'row', alignItems: 'center' };
+// A bar is as wide as the stack in every state (the title card spans two columns of the open grid, so its width is set rather than left to the tracks).
+const BAR = { width: WIDTH, borderRadius: '24px', paddingLeft: '24px', paddingRight: '24px', paddingTop: '0px', paddingBottom: '0px', flexDirection: 'row', alignItems: 'center' };
 const OWN_COLOR: Record<Tab, string> = { default: 'var(--background-accent-primary)', trading: 'var(--background-accent-1)', technology: 'var(--background-accent-2)' };
 
 const into = () => ({ model: 'tween' as const, duration: 'duration.300', easing: 'easing.productive-standard' });
@@ -57,7 +60,7 @@ for (const open of BENTOS) {
   // The arrow sits at the bar's right edge.
   for (const text of t.texts) layers[text] = { states: Object.fromEntries(STATES.map(s => [s, { opacity: 1, ...(text.startsWith('actions') ? { justifyContent: 'flex-end' } : {}) }])) };
   for (const cell of ['small1', 'small2', 'second', 'wide'] as const) {
-    layers[t[cell]] = { states: Object.fromEntries(STATES.map(s => [s, s === open ? { ...NONE, ...layout[cell] } : NONE])) };
+    layers[t[cell]] = { states: Object.fromEntries(STATES.map(s => [s, { ...(s === open ? { ...NONE, ...layout[cell] } : NONE), ...(HIDDEN[open] === cell ? { opacity: 0 } : {}) }])) };
   }
   layers[t.cover] = { states: Object.fromEntries(STATES.map(s => [s, { opacity: 1, scale: s === open ? 1 : ZOOM }])), transitions: settle(open) };
   layers[t.photos] = { states: Object.fromEntries(STATES.map(s => [s, { scale: s === open ? 1 : ZOOM }])), transitions: settle(open) };
