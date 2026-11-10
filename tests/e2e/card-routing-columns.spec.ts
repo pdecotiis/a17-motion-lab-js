@@ -84,3 +84,30 @@ for (const runtime of ['css', 'motion']) {
     for (const n of ['card-1', 'card-2', 'card-3', 'card-4']) expect(await page.evaluate(name => Math.round(document.querySelector(`[data-motion="${name}"]`)!.getBoundingClientRect().width), n)).toBeGreaterThanOrEqual(216);
   });
 }
+
+// v5: three up by default; a click on a picture shows one card and one picture at a time (Machine Learning, Trading, Technology), then back to three.
+for (const runtime of ['css', 'motion']) {
+  test(`card-routing-columns v5 (${runtime}): one card and picture at a time, in the order of the links, then back to three`, async ({ page }) => {
+    await page.goto(`/?view=component&component=card-routing-columns&version=v5&runtime=${runtime}`);
+    await page.locator('[data-motion="grid"]').waitFor();
+    await page.waitForTimeout(4000);
+    const box = (n: string) => page.evaluate(name => { const r = document.querySelector(`[data-motion="${name}"]`)!.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }, n);
+    const widths = async () => [(await box('col-1'))[0], (await box('col-2'))[0], (await box('col-3'))[0]];
+    const heights = async () => [(await box('col-1'))[1], (await box('col-2'))[1], (await box('col-3'))[1]];
+    expect(await widths()).toEqual([352, 352, 352]);
+    expect(await heights()).toEqual([595, 595, 595]);
+    const step = async (image: string) => { await page.locator(`[data-motion="${image}"]`).click(); await page.waitForTimeout(1100); };
+    await step('image-2');                                  // from any picture: Machine Learning first
+    expect(await widths()).toEqual([1072, 0, 0]);
+    expect(await box('card-1')).toEqual([1072, 235]);       // the card across the top
+    expect(await box('image-1')).toEqual([1072, 352]);      // the picture as a banner
+    expect(await heights()).toEqual([595, 595, 595]);       // the same height
+    await step('image-1');                                  // then Trading
+    expect(await widths()).toEqual([0, 1072, 0]);
+    await step('image-2');                                  // then Technology
+    expect(await widths()).toEqual([0, 0, 1072]);
+    expect(await heights()).toEqual([595, 595, 595]);
+    await step('image-3');                                  // and back to the three
+    expect(await widths()).toEqual([352, 352, 352]);
+  });
+}
