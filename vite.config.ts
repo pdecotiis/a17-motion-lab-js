@@ -4,6 +4,7 @@ import { resolve } from 'path';
 import { scaleApplyPlugin } from './scripts/scale-plugin';
 import { pageVersionPlugin } from './scripts/page-version-plugin';
 import { teamPlugin } from './scripts/team-plugin';
+import { versionArchivePlugin } from './scripts/version-archive-plugin';
 
 // The computer's git user, for the avatar in the header (dev server only: a built copy has no one to show).
 function gitUser(): string {
@@ -29,7 +30,7 @@ export default defineConfig(({ command }) => ({
   },
   root: 'lab',
   base: './',
-  plugins: [scaleApplyPlugin(__dirname), pageVersionPlugin(__dirname), teamPlugin(__dirname)],
+  plugins: [scaleApplyPlugin(__dirname), pageVersionPlugin(__dirname), teamPlugin(__dirname), versionArchivePlugin(__dirname)],
   build: {
     outDir: '../dist',
     emptyOutDir: true,

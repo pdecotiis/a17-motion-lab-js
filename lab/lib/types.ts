@@ -132,6 +132,9 @@ export type EntranceVersion = MotionVersion & { model: MotionModel };
 export interface MotionVersion {
   id: string;
   label: string;
+  // Set by the lab, never written in a version file: the version is named in components/<name>/archived.json (see archived.ts). It stays
+  // where it is, disabled.
+  archived?: boolean;
   // The motion of an entrance. Optional on an interaction version, which then has its states and
   // transitions instead (see modelOf in motion-models.ts for the timing the panels show).
   model?: MotionModel;

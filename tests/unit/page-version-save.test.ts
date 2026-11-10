@@ -84,3 +84,49 @@ describe('the dev endpoint', () => {
     expect(existsSync(join(root, 'pages/home/versions'))).toBe(false);
   });
 });
+
+describe('saving over a version', () => {
+  it('replaces the motion map and stagger of the version named, and keeps its name and where it was forked from', () => {
+    savePageVersion(root, { page: 'home', label: 'Quiet', motionMap: { hero: 'v1' } });
+    savePageVersion(root, { page: 'home', label: 'Layered', motionMap: { hero: 'v1' }, forkedFrom: 'v1' });
+    const saved = savePageVersion(root, { page: 'home', overwrite: 'v2', motionMap: { hero: 'v2', 'card-1': 'v1' }, stagger: 'none' });
+    expect(saved).toEqual({ id: 'v2', label: 'Layered', motionMap: { hero: 'v2', 'card-1': 'v1' }, stagger: 'none', forkedFrom: 'v1' });
+    expect(JSON.parse(readFileSync(join(root, 'pages/home/versions/v2.json'), 'utf8'))).toEqual(saved);
+    expect(savedPageVersionIds(root, 'home').sort()).toEqual(['v1', 'v2']);   // no new file
+  });
+
+  it('leaves every other version alone, and drops a stagger that is no longer set', () => {
+    savePageVersion(root, { page: 'home', label: 'Quiet', motionMap: { hero: 'v1' }, stagger: 'delay.120' });
+    const other = readFileSync(join(root, 'pages/home/versions/v1.json'), 'utf8');
+    savePageVersion(root, { page: 'home', label: 'B', motionMap: { hero: 'v1' }, stagger: 'delay.120' });
+    const over = savePageVersion(root, { page: 'home', overwrite: 'v2', motionMap: { hero: 'v2' } });
+    expect(over.stagger).toBeUndefined();
+    expect(readFileSync(join(root, 'pages/home/versions/v1.json'), 'utf8')).toBe(other);
+  });
+
+  it('refuses a version that is not a saved file, a path-like id, and a bad map, writing nothing', () => {
+    savePageVersion(root, { page: 'home', label: 'Quiet', motionMap: { hero: 'v1' } });
+    const before = readFileSync(join(root, 'pages/home/versions/v1.json'), 'utf8');
+    expect(() => savePageVersion(root, { page: 'home', overwrite: 'v7', motionMap: {} })).toThrow('no saved version');
+    expect(() => savePageVersion(root, { page: 'home', overwrite: '../v1', motionMap: {} })).toThrow('no saved version');
+    expect(() => savePageVersion(root, { page: 'home', overwrite: 'default', motionMap: {} })).toThrow('no saved version');
+    expect(() => savePageVersion(root, { page: 'home', overwrite: 'v1', motionMap: { nope: 'v1' } })).toThrow('not on page');
+    expect(() => savePageVersion(root, { page: 'home', overwrite: 'v1', motionMap: { 'card-1': 'v9' } })).toThrow('no version "v9"');
+    expect(readFileSync(join(root, 'pages/home/versions/v1.json'), 'utf8')).toBe(before);
+  });
+
+  it('a new version still needs a name', () => {
+    expect(() => savePageVersion(root, { page: 'home', motionMap: {} })).toThrow('name');
+  });
+
+  it('the endpoint takes an overwrite, and still refuses another site', () => {
+    savePageVersion(root, { page: 'home', label: 'Quiet', motionMap: { hero: 'v1' } });
+    const ok = handlePageVersionRequest(root, { method: 'POST', host: 'a:1', origin: 'http://a:1', body: JSON.stringify({ page: 'home', overwrite: 'v1', motionMap: { hero: 'v2' } }) });
+    expect(ok.status).toBe(200);
+    expect(ok.body).toEqual({ id: 'v1' });
+    expect(JSON.parse(readFileSync(join(root, 'pages/home/versions/v1.json'), 'utf8')).motionMap).toEqual({ hero: 'v2' });
+    const refused = handlePageVersionRequest(root, { method: 'POST', host: 'a:1', origin: 'http://evil.example', body: JSON.stringify({ page: 'home', overwrite: 'v1', motionMap: {} }) });
+    expect(refused.status).toBe(403);
+    expect(handlePageVersionRequest(root, { method: 'POST', body: JSON.stringify({ page: 'home', overwrite: 'v9', motionMap: {} }) }).status).toBe(400);
+  });
+});
