@@ -1,5 +1,5 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
-import { CELLS, LAYOUTS, STATE_ORDER, sizeOf } from '../layouts.js';
+import { CELLS, COLUMNS, LAYOUTS, STATE_ORDER, sizeOf } from '../layouts.js';
 
 // v1: the page's bento, reduced to its core. Three columns, each a stack of colour cards and pictures, the page's arrangement first (a card on top, at the
 // bottom, on top). The cells trade height, so a cell that grows pushes the ones next to it and they collapse, and a card or picture that is new comes in from the
@@ -13,12 +13,15 @@ const CARDS_ONLY = { y0: 1, i1: 1, g2: 1 };
 const ALL = [INTRO, ...STATE_ORDER];
 const each = <T>(f: (s: string) => T): Record<string, T> => Object.fromEntries(ALL.map(s => [s, f(s)]));
 const layoutOf = (s: string) => (s === INTRO ? CARDS_ONLY : LAYOUTS[s]!);
-// the pictures open one after another, each a beat after the one before (into the first arrangement)
-const PICTURE_DELAY: Record<string, string> = { p1a: 'delay.40', p2a: 'delay.70' };
+// the columns open one after another, each a beat after the one before (into the first arrangement). Every cell of a column takes the column's delay, not just
+// its picture, so a column's cells stay in step with each other (a picture that waited while its neighbour already collapsed would make the card between
+// them jump) and the same holds when the shuffle comes back round to the first arrangement.
+const COLUMN_DELAY = ['', 'delay.40', 'delay.70'];
+const delayOf = (id: string): string => COLUMN_DELAY[COLUMNS.findIndex(c => c.includes(id))]!;
 
 const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> = {};
 for (const id of CELLS) {
-  layers[id] = { states: each(s => sizeOf(layoutOf(s), id)), transitions: each(s => (s === 'default' && PICTURE_DELAY[id] ? { ...MOVE, delay: PICTURE_DELAY[id] } : MOVE)) };
+  layers[id] = { states: each(s => sizeOf(layoutOf(s), id)), transitions: each(s => (s === 'default' && delayOf(id) ? { ...MOVE, delay: delayOf(id) } : MOVE)) };
 }
 
 export const v1: MotionVersion = {
