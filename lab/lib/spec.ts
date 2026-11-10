@@ -108,6 +108,17 @@ function transitionLines(version: MotionVersion, raw: Record<string, unknown>): 
 
 // What starts each move, and the ones the component can't start itself.
 const TRIGGER_WORDS: Record<string, string> = { arrows: 'the left and right arrow keys', hover: 'pointer over it (a mouse or pen, never a touch)', press: 'pointer held down on it', focus: 'keyboard focus (not a mouse click)', click: 'a click or tap' };
+// Elements that use a preset's hover and press: the element, the preset, and where the preset is specified (it is shared by the whole project).
+function elementLines(version: MotionVersion): string[] {
+  return [
+    'These elements respond to the pointer by a preset, apart from the component\'s own states (hovering or pressing one never moves the component between states). The preset\'s timing and values are in the project\'s shared presets, not repeated here.',
+    '',
+    '| Element | Preset | Hover and press |',
+    '|---|---|---|',
+    ...Object.entries(version.elements ?? {}).map(([name, preset]) => `| \`data-motion="${name}"\` | \`${preset}\` | Add \`.motion-interaction-${preset}\` (presets/presets.css). Hover tints it; press scales and darkens it; release returns it. |`),
+  ];
+}
+
 function triggerLines(version: MotionVersion): string[] {
   const i = version.interaction!;
   const triggers = i.triggers ?? [];
@@ -286,6 +297,7 @@ export function buildVersionExport(
     ...motionTableMarkdown(motionTableOf(version, raw, component)),
     'Token names are written as in the lab\'s Tokens view: `duration-300` is `--motion-duration-300` (see `tokens.css`), and an easing such as `productive-standard` is `--motion-easing-productive-standard`. Easing and times are the version as authored; a spring (Motion) uses the duration as its visual duration and ignores the easing.',
     '',
+    ...(version.elements ? ['## Elements', '', ...elementLines(version), ''] : []),
     ...(version.interaction ? ['## Triggers', '', ...triggerLines(version), ''] : []),
     ...(version.interaction && !hasEntrance(version) ? [] : entranceBlock),
     ...(version.interaction ? ['## States', '', ...stateLines(version, raw), '', '## Transitions', '', ...transitionLines(version, raw), ''] : []),

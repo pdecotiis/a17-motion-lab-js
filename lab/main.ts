@@ -21,6 +21,7 @@ import { animate as motionAnimate } from 'motion';
 import { motionArgsOf, DEFAULT_BOUNCE } from './lib/motion-args.js';
 import { cssHandle, runtimeFromParam, RUNTIMES, type PlayHandle, type Runtime } from './lib/runtime.js';
 import { createInteractionPlayer, type InteractionPlayer } from './lib/interaction-player.js';
+import { versionForElementPreset } from './lib/preset-interaction.js';
 import { hasHoldTriggers, stateNames } from './lib/interaction.js';
 import { summarizeInteraction } from './lib/interaction-summary.js';
 import { PRESET_NAMES, presetOf, type PresetName } from './lib/entrance-presets.js';
@@ -29,7 +30,7 @@ import {
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
   type ComponentFilter,
 } from './lib/version-meta.js';
-import { getStepRefs, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
+import { getStepRefs, presetStateTokens, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
 import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
 import { toast, toastAfterReload, showPendingToast } from './lib/toast.js';
@@ -681,6 +682,7 @@ function playInteractionEntrance(el: HTMLElement, version: MotionVersion): PlayH
 // Where an interaction version starts when the view opens: at rest, so it can be hovered or clicked, unless
 // it has nothing a person would hover (an open/close), when it plays its first move so there is something to see.
 function startInteraction(el: HTMLElement, version: MotionVersion): void {
+  if (version.elements) elementPlayersFor(el, version);
   // A version that also appears plays its entrance, then rests with its states live.
   if (hasEntrance(version)) animateElement(el, version);
   else if (version.interaction && hasHoldTriggers(version.interaction)) void playerFor(el, version).reset();
@@ -739,7 +741,60 @@ function playEntranceThenStates(el: HTMLElement, version: MotionVersion, stagger
   return cssHandle(el, el.animate([{}], { duration: 0, fill: 'both' }));
 }
 
+// Elements that use a preset's hover and press (version.elements): each matching element has a player of its own, apart from the component's,
+// so a button inside the component is hovered and pressed without moving the component between states. They are locked while the version's
+// entrance plays and released when it ends (then reset to rest: under CSS the entrance holds its last frame, which is let go of first).
+const elementPlayers = new WeakMap<HTMLElement, { key: string; players: InteractionPlayer[]; targets: HTMLElement[]; detach: () => void }>();
+
+function elementPlayersFor(el: HTMLElement, version: MotionVersion): { players: InteractionPlayer[]; targets: HTMLElement[] } {
+  const key = `${version.id}|${runtime}|${globalBounce}`;
+  const known = elementPlayers.get(el);
+  if (known && known.key === key) return known;
+  known?.detach();
+  const players: InteractionPlayer[] = [];
+  const targets: HTMLElement[] = [];
+  const detaches: Array<() => void> = [];
+  for (const [name, preset] of Object.entries(version.elements ?? {})) {
+    for (const target of name === 'root' ? [el] : el.querySelectorAll<HTMLElement>(`[data-motion="${name}"]`)) {
+      const v = versionForElementPreset(version, preset);
+      const player = createInteractionPlayer(target, v, {
+        raw, runtime, globalBounce,
+        reducedMotion: () => prefersReducedMotion(),
+        reducedPolicy: getReducedMotionPolicy(version),
+        playbackRate: () => playbackRate,
+        onHandle: handle => activeAnimations.push(handle),
+      });
+      players.push(player); targets.push(target); detaches.push(player.attachTriggers());
+    }
+  }
+  const entry = { key, players, targets, detach: () => detaches.forEach(d => d()) };
+  elementPlayers.set(el, entry);
+  return entry;
+}
+
+const elementRuns = new WeakMap<HTMLElement, number>();
+function lockElementsDuringEntrance(el: HTMLElement, version: MotionVersion): void {
+  if (!version.elements) return;
+  const run = (elementRuns.get(el) ?? 0) + 1;
+  elementRuns.set(el, run);
+  const { players, targets } = elementPlayersFor(el, version);
+  players.forEach(p => p.setLocked(true));
+  // The entrance starts a few frames from now (the component's states reset first, and a stagger or delay is part of the animation): wait until
+  // nothing inside the component is running or about to run, then let go.
+  const busy = (): boolean => el.getAnimations({ subtree: true }).some(a => a.playState === 'running');
+  void new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => r())))).then(async () => {
+    const until = performance.now() + 15000;
+    while (busy() && performance.now() < until && elementRuns.get(el) === run) await new Promise(r => window.setTimeout(r, 50));
+    await Promise.all(activeAnimations.filter(h => el.contains(h.target)).map(h => h.done ?? Promise.resolve()));
+    if (elementRuns.get(el) !== run) return;
+    if (runtime === 'css') targets.forEach(t => t.getAnimations().forEach(a => a.cancel()));
+    await Promise.all(players.map(p => p.reset()));
+    if (elementRuns.get(el) === run) players.forEach(p => p.setLocked(false));
+  });
+}
+
 function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 0): PlayHandle {
+  lockElementsDuringEntrance(el, version);
   if (version.interaction && hasEntrance(version)) return playEntranceThenStates(el, version, staggerIndex);
   if (version.interaction) return playInteractionEntrance(el, version);
   return playEntrance(el, version, staggerIndex)[0]!;
@@ -1217,11 +1272,23 @@ function renderComponentView(params: URLSearchParams): void {
       title.className = 'lab-tokens-layer';
       title.textContent = step.layer ?? 'root';
       title.title = !step.layer ? 'The component root (data-motion-target)'
+        : step.layer.includes(' preset') ? `${step.layer.split(' · ')[0]}: how it responds to the pointer, from the ${step.layer.split(' · ')[1]?.replace(' preset', '')} preset (shared by the project, in tokens/presets.json)`
         : step.layer.includes(' ') ? `${step.layer}: one track of an entrance preset`
         : `The element marked data-motion="${step.layer}"`;
       tokensList.appendChild(title);
     }
-    for (const use of step.uses) {
+    // An element that uses a preset: one title per state (hovered, pressed, release) with the tokens it plays, like the groups above.
+    const groups = step.preset
+      ? presetStateTokens(step.preset, runtime).map(g => ({ title: g.state, uses: g.uses.map(u => ({ token: u.token, where: [u.where] })) }))
+      : [{ title: null as string | null, uses: step.uses }];
+    for (const group of groups) {
+    if (group.title) {
+      const sub = document.createElement('div');
+      sub.className = 'lab-tokens-state';
+      sub.textContent = group.title;
+      tokensList.appendChild(sub);
+    }
+    for (const use of group.uses) {
       const chip = document.createElement('div');
       chip.className = 'lab-token-chip';
       const code = document.createElement('code');
@@ -1237,6 +1304,7 @@ function renderComponentView(params: URLSearchParams): void {
       link.title = 'View in Tokens';
       chip.append(code, where, link);
       tokensList.appendChild(chip);
+    }
     }
     if (step.hardcoded.length > 0) {
       const warn = document.createElement('div');

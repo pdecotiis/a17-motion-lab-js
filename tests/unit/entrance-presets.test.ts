@@ -43,9 +43,9 @@ describe.skipIf(!TEMPLATE_PRESETS)('the presets table', () => {
     for (const name of ['eyebrow', 'title', 'text'] as const) {
       expect(PRESETS[name], name).toEqual({ rise: 'distance.20', move, fade, status: 'experimental' });
     }
-    expect(PRESETS.card).toEqual({ rise: 'distance.20', scale: 'scale.95', move, fade, status: 'experimental' });
+    expect(PRESETS.card).toMatchObject({ rise: 'distance.20', scale: 'scale.95', move, fade, status: 'experimental' }); // plus its hover and press: element-presets.test.ts
     expect(PRESETS.media).toEqual({ rise: 'distance.20', scale: 'scale.95', move, fade, status: 'experimental' });
-    expect(PRESETS.ui).toEqual({
+    expect(PRESETS.ui).toMatchObject({
       rise: 'distance.8',
       move: { duration: 'duration.150', easing: 'easing.productive-standard' },
       fade: { duration: 'duration.100', easing: 'easing.productive-entrance' },

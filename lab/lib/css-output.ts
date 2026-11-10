@@ -2,6 +2,7 @@ import type { Interaction, MotionVersion, EntranceVersion, SpringProperty } from
 import { resolveRefs, tokenVarName } from './token-compiler.js';
 import { hasEntrance, stepsOf, type StepEntry } from './motion-models.js';
 import { PRESET_NAMES, presetOf, presetTracks, type PresetName } from './entrance-presets.js';
+import { versionForElementPreset } from './preset-interaction.js';
 import { interactionParts, partProps, partValues, stateNames, timingFor } from './interaction.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { describeTrigger, getReducedMotionPolicy } from './version-meta.js';
@@ -241,12 +242,23 @@ export function buildPresetsCss(raw: Record<string, unknown>, names: readonly Pr
       '}',
     );
   }
+  // A preset with hover and press is also written as the states of an element: add .motion-interaction-<name> to it.
+  for (const name of names) {
+    if (!presetOf(name).interaction) continue;
+    const base = `motion-interaction-${name}`;
+    out.push('', `/* ── ${name}: hover and press. Add .${base} to the element (a button, a card): it tints on hover, and scales and darkens while pressed. ── */`, ...interactionCss(versionForElementPreset({ id: 'preset', label: name } as MotionVersion, name), raw, base));
+  }
   return out.join('\n') + '\n';
 }
 
 // The presets a version uses, in the order it uses them.
 export function presetsUsed(entries: StepEntry[]): PresetName[] {
   return [...new Set(entries.flatMap(e => (e.preset ? [e.preset] : [])))];
+}
+
+/** The presets a version's `elements` use for their hover and press. */
+export function elementPresetsUsed(version: MotionVersion): PresetName[] {
+  return [...new Set(Object.values(version.elements ?? {}))];
 }
 
 // A preset on an element: the component's own class sets the delay and stagger the preset reads.

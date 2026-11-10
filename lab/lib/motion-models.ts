@@ -3,7 +3,8 @@ import { isPresetName, presetTracks, type PresetName, type PresetStep, type Pres
 import { getEffectiveKeyframes, REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { resolveRefs } from './token-compiler.js';
 import { resolveBounce } from './bounce.js';
-import { validateInteraction } from './interaction.js';
+import { partProps, validateInteraction } from './interaction.js';
+import { hasPresetInteraction, PRESET_INTERACTION_PROPS } from './preset-interaction.js';
 import { isTriggerType, isReducedMotionPolicy, TRIGGER_TYPES } from './version-meta.js';
 
 export interface ResolvedTiming {
@@ -220,8 +221,23 @@ function validatePresetStep(id: string, step: PresetStep, where: string): void {
   }
 }
 
+// Elements that use a preset's hover and press. Each names an element (a data-motion value, or `root`: the component itself, such as a card that is pressed) and a preset that has an interaction. An element's
+// presets move filter and transform, so the component's own states may not set either on the same layer (the two would fight).
+function validateElements(version: MotionVersion): void {
+  if (version.elements === undefined) return;
+  if (typeof version.elements !== 'object' || version.elements === null || Array.isArray(version.elements)) throw new Error(`MotionVersion "${version.id}" elements must be an object: { "<data-motion name>": "<preset>" }`);
+  for (const [name, preset] of Object.entries(version.elements)) {
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) throw new Error(`MotionVersion "${version.id}" element name "${name}" must be lowercase letters, numbers and hyphens, as in data-motion="${name}"`);
+    if (!isPresetName(preset)) throw new Error(`MotionVersion "${version.id}" element "${name}" names an unknown preset "${String(preset)}"`);
+    if (!hasPresetInteraction(preset)) throw new Error(`MotionVersion "${version.id}" element "${name}": the preset "${preset}" has no hover or press (add "interaction" to it in tokens/presets.json)`);
+    const own = version.interaction ? partProps(version.interaction, name === 'root' ? null : name) : [];
+    const clash = own.filter(p => (PRESET_INTERACTION_PROPS as readonly string[]).includes(p));
+    if (clash.length) throw new Error(`MotionVersion "${version.id}" element "${name}" uses the "${preset}" preset, which sets ${clash.join(' and ')}, and the component's own states set ${clash.join(' and ')} on it too: give them different elements`);
+  }
+}
+
 export function validateMotionVersion(version: MotionVersion): void {
-  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'entrance', 'interaction', 'reviewNotes', 'forkedFrom', 'lineage']);
+  const allowed = new Set(['id', 'label', 'model', 'keyframes', 'stagger', 'trigger', 'reducedMotion', 'layers', 'entrance', 'interaction', 'elements', 'reviewNotes', 'forkedFrom', 'lineage']);
   for (const key of Object.keys(version)) {
     if (!allowed.has(key)) {
       throw new Error(`MotionVersion "${version.id}" has disallowed property: "${key}"`);
@@ -249,6 +265,7 @@ export function validateMotionVersion(version: MotionVersion): void {
   }
 
   validateInteraction(version);
+  validateElements(version);
 
   if (version.entrance !== undefined) {
     if (version.model !== undefined || version.keyframes !== undefined) {

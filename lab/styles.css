@@ -489,6 +489,8 @@ html, body {
 #tokens-used-list { padding: 8px 12px; background: var(--color-bg); border-radius: var(--radius); }
 .lab-tokens-layer { margin: 16px 0 6px; font: var(--type-ui-2-strong); }
 .lab-tokens-layer:first-child { margin-top: 0; }
+/* An element preset's states inside its group: hovered, pressed, release, each followed by the tokens it plays. */
+.lab-tokens-state { margin: 10px 0 4px; font: var(--type-ui-2); color: var(--color-text-muted); }
 .lab-token-chip-link {
   color: var(--color-accent);
   text-decoration: none;

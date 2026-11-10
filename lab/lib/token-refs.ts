@@ -2,6 +2,8 @@ import type { MotionVersion, EntranceVersion, PageConfig, StateValues, Transitio
 import type { Runtime } from './runtime.js';
 import { findRefs } from './token-compiler.js';
 import { hasEntrance, stepsOf } from './motion-models.js';
+import { versionForElementPreset } from './preset-interaction.js';
+import { presetOf } from './entrance-presets.js';
 
 export interface TokenRefs {
   tokens: string[];
@@ -22,6 +24,8 @@ export type UsageIndex = Map<string, UsageEntry[]>;
 export interface StepRefs {
   /** The layer's data-motion name; null for the component's root. */
   layer: string | null;
+  /** For an element that uses a preset's hover and press: the preset (the panel adds a short list of its states). */
+  preset?: string;
   uses: { token: string; where: string[] }[];
   hardcoded: { label: string; value: string }[];
 }
@@ -120,7 +124,34 @@ export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>
   if (version.interaction && hasEntrance(version)) {
     steps.push(stepRefs('states', { ...version, model: version.model! } as EntranceVersion, raw, false, runtime, globalBounce));
   }
+  // Elements that use a preset's hover and press: a group each, "<element> · <preset>", with what hovered and pressed use ("into pressed duration", "pressed transform").
+  for (const [name, preset] of Object.entries(version.elements ?? {})) {
+    const group = stepRefs(name === 'root' ? `${preset} preset` : `${name} · ${preset} preset`, versionForElementPreset(version, preset) as EntranceVersion, raw, false, runtime, globalBounce);
+    // In the designer's words: pressing, letting go (into hovered), and leaving (into default); the scale is the press's.
+    const words = (where: string): string => where
+      .replace('into pressed ', 'press ').replace('into hovered ', 'hover, release ').replace('into default ', 'leave ')
+      .replace('pressed transform', 'press scale').replace('hovered filter', 'hover tint').replace('pressed filter', 'press tint');
+    group.preset = preset;
+    group.uses = group.uses.map(u => ({ ...u, where: [...new Set(u.where.map(words))] }));
+    steps.push(group);
+  }
   return steps;
+}
+
+/** The tokens a preset's states play, state by state (hovered, pressed, release), for the Details panel. An easing only under CSS. */
+export function presetStateTokens(preset: string, runtime?: Runtime): { state: string; uses: { token: string; where: string }[] }[] {
+  const ix = presetOf(preset).interaction;
+  if (!ix) return [];
+  const timing = (t: { duration: string; easing: string }): { token: string; where: string }[] => [
+    { token: t.duration, where: 'duration' }, ...(runtime === 'motion' ? [] : [{ token: t.easing, where: 'easing' }]),
+  ];
+  const out: { state: string; uses: { token: string; where: string }[] }[] = [];
+  if (ix.hover) out.push({ state: 'hovered', uses: timing(ix.hover.timing) });
+  if (ix.press) {
+    out.push({ state: 'pressed', uses: [{ token: ix.press.scale, where: 'scale' }, ...timing(ix.press.timing)] });
+    out.push({ state: 'release', uses: timing(ix.press.release) });
+  }
+  return out;
 }
 
 // Every token a version uses, across its root and layers, and its hard-coded values (a layer's are
