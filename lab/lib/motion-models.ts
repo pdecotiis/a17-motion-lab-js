@@ -221,7 +221,7 @@ function validatePresetStep(id: string, step: PresetStep, where: string): void {
   }
 }
 
-// Elements that use a preset's hover and press. Each names an element (a data-motion value) and a preset that has an interaction. An element's
+// Elements that use a preset's hover and press. Each names an element (a data-motion value, or `root`: the component itself, such as a card that is pressed) and a preset that has an interaction. An element's
 // presets move filter and transform, so the component's own states may not set either on the same layer (the two would fight).
 function validateElements(version: MotionVersion): void {
   if (version.elements === undefined) return;
@@ -230,7 +230,7 @@ function validateElements(version: MotionVersion): void {
     if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) throw new Error(`MotionVersion "${version.id}" element name "${name}" must be lowercase letters, numbers and hyphens, as in data-motion="${name}"`);
     if (!isPresetName(preset)) throw new Error(`MotionVersion "${version.id}" element "${name}" names an unknown preset "${String(preset)}"`);
     if (!hasPresetInteraction(preset)) throw new Error(`MotionVersion "${version.id}" element "${name}": the preset "${preset}" has no hover or press (add "interaction" to it in tokens/presets.json)`);
-    const own = version.interaction ? partProps(version.interaction, name) : [];
+    const own = version.interaction ? partProps(version.interaction, name === 'root' ? null : name) : [];
     const clash = own.filter(p => (PRESET_INTERACTION_PROPS as readonly string[]).includes(p));
     if (clash.length) throw new Error(`MotionVersion "${version.id}" element "${name}" uses the "${preset}" preset, which sets ${clash.join(' and ')}, and the component's own states set ${clash.join(' and ')} on it too: give them different elements`);
   }

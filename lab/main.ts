@@ -755,7 +755,7 @@ function elementPlayersFor(el: HTMLElement, version: MotionVersion): { players: 
   const targets: HTMLElement[] = [];
   const detaches: Array<() => void> = [];
   for (const [name, preset] of Object.entries(version.elements ?? {})) {
-    for (const target of el.querySelectorAll<HTMLElement>(`[data-motion="${name}"]`)) {
+    for (const target of name === 'root' ? [el] : el.querySelectorAll<HTMLElement>(`[data-motion="${name}"]`)) {
       const v = versionForElementPreset(version, preset);
       const player = createInteractionPlayer(target, v, {
         raw, runtime, globalBounce,

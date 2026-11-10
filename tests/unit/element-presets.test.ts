@@ -65,6 +65,11 @@ describe('a version\'s elements', () => {
       layers: { close: { states: { a: { transform: 'none' }, b: { transform: 'translateX(4px)' } } } } } });
     expect(() => validateMotionVersion(v)).toThrow(/give them different elements/);
   });
+  it('`root` is the component itself: accepted, and refused when the component\'s own states move its transform', () => {
+    expect(() => validateMotionVersion(panel({ elements: { root: 'card' } }))).not.toThrow();
+    const v = panel({ elements: { root: 'card' }, interaction: { initial: 'a', states: { a: { transform: 'none' }, b: { transform: 'translateX(4px)' } }, transitions: { a: { model: 'tween', ...T }, b: { model: 'tween', ...T } } } });
+    expect(() => validateMotionVersion(v)).toThrow(/give them different elements/);
+  });
   it('allows the component\'s states on other properties of the same layer', () => {
     const v = panel({ elements: { close: 'ui' }, interaction: { initial: 'a', states: { a: {}, b: {} }, transitions: { a: { model: 'tween', ...T }, b: { model: 'tween', ...T } },
       layers: { close: { states: { a: { opacity: 1 }, b: { opacity: 0 } } } } } });
