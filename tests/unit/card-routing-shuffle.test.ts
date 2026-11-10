@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LAYOUTS, COLUMNS, CELLS, STATE_ORDER, boxOf, isColour, overlapsBetween, pixelsOf } from '../../components/card-routing-shuffle/layouts';
+import { LAYOUTS, COLUMNS, CELLS, STATE_ORDER, boxOf, isColour, overlapsBetween, sizeOf } from '../../components/card-routing-shuffle/layouts';
 import { versions } from '../../components/card-routing-shuffle/motion';
 import { validateVersionMeta } from '../../lab/lib/version-meta';
 
@@ -27,8 +27,8 @@ describe('card-routing-shuffle', () => {
   it('a cell never changes width, so it never changes in both width and height', () => {
     for (const layout of Object.values(LAYOUTS)) for (const id of CELLS) expect(boxOf(layout, id).w).toBe(352);
   });
-  it('writes the pixels of a cell', () => {
-    expect(pixelsOf(LAYOUTS['layout-2']!, 'p01')).toEqual({ transform: 'translate(0px, 0px)', width: '352px', height: '472px' });
-    expect(pixelsOf(LAYOUTS['layout-2']!, 'p02')).toEqual({ transform: 'translate(0px, 480px)', width: '352px', height: '0px' });
+  it('writes what a cell sets: its height and the gap under it', () => {
+    expect(sizeOf(LAYOUTS['layout-2']!, 'p01')).toEqual({ height: '472px', marginBottom: '8px' });
+    expect(sizeOf(LAYOUTS['layout-2']!, 'p02')).toEqual({ height: '0px', marginBottom: '0px' });
   });
 });

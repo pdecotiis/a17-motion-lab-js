@@ -1,37 +1,45 @@
-/* Card routing shuffle: a 3 x 3 bento (cells 352 x 232, 8px apart) that rearranges. Every cell sits in the grid by a translate and has its own size, so a
-   version moves and resizes the cells; the stylesheet is the first arrangement. Colours only for now: the pictures and the video are placeholders. */
+/* Card routing shuffle: a 3 x 3 bento (cells 352 x 232, 8px apart) that rearranges. Each column is a stack of cells; a cell's height and the gap under it
+   decide where the others sit, so growing one pushes its neighbours. The stylesheet is the first arrangement. A picture fills its cell (the cell masks it). */
 .card-routing-shuffle {
   width: var(--layout-container);
   padding: var(--space-7) var(--layout-margin);
   background: var(--background-default);
   box-sizing: border-box;
+  font-feature-settings: "lnum" 1, "pnum" 1;
 }
-.card-routing-shuffle__grid { position: relative; overflow: hidden; width: 1072px; height: 712px; }
-.card-routing-shuffle__cell { position: absolute; top: 0; left: 0; width: 352px; height: 232px; overflow: hidden; border-radius: var(--size-24); box-sizing: border-box; }
-.card-routing-shuffle__cell--picture { background: #e0e0de; }
+.card-routing-shuffle__grid { display: flex; gap: 8px; width: 1072px; height: 712px; }
+.card-routing-shuffle__col { display: flex; flex-direction: column; flex: none; width: 352px; height: 712px; }
+.card-routing-shuffle__cell { position: relative; flex: none; height: 232px; margin-bottom: 8px; overflow: hidden; border-radius: var(--size-24); box-sizing: border-box; background: #e0e0de; }
 .card-routing-shuffle__cell--video { background: #b4b4b2; }
+.card-routing-shuffle__cell--yellow, .card-routing-shuffle__cell--indigo, .card-routing-shuffle__cell--green {
+  cursor: pointer;
+}
+/* the padding is on an inner box, so a collapsed cell can be 0 tall (padding on the cell itself would keep it 48px) */
+.card-routing-shuffle__inner { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: var(--size-24); box-sizing: border-box; }
 .card-routing-shuffle__cell--yellow { background: var(--background-accent-1); }
 .card-routing-shuffle__cell--indigo { background: var(--background-accent-3); }
 .card-routing-shuffle__cell--green { background: var(--background-accent-2); }
-.card-routing-shuffle__play { position: absolute; left: 24px; bottom: 24px; width: 48px; height: 48px; border-radius: 50%; background: rgba(0, 0, 0, 0.25); }
+.card-routing-shuffle__title { margin: 0; font-family: var(--heading-family); font-weight: var(--heading-weight); font-size: var(--font-size-20); line-height: 1.3; color: var(--text-on-accent-1); }
+.card-routing-shuffle__cell--indigo .card-routing-shuffle__title { color: var(--text-on-accent-3); }
+.card-routing-shuffle__cell--green .card-routing-shuffle__title { color: var(--text-on-accent-2); }
+.card-routing-shuffle__arrow { display: block; flex: none; width: 24px; height: 24px; }
+.card-routing-shuffle__photo { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; }
+.card-routing-shuffle__cell--video::before { content: ""; position: absolute; inset: auto 0 0 0; height: 40%; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.35)); z-index: 1; }
+.card-routing-shuffle__play { position: absolute; left: 24px; bottom: 24px; z-index: 2; width: 48px; height: 48px; border-radius: 50%; background: rgba(0, 0, 0, 0.25); }
 .card-routing-shuffle__play::after { content: ""; position: absolute; left: 19px; top: 15px; border-left: 14px solid #fff; border-top: 9px solid transparent; border-bottom: 9px solid transparent; }
 .card-routing-shuffle__shuffle { display: block; margin: var(--space-5, 24px) 0 0; height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #171717; color: #fff; font: inherit; font-size: 14px; cursor: pointer; }
-.card-routing-shuffle__cell[data-motion="p01"] { transform: translate(0px, 0px); height: 232px; }
-.card-routing-shuffle__cell[data-motion="p02"] { transform: translate(0px, 240px); height: 232px; }
-.card-routing-shuffle__cell[data-motion="y0"] { transform: translate(0px, 480px); height: 232px; }
-.card-routing-shuffle__cell[data-motion="i0"] { transform: translate(0px, 720px); height: 0px; }
-.card-routing-shuffle__cell[data-motion="v0"] { transform: translate(0px, 720px); height: 0px; }
-.card-routing-shuffle__cell[data-motion="g1"] { transform: translate(360px, 0px); height: 0px; }
-.card-routing-shuffle__cell[data-motion="i1"] { transform: translate(360px, 0px); height: 232px; }
-.card-routing-shuffle__cell[data-motion="p11"] { transform: translate(360px, 240px); height: 232px; }
-.card-routing-shuffle__cell[data-motion="p12"] { transform: translate(360px, 480px); height: 232px; }
-.card-routing-shuffle__cell[data-motion="v1"] { transform: translate(360px, 720px); height: 0px; }
-.card-routing-shuffle__cell[data-motion="p22"] { transform: translate(720px, 0px); height: 0px; }
-.card-routing-shuffle__cell[data-motion="g2"] { transform: translate(720px, 0px); height: 232px; }
-.card-routing-shuffle__cell[data-motion="p21"] { transform: translate(720px, 240px); height: 232px; }
-.card-routing-shuffle__cell[data-motion="v2"] { transform: translate(720px, 480px); height: 232px; }
-.card-routing-shuffle__cell[data-motion="y2"] { transform: translate(720px, 720px); height: 0px; }
-/* A picture keeps its size and the cell is a window onto it (the cell masks it, nothing scales), so a cell that grows uncovers more of the picture. */
-.card-routing-shuffle__photo { position: absolute; top: 0; left: 0; display: block; width: 352px; height: 712px; max-width: none; object-fit: cover; }
-.card-routing-shuffle__cell--video::before { content: ""; position: absolute; inset: auto 0 0 0; height: 40%; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.35)); z-index: 1; }
-.card-routing-shuffle__play { z-index: 2; }
+.card-routing-shuffle__cell[data-motion="p01"] { height: 232px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="p02"] { height: 232px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="y0"] { height: 232px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="i0"] { height: 0px; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="v0"] { height: 0px; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="g1"] { height: 0px; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="i1"] { height: 232px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="p11"] { height: 232px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="p12"] { height: 232px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="v1"] { height: 0px; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="p22"] { height: 0px; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="g2"] { height: 232px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="p21"] { height: 232px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="v2"] { height: 232px; margin-bottom: 8px; }
+.card-routing-shuffle__cell[data-motion="y2"] { height: 0px; margin-bottom: 0px; }

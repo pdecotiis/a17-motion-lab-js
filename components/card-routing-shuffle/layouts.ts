@@ -49,9 +49,10 @@ export function boxOf(layout: Layout, id: string): Box {
   }
   throw new Error(`no such cell: ${id}`);
 }
-export function pixelsOf(layout: Layout, id: string): { transform: string; width: string; height: string } {
+/** What a cell's states set: its height, and the gap under it (a cell that shows has 8px below it, a collapsed one none), so the column's stack does the pushing. */
+export function sizeOf(layout: Layout, id: string): { height: string; marginBottom: string } {
   const b = boxOf(layout, id);
-  return { transform: `translate(${b.x}px, ${b.y}px)`, width: `${b.w}px`, height: `${b.h}px` };
+  return { height: `${b.h}px`, marginBottom: b.h ? `${GAP}px` : '0px' };
 }
 
 /** The pairs of cells that can overlap while the bento goes from one arrangement to the next, each cell moving in a straight line from its box to its box:
