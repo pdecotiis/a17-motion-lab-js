@@ -58,7 +58,8 @@ export const v13: MotionVersion = {
     't-small': { preset: 'card', delay: 'delay.70' },
     't-card': { preset: 'card', delay: 'delay.120' },
   },
-  elements: { 't-tab-ml': 'button', 't-tab-trading': 'button', 't-tab-technology': 'button' },
+  // The tabs respond to the pointer by the button preset, and the colour card by the card preset (a tint on hover, a slight scale on press, released a little slower).
+  elements: { 't-tab-ml': 'button', 't-tab-trading': 'button', 't-tab-technology': 'button', 't-card': 'card' },
   interaction: {
     initial: 'ml',
     states: each(() => ({})),
