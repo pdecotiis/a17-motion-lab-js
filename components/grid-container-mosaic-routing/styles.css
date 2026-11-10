@@ -183,3 +183,80 @@
 .grid-container-mosaic-routing__tile--orange[style*="--background-secondary"]:hover { background-color: var(--background-accent-primary) !important; }
 .grid-container-mosaic-routing__tile--yellow[style*="--background-secondary"]:hover { background-color: var(--background-accent-1) !important; }
 .grid-container-mosaic-routing__tile--green[style*="--background-secondary"]:hover { background-color: var(--background-accent-2) !important; }
+
+/* v13: tabs above a three-cell bento (Figma "xl · open"): a pill of three tabs, then a big picture (712 x 536), a small picture (352 x 264) and a colour
+   card (352 x 264), 8px apart. The block is closed (no size, clear) in every other version; v13's states open it and close the three bentos. A tab changes
+   the bento: its tracks (the cells morph), the pictures, and the card's colour and title (each stacked in its cell, one shown). */
+.grid-container-mosaic-routing__tabs-block {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+.grid-container-mosaic-routing__tabs {
+  display: flex;
+  align-self: flex-start;
+  gap: 0;
+  padding: 4px;
+  border-radius: var(--radius-full);
+  background: var(--background-secondary);
+}
+
+.grid-container-mosaic-routing__tab {
+  height: 40px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-default);
+  font-family: var(--ui-sans-family);
+  font-weight: var(--ui-sans-weight);
+  font-size: var(--font-size-14);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+/* the first tab is selected until a version says otherwise */
+.grid-container-mosaic-routing__tab:first-child { background: var(--background-default); }
+
+.grid-container-mosaic-routing__bento {
+  display: grid;
+  grid-template-columns: 712px 352px;
+  grid-template-rows: 264px 264px;
+  gap: 8px;
+  width: 1072px;
+  height: 536px;
+}
+
+.grid-container-mosaic-routing__cell {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  min-width: 0;
+  min-height: 0;
+}
+.grid-container-mosaic-routing__big { grid-area: 1 / 1 / 3 / 2; }
+.grid-container-mosaic-routing__small { grid-area: 1 / 2 / 2 / 3; }
+.grid-container-mosaic-routing__tcard { grid-area: 2 / 2 / 3 / 3; display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-5); background: var(--background-accent-primary); }
+
+/* Each picture fills its cell; the three in a cell are stacked and a version shows one (the first by default). */
+.grid-container-mosaic-routing__tphoto { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.grid-container-mosaic-routing__tphoto:first-child { opacity: 1; }
+
+.grid-container-mosaic-routing__theading { position: relative; }
+.grid-container-mosaic-routing__ttitle {
+  margin: 0;
+  font-family: var(--heading-family);
+  font-weight: var(--heading-weight);
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--text-on-accent-primary);
+  white-space: nowrap;
+}
+/* the titles are stacked: the first takes the space, the others lie over it until a version shows one */
+.grid-container-mosaic-routing__ttitle:not(:first-child) { position: absolute; top: 0; left: 0; opacity: 0; }
+.grid-container-mosaic-routing__tarrow { display: block; width: 24px; height: 24px; }

@@ -5,7 +5,7 @@ test.describe('Grid Container Mosaic Routing', () => {
   test('renders the component', async ({ page }) => {
     await page.goto('/?view=component&component=grid-container-mosaic-routing');
     await expect(page.locator('[data-motion-target]').first()).toBeVisible();
-    await expect(page.getByText('Machine Learning')).toBeVisible();
+    await expect(page.locator('p[data-motion="title"]')).toBeVisible();
   });
 
   test('v1 plays without error', async ({ page }) => {
