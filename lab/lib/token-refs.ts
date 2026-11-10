@@ -138,19 +138,20 @@ export function getStepRefs(version: MotionVersion, raw: Record<string, unknown>
   return steps;
 }
 
-/** A preset's states as short lines for the Details panel: hovered, pressed, release, each with the values and tokens it plays (an easing only under CSS). */
-export function presetStateLines(preset: string, runtime?: Runtime): { state: string; parts: string[] }[] {
+/** The tokens a preset's states play, state by state (hovered, pressed, release), for the Details panel. An easing only under CSS. */
+export function presetStateTokens(preset: string, runtime?: Runtime): { state: string; uses: { token: string; where: string }[] }[] {
   const ix = presetOf(preset).interaction;
   if (!ix) return [];
-  const pct = (n: number): string => `${Math.round(n * 1000) / 10}%`;
-  const timing = (t: { duration: string; easing: string }): string[] => [t.duration, ...(runtime === 'motion' ? [] : [t.easing])];
-  const lines: { state: string; parts: string[] }[] = [];
-  if (ix.hover) lines.push({ state: 'hovered', parts: [`tint ${pct(ix.hover.tint)}`, ...timing(ix.hover.timing)] });
+  const timing = (t: { duration: string; easing: string }): { token: string; where: string }[] => [
+    { token: t.duration, where: 'duration' }, ...(runtime === 'motion' ? [] : [{ token: t.easing, where: 'easing' }]),
+  ];
+  const out: { state: string; uses: { token: string; where: string }[] }[] = [];
+  if (ix.hover) out.push({ state: 'hovered', uses: timing(ix.hover.timing) });
   if (ix.press) {
-    lines.push({ state: 'pressed', parts: [ix.press.scale, `tint ${pct(ix.press.tint)}`, ...timing(ix.press.timing)] });
-    lines.push({ state: 'release', parts: timing(ix.press.release) });
+    out.push({ state: 'pressed', uses: [{ token: ix.press.scale, where: 'scale' }, ...timing(ix.press.timing)] });
+    out.push({ state: 'release', uses: timing(ix.press.release) });
   }
-  return lines;
+  return out;
 }
 
 // Every token a version uses, across its root and layers, and its hard-coded values (a layer's are

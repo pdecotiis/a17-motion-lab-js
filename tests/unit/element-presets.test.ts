@@ -3,7 +3,7 @@ import { parsePresets } from '../../lab/lib/entrance-presets.js';
 import { interactionOfPreset } from '../../lab/lib/preset-interaction.js';
 import { validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { validateInteraction } from '../../lab/lib/interaction.js';
-import { getStepRefs, presetStateLines } from '../../lab/lib/token-refs.js';
+import { getStepRefs, presetStateTokens } from '../../lab/lib/token-refs.js';
 import { buildPresetsCss } from '../../lab/lib/css-output.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
@@ -102,12 +102,12 @@ describe('the Details panel\'s tokens used', () => {
     expect(where('duration.100')).toEqual(['leave duration', 'press duration']);
     expect(where('duration.250')).toEqual(['hover, release duration']);
   });
-  it('has a short list of the preset\'s states: hovered, pressed, release', () => {
-    expect(presetStateLines('card')).toEqual([
-      { state: 'hovered', parts: ['tint 4%', 'duration.100', 'easing.productive-standard'] },
-      { state: 'pressed', parts: ['scale.95', 'tint 8%', 'duration.100', 'easing.productive-standard'] },
-      { state: 'release', parts: ['duration.250', 'easing.productive-entrance'] },
+  it('lists the tokens state by state: hovered, pressed, release', () => {
+    expect(presetStateTokens('card')).toEqual([
+      { state: 'hovered', uses: [{ token: 'duration.100', where: 'duration' }, { token: 'easing.productive-standard', where: 'easing' }] },
+      { state: 'pressed', uses: [{ token: 'scale.95', where: 'scale' }, { token: 'duration.100', where: 'duration' }, { token: 'easing.productive-standard', where: 'easing' }] },
+      { state: 'release', uses: [{ token: 'duration.250', where: 'duration' }, { token: 'easing.productive-entrance', where: 'easing' }] },
     ]);
-    expect(presetStateLines('card', 'motion')[0]!.parts).toEqual(['tint 4%', 'duration.100']);
+    expect(presetStateTokens('card', 'motion')[0]!.uses.map(u => u.token)).toEqual(['duration.100']);
   });
 });

@@ -30,7 +30,7 @@ import {
   describeTrigger, getReducedMotionPolicy, REDUCED_MOTION_LABELS,
   type ComponentFilter,
 } from './lib/version-meta.js';
-import { getStepRefs, presetStateLines, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
+import { getStepRefs, presetStateTokens, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
 import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
 import { toast, toastAfterReload, showPendingToast } from './lib/toast.js';
@@ -1277,7 +1277,18 @@ function renderComponentView(params: URLSearchParams): void {
         : `The element marked data-motion="${step.layer}"`;
       tokensList.appendChild(title);
     }
-    for (const use of step.uses) {
+    // An element that uses a preset: one title per state (hovered, pressed, release) with the tokens it plays, like the groups above.
+    const groups = step.preset
+      ? presetStateTokens(step.preset, runtime).map(g => ({ title: g.state, uses: g.uses.map(u => ({ token: u.token, where: [u.where] })) }))
+      : [{ title: null as string | null, uses: step.uses }];
+    for (const group of groups) {
+    if (group.title) {
+      const sub = document.createElement('div');
+      sub.className = 'lab-tokens-state';
+      sub.textContent = group.title;
+      tokensList.appendChild(sub);
+    }
+    for (const use of group.uses) {
       const chip = document.createElement('div');
       chip.className = 'lab-token-chip';
       const code = document.createElement('code');
@@ -1294,15 +1305,6 @@ function renderComponentView(params: URLSearchParams): void {
       chip.append(code, where, link);
       tokensList.appendChild(chip);
     }
-    if (step.preset) {
-      const states = document.createElement('dl');
-      states.className = 'lab-token-states';
-      for (const line of presetStateLines(step.preset, runtime)) {
-        const dt = document.createElement('dt'); dt.textContent = line.state;
-        const dd = document.createElement('dd'); dd.textContent = line.parts.map(x => (x.includes('.') && x in raw ? tokenDisplayName(x) : x)).join(' · ');
-        states.append(dt, dd);
-      }
-      tokensList.appendChild(states);
     }
     if (step.hardcoded.length > 0) {
       const warn = document.createElement('div');
