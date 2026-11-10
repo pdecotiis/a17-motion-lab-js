@@ -28,7 +28,14 @@
 .card-routing-shuffle__cell--video::before { content: ""; position: absolute; inset: auto 0 0 0; height: 40%; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.35)); z-index: 1; }
 .card-routing-shuffle__play { position: absolute; left: 24px; bottom: 24px; z-index: 2; width: 48px; height: 48px; border-radius: 50%; background: rgba(0, 0, 0, 0.25); }
 .card-routing-shuffle__play::after { content: ""; position: absolute; left: 19px; top: 15px; border-left: 14px solid #fff; border-top: 9px solid transparent; border-bottom: 9px solid transparent; }
-.card-routing-shuffle__shuffle { display: block; margin: var(--space-5, 24px) 0 0; height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #171717; color: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+/* the shuffle button floats at the bottom right (Figma "button": 136 x 48, a pill, refresh icon and label), 32px from the edges, and stays there as the page scrolls:
+   a zero-height sticky strip after the grid holds it, and the button sits on the strip's bottom edge */
+.card-routing-shuffle__float { position: sticky; bottom: 32px; z-index: 2; height: 0; }
+.card-routing-shuffle__shuffle {
+  position: absolute; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 24px; border: 0; border-radius: var(--radius-full);
+  background: var(--background-inverse); color: var(--text-inverse); font-family: var(--body-family); font-size: var(--font-size-16); line-height: 24px; cursor: pointer;
+}
+.card-routing-shuffle__shuffle-icon { display: block; flex: none; width: 24px; height: 24px; }
 .card-routing-shuffle__cell[data-motion="y0"] { height: 232px; margin-bottom: 8px; }
 .card-routing-shuffle__cell[data-motion="p0a"] { height: 472px; margin-bottom: 8px; }
 .card-routing-shuffle__cell[data-motion="p0b"] { height: 0px; margin-bottom: 0px; }
