@@ -2,7 +2,7 @@
 // cells in a fixed order (colour cards at the top and the bottom of the stack, pictures between), and an arrangement says how many rows each cell takes
 // (0 = collapsed). The cells trade height, so they push each other and never overlap, and a cell only ever changes in height. A cell that is new to an
 // arrangement comes in from the top or the bottom of its column, growing in and pushing the rest away. Rules: each column adds up to three rows, no
-// cell takes more than 2 (so no tall pictures), and each colour card shows at most once. Any number of cards may show.
+// cell takes more than 2 (so no tall pictures), and each colour card shows at most once. The first arrangement shows all three cards, the others one.
 export type Layout = Record<string, number>;
 
 /** Each column's cells, top to bottom: the colour card (y = yellow Machine Learning, i = indigo Trading, g = green Technology) and the picture (p) or video (v). */
@@ -14,11 +14,12 @@ export const isColour = (id: string): boolean => ['yellow', 'indigo', 'green'].i
 
 export const LAYOUTS: Record<string, Layout> = {
   default: { y0: 1, p0a: 2, p1a: 2, i1: 1, g2: 1, p2a: 2 },                       // the page: a card on top, at the bottom, on top
-  'layout-2': { p0a: 2, i0: 1, g1: 1, p1a: 2, p2a: 2, y2: 1 },                      // indigo and yellow come in from the bottom, green from the top
-  'layout-3': { y0: 2, p0b: 1, p1a: 1, p1b: 1, i1: 1, g2: 2, v2: 1 },              // the cards two rows tall
-  'layout-4': { p0a: 1, p0b: 1, i0: 1, g1: 2, p1b: 1, p2a: 2, y2: 1 },
-  'layout-5': { y0: 1, p0a: 1, p0b: 1, g1: 1, p1a: 1, p1b: 1, p2a: 1, v2: 2 },     // nine cells
-  'layout-6': { p0a: 2, i0: 1, p1a: 2, p1b: 1, v2: 2, y2: 1 },
+  // then one card at a time, the rest pictures: it comes in from the top or the bottom of its column and the pictures give way
+  'layout-2': { p0a: 2, i0: 1, p1a: 1, p1b: 2, p2a: 2, v2: 1 },                     // indigo, from the bottom
+  'layout-3': { p0a: 1, p0b: 2, g1: 2, p1b: 1, p2a: 1, v2: 2 },                     // green, from the top, two rows
+  'layout-4': { p0a: 2, p0b: 1, p1a: 2, p1b: 1, p2a: 1, v2: 1, y2: 1 },             // yellow, from the bottom
+  'layout-5': { y0: 2, p0b: 1, p1a: 1, p1b: 2, p2a: 2, v2: 1 },                     // yellow, from the top, two rows
+  'layout-6': { p0a: 1, p0b: 2, p1b: 1, i1: 2, p2a: 2, v2: 1 },                     // indigo, from the bottom, two rows
 };
 export const STATE_ORDER = Object.keys(LAYOUTS);
 

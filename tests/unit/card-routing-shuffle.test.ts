@@ -27,6 +27,9 @@ describe('card-routing-shuffle', () => {
   it('a cell never changes width, so it only ever changes in height', () => {
     for (const layout of Object.values(LAYOUTS)) for (const id of CELLS) expect(boxOf(layout, id).w).toBe(352);
   });
+  it('the first arrangement shows the three cards, every other one a single card', () => {
+    STATE_ORDER.forEach((name, k) => expect(CELLS.filter(id => isColour(id) && (LAYOUTS[name]![id] ?? 0) > 0).length, name).toBe(k === 0 ? 3 : 1));
+  });
   it('the first arrangement is the page: a card on top, at the bottom, on top', () => {
     const d = LAYOUTS.default!;
     expect([d.y0, d.p0a]).toEqual([1, 2]);
