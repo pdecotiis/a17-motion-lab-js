@@ -63,12 +63,12 @@ function validateTrigger(version: MotionVersion, t: InteractionTrigger, names: s
   }
   if (t.on === 'click') {
     const hasSet = 'set' in t && t.set !== undefined, hasToggle = 'toggle' in t && t.toggle !== undefined;
-    if (hasSet === hasToggle) throw new Error(`${id} click trigger needs either "set" (a state) or "toggle" (two states), not both or neither`);
+    if (hasSet === hasToggle) throw new Error(`${id} click trigger needs either "set" (a state) or "toggle" (two or more states), not both or neither`);
     if (hasSet) known((t as { set: string }).set, 'sets');
     else {
-      const pair = (t as { toggle: [string, string] }).toggle;
-      if (!Array.isArray(pair) || pair.length !== 2 || pair[0] === pair[1]) throw new Error(`${id} click toggle needs two different states`);
-      pair.forEach(s => known(s, 'toggles'));
+      const list = (t as { toggle: string[] }).toggle;
+      if (!Array.isArray(list) || list.length < 2 || new Set(list).size !== list.length) throw new Error(`${id} click toggle needs two or more different states`);
+      list.forEach(s => known(s, 'toggles'));
     }
     return;
   }

@@ -193,7 +193,7 @@ function attachLines(version: MotionVersion, base: string): string[] {
     '    for (const node of nodes) {',
     '      if (t.on === "click") {',
     '        on(node, "click", () => {',
-    '          base = t.set ?? (base === t.toggle[0] ? t.toggle[1] : t.toggle[0]);',
+    '          base = t.set ?? t.toggle[(t.toggle.indexOf(base) + 1) % t.toggle.length];',
     '          settle();',
     '        });',
     '        continue;',

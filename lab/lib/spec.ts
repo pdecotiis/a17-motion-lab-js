@@ -132,7 +132,7 @@ function triggerLines(version: MotionVersion): string[] {
     if (t.on === 'click') {
       const states = 'set' in t ? [t.set] : t.toggle;
       states.forEach(st => led.add(st));
-      const what = 'set' in t ? `goes to **${t.set}**` : `swaps between **${t.toggle[0]}** and **${t.toggle[1]}**`;
+      const what = 'set' in t ? `goes to **${t.set}**` : t.toggle.length === 2 ? `swaps between **${t.toggle[0]}** and **${t.toggle[1]}**` : `goes to the next of ${t.toggle.map(s => `**${s}**`).join(', ')} each time, back to **${t.toggle[0]}** after the last`;
       return `| click | ${where} | ${TRIGGER_WORDS['click']} | ${what} |`;
     }
     led.add(t.state);

@@ -171,9 +171,14 @@ export function summarizeInteraction(
         const detail = t.set === i.initial ? ` (${returnWords(i, component, raw, runtime, globalBounce).replace(/^goes back to [^ ]+ /, '').replace(/^\(|\)$/g, '')})` : changes.length ? `: ${listJoin(changes)}` : '';
         lines.push({ heading, text: `${when}, it goes to ${t.set}${detail}.` });
       } else if ('toggle' in t && t.toggle !== undefined) {
-        const [a, b] = t.toggle;
-        led.add(a); led.add(b);
-        lines.push({ heading, text: `${when}, it switches between ${a} and ${b}. Into ${b}: ${listJoin(changesInto(i, b, component, raw, runtime, globalBounce)) || 'no visible change'}. Into ${a}: ${listJoin(changesInto(i, a, component, raw, runtime, globalBounce)) || 'no visible change'}.` });
+        const list = t.toggle;
+        list.forEach(st => led.add(st));
+        if (list.length === 2) {
+          const [a, b] = list as [string, string];
+          lines.push({ heading, text: `${when}, it switches between ${a} and ${b}. Into ${b}: ${listJoin(changesInto(i, b, component, raw, runtime, globalBounce)) || 'no visible change'}. Into ${a}: ${listJoin(changesInto(i, a, component, raw, runtime, globalBounce)) || 'no visible change'}.` });
+        } else {
+          lines.push({ heading, text: `${when}, it goes to the next of ${list.join(', ')} each time, back to ${list[0]} after ${list[list.length - 1]}.` });
+        }
       }
       continue;
     }

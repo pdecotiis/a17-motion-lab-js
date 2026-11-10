@@ -71,7 +71,8 @@ export interface InteractionLayer {
 // markup comes from the Figma import and a re-import replaces it. `target` is the element the event is
 // listened on: a layer's data-motion name, or the component's root when it is left out.
 //   hover, press, focus   go to `state` while it lasts, and back to the state it was in when it ends
-//   click                 `set` goes to a state; `toggle` swaps between two
+//   click                 `set` goes to a state; `toggle` goes to the next of its states each click (two swap; three or more cycle, and a click from
+//                         a state that is not in the list goes to its first)
 //   arrows                the left and right arrow keys step through `states`, left to right (left goes to the one before the
 //                         current state, right to the one after; it stops at the ends). Heard anywhere on the page except while
 //                         typing in a field.
@@ -79,7 +80,7 @@ export type TriggerEvent = 'hover' | 'press' | 'focus' | 'click' | 'arrows';
 export type InteractionTrigger =
   | { on: 'hover' | 'press' | 'focus'; state: string; target?: string }
   | { on: 'click'; set: string; target?: string }
-  | { on: 'click'; toggle: [string, string]; target?: string }
+  | { on: 'click'; toggle: [string, string, ...string[]]; target?: string }
   | { on: 'arrows'; states: string[]; target?: string };
 
 export interface Interaction {
