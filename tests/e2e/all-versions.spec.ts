@@ -42,7 +42,12 @@ test.describe('every version plays', () => {
       await page.goto(`/?view=component&component=${component}&version=${ids[0]}`);
       for (const [i, id] of ids.entries()) {
         const before = i === 0 ? 0 : await animations();   // the first version starts as the page loads
-        if (i > 0) await page.locator('.lab-version-tab', { hasText: new RegExp(`^${id}:`) }).click();
+        // An archived version is disabled in the tabs (and is not played from there): it is left out.
+        if (i > 0) {
+          const tab = page.locator('.lab-version-tab', { hasText: new RegExp(`^${id}:`) });
+          if (await tab.isDisabled()) continue;
+          await tab.click();
+        }
         await expect(page.locator('[data-motion-target]').first(), id).toBeVisible();
         await expect.poll(animations, { timeout: 10000, message: `${component} ${id} starts an animation` }).toBeGreaterThan(before);
       }
