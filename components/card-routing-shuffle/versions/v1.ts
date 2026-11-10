@@ -16,10 +16,13 @@ for (const id of CELLS) {
 export const v1: MotionVersion = {
   id: 'v1',
   label: 'Shuffle',
-  // the grid fades in quickly and the colour cards of the first arrangement rise in one after another (reading order)
+  // the grid fades in quickly and every cell of the first arrangement, cards and pictures, rises in with the card preset, one after another (reading order)
   model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-entrance' },
   keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
-  layers: { y0: { preset: 'card' }, g2: { preset: 'card', delay: 'delay.40' }, i1: { preset: 'card', delay: 'delay.70' } },
+  layers: {
+    y0: { preset: 'card' }, p1a: { preset: 'card', delay: 'delay.15' }, g2: { preset: 'card', delay: 'delay.40' },
+    p0a: { preset: 'card', delay: 'delay.70' }, i1: { preset: 'card', delay: 'delay.120' }, p2a: { preset: 'card', delay: 'duration.140' },
+  },
   interaction: {
     initial: 'default',
     states: each(() => ({})),
