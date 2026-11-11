@@ -73,7 +73,7 @@ test.describe('preview mode', () => {
     await page.goto('/?view=page&preview=1');
     test.skip((await page.locator('.lab-page-grid').count()) === 0, 'this project has no pages');
     await expect(page.locator('.lab-page-viewport')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-    expect(await page.locator('.lab-page-grid').evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid');
+    expect(await page.locator('.lab-page-grid').evaluate(el => getComputedStyle(el).outlineStyle)).toBe('none');   // a page has no outline
   });
 
   test('the little bar does not come back when the pointer moves: Hide (or H) puts it away, H brings it back', async ({ page }) => {

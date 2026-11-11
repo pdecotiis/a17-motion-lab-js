@@ -1559,9 +1559,14 @@ function renderPageView(params: URLSearchParams): void {
           </div>
           ${compareWith ? `<label class="lab-check"><input type="checkbox" id="page-actual-size"${actualSize ? ' checked' : ''}> Actual size (scroll sideways)</label>` : ''}
           <p class="lab-lineage" id="page-version-note"></p>
-          <div class="lab-save-row" id="page-version-save-row">
-            <button class="lab-btn" id="save-over-btn" type="button">Save</button>
-            <button class="lab-btn" id="save-page-version-btn" type="button">Save as new version</button>
+          <div class="lab-save-row lab-split" id="page-version-save-row">
+            <button class="lab-btn lab-split__main" id="save-over-btn" type="button">Save</button>
+            <button class="lab-btn lab-split__toggle" id="save-menu-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="More ways to save" title="More ways to save">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+            </button>
+            <div class="lab-split__menu" id="save-menu" role="menu" hidden>
+              <button class="lab-split__item" id="save-page-version-btn" type="button" role="menuitem">Save as new version</button>
+            </div>
           </div>
           <div class="lab-save-name" id="page-version-namebar" hidden>
             <input class="lab-input" id="page-version-name" type="text" maxlength="80" placeholder="Name this version" aria-label="Name this page version" autocomplete="off">
@@ -1911,10 +1916,18 @@ function renderPageView(params: URLSearchParams): void {
 
   // Saving writes pages/<page>/versions/v<next>.json through the dev server; a built copy can't.
   const saveBtn = document.getElementById('save-page-version-btn') as HTMLButtonElement;
+  const menuBtn = document.getElementById('save-menu-btn') as HTMLButtonElement;
+  const saveMenu = document.getElementById('save-menu')!;
+  // Save is the button; the arrow beside it opens the other way to save (as a new version).
+  const openMenu = (open: boolean): void => { saveMenu.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open)); };
+  menuBtn.addEventListener('click', e => { e.stopPropagation(); openMenu(saveMenu.hidden); });
+  document.addEventListener('click', e => { if (!saveMenu.hidden && !saveMenu.contains(e.target as Node)) openMenu(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !saveMenu.hidden) { openMenu(false); menuBtn.focus(); } });
   const status = document.getElementById('page-version-status')!;
   fetch(PAGE_VERSION_ENDPOINT).then(r => r.ok ? r.json() : null).catch(() => null).then((info: { available?: boolean } | null) => {
     if (info?.available !== true) {
       saveBtn.disabled = true;
+      menuBtn.disabled = true;
       serverAvailable = false;
       updateSaveOver();
       status.textContent = 'Saving needs the dev server (npm run dev). Ask Claude to save it, or run the lab with npm run dev.';
@@ -1924,7 +1937,7 @@ function renderPageView(params: URLSearchParams): void {
   function updateSaveOver(): void {
     const ok = serverAvailable && isSavedFile && hasUnsaved();
     overBtn.disabled = !ok;
-    overBtn.title = !isSavedFile ? 'This version has no saved file to save over: use Save as new version'
+    overBtn.title = !isSavedFile ? 'This version has no saved file to save over: use the arrow, Save as new version'
       : !hasUnsaved() ? 'Nothing has changed since this version was saved'
       : `Save the changes over ${active.id}: ${active.label}`;
   }
@@ -1962,9 +1975,9 @@ function renderPageView(params: URLSearchParams): void {
   const askName = (asking: boolean): void => {
     nameBar.hidden = !asking;
     document.getElementById('page-version-save-row')!.hidden = asking;
-    if (asking) { nameInput.value = ''; nameInput.focus(); } else saveBtn.focus();
+    if (asking) { nameInput.value = ''; nameInput.focus(); } else menuBtn.focus();
   };
-  saveBtn.addEventListener('click', () => { status.textContent = ''; askName(true); });
+  saveBtn.addEventListener('click', () => { status.textContent = ''; openMenu(false); askName(true); });
   cancelBtn.addEventListener('click', () => askName(false));
   nameInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); confirmBtn.click(); }

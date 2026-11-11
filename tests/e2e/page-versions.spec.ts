@@ -177,6 +177,7 @@ test.describe('Saving a page version', () => {
     await page.selectOption('#motion-map-panel select >> nth=2', 'v2');
     await page.selectOption('#stagger-select', 'none');
     await expect(page.locator('#save-page-version-btn')).toBeEnabled();
+    await page.click('#save-menu-btn');
     await page.click('#save-page-version-btn');
     await page.fill('#page-version-name', 'Both lift, no stagger');
     await page.click('#page-version-confirm');
@@ -204,6 +205,7 @@ test.describe('Saving a page version', () => {
     });
     await page.goto('/?view=page&page=home');
     await expect(page.locator('#save-page-version-btn')).toBeEnabled();
+    await page.click('#save-menu-btn');
     await page.click('#save-page-version-btn');
     await page.fill('#page-version-name', 'Same again');
     await page.click('#page-version-confirm');
@@ -219,12 +221,14 @@ test.describe('Saving a page version', () => {
     });
     await page.goto('/?view=page&page=home');
     await expect(page.locator('#save-page-version-btn')).toBeEnabled();
+    await page.click('#save-menu-btn');
     await page.click('#save-page-version-btn');
     await expect(page.locator('#page-version-name')).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(page.locator('#page-version-namebar')).toBeHidden();
-    await expect(page.locator('#save-page-version-btn')).toBeVisible();
+    await expect(page.locator('#save-menu-btn')).toBeVisible();   // the Save button and its arrow are back
     // Cancel does the same, and an empty name saves nothing
+    await page.click('#save-menu-btn');
     await page.click('#save-page-version-btn');
     await page.click('#page-version-confirm');
     await page.click('#page-version-cancel');
@@ -238,6 +242,7 @@ test.describe('Saving a page version', () => {
     });
     await page.goto('/?view=page&page=home');
     await expect(page.locator('#save-page-version-btn')).toBeEnabled();
+    await page.click('#save-menu-btn');
     await page.click('#save-page-version-btn');
     await page.fill('#page-version-name', 'Broken');
     await page.click('#page-version-confirm');
@@ -286,6 +291,7 @@ test.describe('Saving over a version', () => {
     await mock(page, posts);
     await page.goto('/?view=page&page=home&pv=v2');
     await page.selectOption('#motion-map-panel select >> nth=2', 'v2');
+    await page.click('#save-menu-btn');
     await page.click('#save-page-version-btn');
     await expect(page.locator('#page-version-name')).toBeFocused();
     await expect(page.locator('#save-over-btn')).toBeHidden();   // the row is replaced by the name field while naming
