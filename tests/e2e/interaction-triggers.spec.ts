@@ -22,6 +22,7 @@ const SETUP = async (page: Page) => {
       },
       describe: () => ({ heading: 'Tick', summary: '', led: [], event: 'tick', on: 'a timer', means: '', what: '' }),
     });
+    registerTrigger({ name: 'reset-spy', validate() {}, attach(_s, ctx) { (window as unknown as Record<string, number>)['__resets'] = 0; return ctx.onReset(() => { (window as unknown as Record<string, number>)['__resets']!++; }); }, describe: () => ({ heading: '', summary: '', led: [], event: 'reset-spy', on: '', means: '', what: '' }) });
     const raw = { 'duration.100': '100ms', 'easing.linear': [0, 0, 1, 1] };
     const timing = { model: 'tween' as const, duration: 'duration.100', easing: 'easing.linear' };
     const make = (id: string, top: number, triggers: unknown[], inner = '') => {
@@ -45,6 +46,7 @@ const SETUP = async (page: Page) => {
       const detach = player.attachTriggers();
       (window as unknown as Record<string, unknown>)[`__${id}`] = { player, detach };
     };
+    make('rsp', 740, [{ on: 'reset-spy' }]);
     make('hov', 120, [{ on: 'hover', state: 'a' }]);
     make('prs', 200, [{ on: 'press', state: 'b' }, { on: 'hover', state: 'a' }]);
     make('foc', 280, [{ on: 'focus', state: 'a' }], '<button id="focbtn" style="margin:10px">focus me</button><input id="focin" style="margin:10px;width:60px">');
@@ -77,6 +79,11 @@ test.describe('Interaction triggers', () => {
     const at = await stateOf(page, 'int');
     await page.waitForTimeout(900);
     expect(await stateOf(page, 'int')).toBe(at);                                                   // detached: the timer is gone
+  });
+
+  test('a project trigger hears the component being put back to its first state', async ({ page }) => {
+    await page.evaluate(() => (window as unknown as { __rsp: { player: { reset: () => Promise<void> } } }).__rsp.player.reset());
+    expect(await page.evaluate(() => (window as unknown as Record<string, number>)['__resets'])).toBe(1);
   });
 
   test('a touch has no hover: a touch pointer entering does nothing', async ({ page }) => {

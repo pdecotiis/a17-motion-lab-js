@@ -193,6 +193,8 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
   };
   // Things to do whenever the component moves to a new state (the interval trigger starts its wait again).
   const moved: (() => void)[] = [];
+  // Things to do whenever the component is put back to its first state (a replay, and the end of an entrance): a trigger that runs on a clock starts again.
+  const resets: (() => void)[] = [];
   // Where the component should be now: the state of the latest hold, else the base.
   const settle = (): PlayHandle | null => {
     const top = holds[holds.length - 1];
@@ -218,6 +220,7 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
       return api.goTo(names[(names.indexOf(current) + 1) % names.length]!);
     },
     async reset() {
+      resets.forEach(f => f());
       base = interaction.initial;
       holds.length = 0;
       holdState.clear();
@@ -246,6 +249,7 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
             isLocked: () => locked,
             reducedMotion: deps.reducedMotion,
             playbackRate: deps.playbackRate,
+            onReset: fn => { resets.push(fn); return () => { const at = resets.indexOf(fn); if (at >= 0) resets.splice(at, 1); }; },
             onMoved: fn => { moved.push(fn); return () => { const at = moved.indexOf(fn); if (at >= 0) moved.splice(at, 1); }; },
           }));
           continue;
