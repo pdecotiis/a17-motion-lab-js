@@ -176,6 +176,8 @@ export interface PageComponent {
   id: string;
   component: string;
   layout?: string;
+  /** true = this section plays at once as the page opens: the page's `hold` does not apply to it (the sections that make the opening itself, such as a menu or a hero, as opposed to the content that waits for it). */
+  immediate?: boolean;
 }
 
 export interface PageConfig {

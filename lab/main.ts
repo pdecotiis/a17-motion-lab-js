@@ -1715,7 +1715,7 @@ function renderPageView(params: URLSearchParams): void {
     const token = staggerTokenFor(column.choice());
     const play = (staggerAt: number): void => {
       const staggered = token !== null && staggerAt > 0;
-      pageHold = opening ? pageHoldMs(pageConfig.hold, raw) : 0;
+      pageHold = opening && !pc.immediate ? pageHoldMs(pageConfig.hold, raw) : 0;
       try { column.anims.set(pc.id, animateElement(target, staggered ? { ...ver, stagger: token } : ver, staggered ? staggerAt : 0)); } finally { pageHold = 0; }
     };
 
@@ -1725,7 +1725,7 @@ function renderPageView(params: URLSearchParams): void {
     if (!trigger) { play(index); return; }
     // "each": the section is not held back; its elements wait for their own turn (see waitForEach), the root plays now.
     if (trigger.each) {
-      eachScroll.set(target, { viewport: column.viewport, threshold: trigger.threshold, once: trigger.once, gapMs: parseMsLocal(String(raw['delay.40'] ?? '40ms')), holdMs: opening ? pageHoldMs(pageConfig.hold, raw) : 0 });
+      eachScroll.set(target, { viewport: column.viewport, threshold: trigger.threshold, once: trigger.once, gapMs: parseMsLocal(String(raw['delay.40'] ?? '40ms')), holdMs: opening && !pc.immediate ? pageHoldMs(pageConfig.hold, raw) : 0 });
       play(index);
       onViewLeave(() => eachObservers.get(target)?.disconnect());
       return;
