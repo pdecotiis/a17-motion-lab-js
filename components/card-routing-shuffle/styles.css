@@ -74,5 +74,8 @@
 .card-routing-shuffle[data-scroll-expand] .card-routing-shuffle__bar, .card-routing-shuffle[data-scroll-expand] .card-routing-shuffle__float { display: none; }   /* v3 is the bento alone: no arrows, no Shuffle button */
 
 /* The pagination arrows (Figma "button block": two round 48px buttons, the first greyed out): only in the pages that have the grid scroll. */
+/* Under the grid, the Figma "button block": the pagination arrows at the left, and at the right the Shuffle button, which floats at the bottom right of the window as the page scrolls
+   and comes to rest on the bar's bottom edge, level with the arrows and 24px under the bento (the bar's top padding). The button is the last thing in the root: a zero tall strip that sticks. */
+.card-routing-shuffle__bar { display: flex; align-items: center; height: 72px; padding-top: 24px; box-sizing: border-box; }
 .card-routing-shuffle__pager { display: flex; gap: 8px; }
 .card-routing-shuffle__pager-button { display: flex; align-items: center; justify-content: center; flex: none; width: 48px; height: 48px; padding: 0; border: 0; border-radius: var(--radius-full); background: var(--background-quaternary, #e8e7e5); color: var(--text-default); cursor: pointer; }
