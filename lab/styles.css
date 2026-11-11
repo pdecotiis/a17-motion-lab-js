@@ -764,7 +764,7 @@ html, body {
    you are on the left and the playback controls on the right. */
 .lab-viewbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 0 0 16px; }
 .lab-viewbar__title { margin: 0; font: var(--type-ui-2-strong); }
-.lab-toolbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-left: auto; }
+.lab-toolbar { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-left: auto; }   /* the same space as between the nav's items */
 .lab-toolbar .lab-btn { width: auto; margin: 0; }
 .lab-toolbar .lab-control-label { font: var(--type-ui-2); }
 .lab-toolbar .lab-select { width: auto; }
@@ -885,10 +885,17 @@ html, body {
 .lab-preview-bar__name, .lab-preview-bar__keys { white-space: nowrap; }
 .lab-preview-mode .lab-page-layout--single .lab-page-grid { margin-inline: auto; }
 
-/* Save (over this version) beside Save as new version, in the Page versions panel. */
-.lab-save-row { display: flex; gap: 8px; margin-top: 6px; }
-.lab-save-row .lab-btn { width: auto; margin: 0; }
-.lab-save-row #save-page-version-btn { flex: 1; }
+/* Save (over this version) is a split button: the Save button and an arrow that opens "Save as new version", in the Page versions panel. */
+.lab-save-row { margin-top: 6px; }
+.lab-split { position: relative; display: flex; gap: 2px; }
+.lab-split .lab-btn { margin: 0; }
+.lab-split__main { flex: 1; width: auto; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.lab-split__toggle { flex: none; width: 40px; padding: 0; justify-content: center; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.lab-split__menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 5; min-width: 100%; padding: 4px; background: var(--color-bg); border: 1px solid var(--color-subtle); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); }
+.lab-split__menu[hidden] { display: none; }
+.lab-split__item { display: block; width: 100%; padding: 8px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text); font: var(--type-ui-2); text-align: left; white-space: nowrap; cursor: pointer; }
+.lab-split__item:hover { background: var(--color-tint, rgba(0, 0, 0, 0.04)); }
+.lab-split__item:disabled { opacity: 0.4; cursor: default; }
 .lab-save-row[hidden] { display: none; }
 
 /* A version's Archive button: 24px, quiet, inside the version's grey row at the right. An archived version stays in place, its label faded, with
