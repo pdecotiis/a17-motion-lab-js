@@ -1661,6 +1661,7 @@ function renderPageView(params: URLSearchParams): void {
         viewport.fitWidth = width;
         const zoom = Math.min(1, Math.max(0.05, width / pageWidth));
         grid.style.zoom = String(zoom);
+        grid.style.setProperty('--page-zoom', String(zoom));   // so something sized to the window (a full-height sidebar) can undo the zoom: height: calc(100vh / var(--page-zoom, 1))
         if (scaleLabel) scaleLabel.textContent = `${Math.round(zoom * 100)}%`;
         const fitOption = document.querySelector<HTMLOptionElement>('#page-size-select option[value="fit"]');
         if (fitOption) fitOption.textContent = `Fit to window (${Math.round(zoom * 100)}%)`;
