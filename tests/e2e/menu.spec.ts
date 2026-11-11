@@ -5,7 +5,8 @@ test.describe('Menu', () => {
   test('renders the component', async ({ page }) => {
     await page.goto('/?view=component&component=menu');
     await expect(page.locator('[data-motion-target]').first()).toBeVisible();
-    await expect(page.getByText('Who We Are').first()).toBeVisible();
+    await expect(page.getByText('Life at Jane Street').first()).toBeVisible();
+    await expect(page.getByText('Who We Are').first()).toBeHidden();   // About is closed, like the other two
   });
 
   test('v1 plays without error', async ({ page }) => {
@@ -22,8 +23,8 @@ test.describe('Menu', () => {
     page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
     await page.goto('/?view=component&component=menu&version=v2');
     const rows = page.locator('#preview-inner-primary [data-motion="row"]');
-    // the logo, three parent rows, five children, two group labels, then the sidebar button and the mode switch
-    await expect(rows).toHaveCount(13);
+    // the logo, the three parent rows (About is closed, so its children are not part of the entrance), then the sidebar button and the mode switch
+    await expect(rows).toHaveCount(6);
     await page.click('#replay-btn');
     const timings = await rows.evaluateAll(els => els.map(el => el.getAnimations().map(a => {
       const t = (a.effect as KeyframeEffect).getTiming();

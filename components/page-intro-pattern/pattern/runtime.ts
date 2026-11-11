@@ -107,7 +107,7 @@ function marketField(): Field | null {
 // ----- the canvas loop
 const FRAME = 1000 / 30;
 /** How far (px) the page scrolls before the pattern has faded out completely. */
-const FADE_DISTANCE = 300;
+const FADE_DISTANCE = 150;
 /** The element the page scrolls in: the nearest ancestor that scrolls (the lab's page window), else the page itself. */
 function scrollerOf(element: HTMLElement): HTMLElement | Window {
   for (let parent = element.parentElement; parent; parent = parent.parentElement) {

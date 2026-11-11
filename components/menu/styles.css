@@ -117,3 +117,6 @@
 }
 .menu__theme-option img { display: block; opacity: 0.5; }
 .menu__theme-option--on { background: var(--background-default); }
+
+/* About is closed on the homepage, like the other two: its children are hidden (and are not part of the entrance's stagger). */
+.menu__children[hidden] { display: none; }
