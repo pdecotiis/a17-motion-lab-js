@@ -38,6 +38,9 @@ export const v1: MotionVersion = {
     transitions: each(() => MOVE),
     layers,
     triggers: [
+      // the pagination arrows under the bento: next goes to the next arrangement, previous to the one before (the same list the other way round)
+      { on: 'click', toggle: STATE_ORDER as [string, string, ...string[]], target: 'next' },
+      { on: 'click', toggle: [...STATE_ORDER].reverse() as [string, string, ...string[]], target: 'prev' },
       { on: 'click', toggle: STATE_ORDER as [string, string, ...string[]], target: 'shuffle' },
       // and by itself: five seconds after the last change (the ring on the button fills over the same five seconds: keep them equal)
       { on: 'interval', every: '5000ms', toggle: STATE_ORDER as [string, string, ...string[]] },

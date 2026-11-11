@@ -23,6 +23,9 @@ export const v2: MotionVersion = {
     transitions: each(() => SCENE),
     layers,
     triggers: [
+      // the pagination arrows under the bento: next goes to the next arrangement, previous to the one before (the same list the other way round)
+      { on: 'click', toggle: STATE_ORDER as [string, string, ...string[]], target: 'next' },
+      { on: 'click', toggle: [...STATE_ORDER].reverse() as [string, string, ...string[]], target: 'prev' },
       { on: 'click', toggle: STATE_ORDER as [string, string, ...string[]], target: 'shuffle' },
       // the opening: two scenes after the first, then back to the page layout as the page settles (times are from when the entrance has finished: each scene is
       // fully shown for 1000ms, and a change takes 220ms)

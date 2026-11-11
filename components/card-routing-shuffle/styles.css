@@ -10,7 +10,6 @@
 .card-routing-shuffle__grid { display: flex; gap: 8px; width: 100%; aspect-ratio: 1072 / 712; }   /* the proportions of the design: 1072 x 712 */
 .card-routing-shuffle__col { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; container-type: size; }   /* the columns share the width and are as tall as the grid; cell heights are shares of this */
 .card-routing-shuffle__cell { position: relative; flex: none; height: 232px; margin-bottom: 8px; overflow: hidden; border-radius: var(--size-24); box-sizing: border-box; background: #e0e0de; }
-.card-routing-shuffle__cell--video { background: #b4b4b2; }
 .card-routing-shuffle__cell--yellow, .card-routing-shuffle__cell--indigo, .card-routing-shuffle__cell--green {
   cursor: pointer;
 }
@@ -34,7 +33,7 @@
 }
 /* the shuffle button floats at the bottom right (Figma "button": 136 x 48, a pill, refresh icon and label), 32px from the edges, and stays there as the page scrolls:
    a zero-height sticky strip after the grid holds it, and the button sits on the strip's bottom edge */
-.card-routing-shuffle__float { position: sticky; bottom: 32px; z-index: 2; height: 0; margin: -32px 0 32px; } /* it lets go 32px above the bottom of the grid, not on its edge */
+.card-routing-shuffle__float { position: sticky; bottom: 32px; z-index: 2; height: 0; }   /* it lets go on the bottom edge of the bar, level with the arrows */
 .card-routing-shuffle__shuffle {
   position: absolute; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 24px 0 20px; border: 0; border-radius: var(--radius-full);
   background: var(--background-inverse); color: var(--text-inverse); font-family: var(--body-family); font-size: var(--font-size-16); line-height: 24px; cursor: pointer;
@@ -65,11 +64,15 @@
 .card-routing-shuffle__cell[data-motion="v2"] { height: 0%; margin-bottom: 0px; }
 .card-routing-shuffle__cell[data-motion="y2"] { height: 0%; margin-bottom: 0px; }
 
-/* v3: the grid is pinned while the page scrolls and one cell grows to fill the container as the others collapse (the scroll-expand trigger sets data-scroll-expand, the distance
-   and the sizes). It is pinned just below the header (80px) and the root's top padding (48px), which is where it already sits, so it does not jump. The root gives one window
-   of scrolling to do it in (an empty block after the grid: a sticky grid can only travel within the root's content) and clips the grid, so it stays off the menu and the header.
-   The Shuffle button is not part of it. */
+/* v3: the grid is pinned while the page scrolls and one cell grows as the others collapse (the scroll-expand trigger sets data-scroll-expand, the distance and the sizes).
+   It is pinned just below the header (80px) and the root's top padding (48px), which is where it already sits, so it does not jump. The stage gives it one window of scrolling to
+   do it in (an empty block after the grid: a sticky grid can only travel within its container), so when the scroll is over the grid is at the bottom of the stage, and the bar
+   with the pagination arrows is right under it. The root clips the grid, so it stays off the menu and the header. The bar and the Shuffle button are not part of it. */
 .card-routing-shuffle[data-scroll-expand] { overflow: clip; }
-.card-routing-shuffle[data-scroll-expand]::after { content: ""; display: block; height: var(--scroll-expand-distance, 100vh); }
+.card-routing-shuffle[data-scroll-expand] .card-routing-shuffle__stage::after { content: ""; display: block; height: var(--scroll-expand-distance, 100vh); }
 .card-routing-shuffle[data-scroll-expand] .card-routing-shuffle__grid { position: sticky; top: 128px; }
-.card-routing-shuffle[data-scroll-expand] .card-routing-shuffle__float { display: none; }
+.card-routing-shuffle[data-scroll-expand] .card-routing-shuffle__bar, .card-routing-shuffle[data-scroll-expand] .card-routing-shuffle__float { display: none; }   /* v3 is the bento alone: no arrows, no Shuffle button */
+
+/* The pagination arrows (Figma "button block": two round 48px buttons, the first greyed out): only in the pages that have the grid scroll. */
+.card-routing-shuffle__pager { display: flex; gap: 8px; }
+.card-routing-shuffle__pager-button { display: flex; align-items: center; justify-content: center; flex: none; width: 48px; height: 48px; padding: 0; border: 0; border-radius: var(--radius-full); background: var(--background-quaternary, #e8e7e5); color: var(--text-default); cursor: pointer; }
