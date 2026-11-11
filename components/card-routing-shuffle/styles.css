@@ -30,6 +30,7 @@
 .card-routing-shuffle__photo {
   position: absolute; top: 50%; left: 50%; display: block; max-width: none; aspect-ratio: 16 / 9; width: auto; object-fit: cover;
   height: calc(var(--photo-follow) * 100% + (1 - var(--photo-follow)) * 66.292cqh);   /* two rows is the tallest a cell gets: 472 of 712 */ transform: translate(-50%, -50%);
+  min-width: 100%; min-height: 100%;   /* but never smaller than its cell: a cell that grows past two rows (the scroll expand) is always filled, with no gap above or below */
 }
 /* the shuffle button floats at the bottom right (Figma "button": 136 x 48, a pill, refresh icon and label), 32px from the edges, and stays there as the page scrolls:
    a zero-height sticky strip after the grid holds it, and the button sits on the strip's bottom edge */
