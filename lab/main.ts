@@ -693,7 +693,7 @@ function startInteraction(el: HTMLElement, version: MotionVersion): void {
 // Returns every handle, the root's first.
 // A version whose in-view trigger is "each" (a page view sets it for the component's root): the root plays at once, and every layer element waits, hidden,
 // for its own entering the scrolling window, then plays its motion alone. Elements that enter together start a beat apart, in page order.
-interface EachScroll { viewport: HTMLElement; threshold: number; once: boolean; gapMs: number }
+interface EachScroll { viewport: HTMLElement; threshold: number; once: boolean; gapMs: number; holdMs: number }
 const eachScroll = new WeakMap<HTMLElement, EachScroll>();
 const eachObservers = new WeakMap<HTMLElement, IntersectionObserver>();
 
@@ -724,13 +724,16 @@ function waitForEach(root: HTMLElement, each: EachScroll, deferred: Map<HTMLElem
   const targets = [...deferred.keys()];
   targets.forEach(t => { t.style.opacity = '0'; });
   const played = new Set<HTMLElement>();
+  let opening = true;   // the first batch is what is in view as the page opens: it waits for the page's hold
   const play = (target: HTMLElement, order: number): void => {
     played.add(target);
     target.style.removeProperty('opacity');
     for (const entry of deferred.get(target)!) {
       // the layer's own delay (the cascade of the whole entrance) does not apply: this element plays as it enters, a beat after any that entered with it
       const version = { ...entry.version, model: { ...entry.version.model, delay: '0ms' } } as typeof entry.version;
-      const handle = playStep(target, version, 0, each.gapMs * order);
+      pageHold = opening ? each.holdMs : 0;
+      let handle: PlayHandle;
+      try { handle = playStep(target, version, 0, each.gapMs * order); } finally { pageHold = 0; }
       activeAnimations.push(handle);
       // under CSS the finished animation holds its last frame: let go, so the element's own states (a preset's hover and press) can move it
       void handle.done?.then(() => { if (runtime === 'css') target.getAnimations().forEach(a => a.cancel()); });
@@ -741,6 +744,7 @@ function waitForEach(root: HTMLElement, each: EachScroll, deferred: Map<HTMLElem
       .map(e => e.target as HTMLElement)
       .sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
     entering.forEach((target, i) => { play(target, i); if (each.once) observer.unobserve(target); });
+    if (entries.length > 0) opening = false;
     if (!each.once) for (const e of entries) if (!e.isIntersecting && played.has(e.target as HTMLElement)) { played.delete(e.target as HTMLElement); (e.target as HTMLElement).style.opacity = '0'; }
   }, { root: each.viewport, threshold: each.threshold });
   targets.forEach(t => observer.observe(t));
@@ -758,9 +762,12 @@ function playEntranceThenStates(el: HTMLElement, version: MotionVersion, stagger
   const player = playerFor(el, version);
   window.clearTimeout(pendingStarts.get(el));
   player.setLocked(true);
+  const holdMs = pageHold;   // the entrance starts after the reset below: the page's hold is carried across
   void player.reset().then(() => {
     if (entranceRuns.get(el) !== run) return;
-    const handles = playEntrance(el, version, staggerIndex);
+    pageHold = holdMs;
+    let handles: PlayHandle[];
+    try { handles = playEntrance(el, version, staggerIndex); } finally { pageHold = 0; }
     void Promise.all(handles.map(h => h.done ?? Promise.resolve())).then(async () => {
       if (entranceRuns.get(el) !== run) return;
       // Under CSS the entrance's animations hold their last frame; let go of them so the states can move it.
@@ -1711,7 +1718,7 @@ function renderPageView(params: URLSearchParams): void {
     if (!trigger) { play(index); return; }
     // "each": the section is not held back; its elements wait for their own turn (see waitForEach), the root plays now.
     if (trigger.each) {
-      eachScroll.set(target, { viewport: column.viewport, threshold: trigger.threshold, once: trigger.once, gapMs: parseMsLocal(String(raw['delay.40'] ?? '40ms')) });
+      eachScroll.set(target, { viewport: column.viewport, threshold: trigger.threshold, once: trigger.once, gapMs: parseMsLocal(String(raw['delay.40'] ?? '40ms')), holdMs: opening ? pageHoldMs(pageConfig.hold, raw) : 0 });
       play(index);
       onViewLeave(() => eachObservers.get(target)?.disconnect());
       return;
