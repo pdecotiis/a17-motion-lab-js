@@ -63,3 +63,12 @@
 .card-routing-shuffle__cell[data-motion="p2a"] { height: 66.292%; margin-bottom: 8px; }
 .card-routing-shuffle__cell[data-motion="v2"] { height: 0%; margin-bottom: 0px; }
 .card-routing-shuffle__cell[data-motion="y2"] { height: 0%; margin-bottom: 0px; }
+
+/* v3: the grid is pinned while the page scrolls and one cell grows to fill the container as the others collapse (the scroll-expand trigger sets data-scroll-expand, the distance
+   and the sizes). It is pinned just below the header (80px) and the root's top padding (48px), which is where it already sits, so it does not jump. The root gives one window
+   of scrolling to do it in (an empty block after the grid: a sticky grid can only travel within the root's content) and clips the grid, so it stays off the menu and the header.
+   The Shuffle button is not part of it. */
+.card-routing-shuffle[data-scroll-expand] { overflow: clip; }
+.card-routing-shuffle[data-scroll-expand]::after { content: ""; display: block; height: var(--scroll-expand-distance, 100vh); }
+.card-routing-shuffle[data-scroll-expand] .card-routing-shuffle__grid { position: sticky; top: 128px; }
+.card-routing-shuffle[data-scroll-expand] .card-routing-shuffle__float { display: none; }

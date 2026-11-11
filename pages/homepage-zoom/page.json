@@ -1,0 +1,14 @@
+{
+  "id": "homepage-zoom",
+  "title": "Homepage scroll zoom",
+  "width": 1440,
+  "components": [
+    { "id": "menu", "component": "menu", "layout": "aside" },
+    { "id": "page-intro-pattern", "component": "page-intro-pattern" },
+    { "id": "header", "component": "header" },
+    { "id": "card-routing-shuffle", "component": "card-routing-shuffle" },
+    { "id": "page-header-title", "component": "page-header-title" },
+    { "id": "card-feature", "component": "card-feature" },
+    { "id": "prompts-footer-section", "component": "prompts-footer-section" }
+  ]
+}

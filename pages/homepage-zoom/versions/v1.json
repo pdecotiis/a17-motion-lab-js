@@ -1,0 +1,14 @@
+{
+  "id": "v1",
+  "label": "Cards in, the middle picture zooms on scroll, then the page",
+  "motionMap": {
+    "menu": "v2",
+    "page-intro-pattern": "v1",
+    "header": "v3",
+    "card-routing-shuffle": "v3",
+    "page-header-title": "v2",
+    "card-feature": "v3",
+    "prompts-footer-section": "v2"
+  },
+  "stagger": "none"
+}
