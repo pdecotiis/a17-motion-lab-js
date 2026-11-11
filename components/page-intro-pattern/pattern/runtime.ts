@@ -106,6 +106,17 @@ function marketField(): Field | null {
 
 // ----- the canvas loop
 const FRAME = 1000 / 30;
+/** How far (px) the page scrolls before the pattern has faded out completely. */
+const FADE_DISTANCE = 300;
+/** The element the page scrolls in: the nearest ancestor that scrolls (the lab's page window), else the page itself. */
+function scrollerOf(element: HTMLElement): HTMLElement | Window {
+  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+    const overflow = getComputedStyle(parent).overflowY;
+    if ((overflow === 'auto' || overflow === 'scroll') && parent.scrollHeight > parent.clientHeight) return parent;
+  }
+  return window;
+}
+
 const reducedMotion = (): boolean => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 /** Draw the dot field into the canvas in `container`, following the pointer. Returns a function that stops it, or null when the pattern code could not run. */
@@ -117,6 +128,7 @@ export function runDotField(container: HTMLElement): (() => void) | null {
   const { algo, style, sc, algoParams, styleParams } = field;
   const reduced = reducedMotion();
   let size = { w: 0, h: 0 }, algoState: unknown = null, styleState: unknown = null, key = '', last: number | null = null, clock = 0, frame = 0, previous = 0;
+  let faded = false;   // scrolled far enough that the pattern is gone: nothing is drawn
   let mouse: { x: number; y: number } | null = null, visible = true, clicks: { x: number; y: number; time: number }[] = [];
   canvas.style.opacity = '1';
   canvas.style.filter = 'none';
@@ -154,7 +166,7 @@ export function runDotField(container: HTMLElement): (() => void) | null {
   function loop(time: number): void {
     frame = 0;
     if (!visible || !container.isConnected) return;
-    if (!document.hidden && time - previous >= FRAME) { previous = time; draw(); }
+    if (!document.hidden && !faded && time - previous >= FRAME) { previous = time; draw(); }
     frame = requestAnimationFrame(loop);
   }
 
@@ -177,5 +189,16 @@ export function runDotField(container: HTMLElement): (() => void) | null {
     listen('click', e => { const b = container.getBoundingClientRect(); clicks.push({ x: e.clientX - b.left, y: e.clientY - b.top, time: performance.now() }); });
     frame = requestAnimationFrame(loop);
   }
+  // The pattern fades out as the page scrolls down, and is back when it scrolls to the top.
+  const scroller = scrollerOf(container);
+  const fade = (): void => {
+    const top = scroller instanceof Window ? scroller.scrollY : scroller.scrollTop;
+    const opacity = Math.max(0, 1 - top / FADE_DISTANCE);
+    container.style.opacity = String(opacity);
+    faded = opacity === 0;
+  };
+  scroller.addEventListener('scroll', fade, { passive: true });
+  cleanups.push(() => scroller.removeEventListener('scroll', fade));
+  fade();
   return () => { cancelAnimationFrame(frame); cleanups.forEach(fn => fn()); };
 }

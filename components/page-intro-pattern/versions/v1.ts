@@ -1,7 +1,7 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 
 // v1: the background pattern is simply there from the first frame and stays (the dots move by themselves and follow the pointer: see pattern/runtime.ts). A version needs
-// an entrance, so this one is a fade from fully visible to fully visible (nothing moves): the page's `hold` then makes the sections wait before they fade in on top of it.
+// an entrance, so this one is a fade from fully visible to fully visible (nothing moves). The sections fade in on top of it with no wait; the pattern fades out by itself as the page scrolls (pattern/runtime.ts).
 export const v1: MotionVersion = {
   id: 'v1',
   label: 'Always there',

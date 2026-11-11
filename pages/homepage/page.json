@@ -32,6 +32,5 @@
       "id": "prompts-footer-section",
       "component": "prompts-footer-section"
     }
-  ],
-  "hold": "2500ms"
+  ]
 }
