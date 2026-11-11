@@ -2,7 +2,8 @@
 //
 // The quick check for while you work: typecheck, every unit test (a few seconds), and the browser tests only for what you changed:
 // a component's own spec and the every-version test for that component, in Chromium. Lab, token or script changes are shared by
-// everything, so they run `npm run check:fast` instead. Run `npm run check` before sending work for review.
+// everything, so they run a short smoke set of the lab's main screens (under 40 seconds), not the whole suite: this is a prototype tool, so run
+// `npm run check:fast` once before pushing a lab change and `npm run check` before sending work for review.
 //   npm run check:changed           what git says is changed (staged, unstaged and new files)
 //   npm run check:changed -- card   named components, whatever git says
 import { spawnSync } from 'node:child_process';
@@ -32,9 +33,11 @@ for (const file of changed) {
 
 if (!changed.length) { console.log('Nothing changed: nothing to check. (npm run check:changed -- <component> checks a component by name.)'); process.exit(0); }
 
-console.log('check:changed → typecheck and unit tests, then the browser tests for ' + (shared ? 'everything (the lab, tokens or scripts changed)' : [...components, ...pages].join(', ') || 'nothing in the browser'));
+console.log('check:changed → typecheck and unit tests, then the browser tests for ' + (shared ? 'the lab\'s main screens (a smoke set: the lab, tokens or scripts changed)' : [...components, ...pages].join(', ') || 'nothing in the browser'));
 if (!run('npm', ['run', '--silent', 'typecheck']) || !run('npm', ['run', '--silent', 'test'])) process.exit(1);
-if (shared) process.exit(run('npm', ['run', '--silent', 'test:e2e:fast']) ? 0 : 1);
+// the screens everything else hangs off: the nav, the library, the pages library, the tokens and preview
+const SMOKE = ['navigation', 'library-view', 'pages-library', 'tokens-view', 'preview-mode'];
+if (shared) process.exit(run('npx', ['playwright', 'test', '--project=chromium', ...SMOKE.map(n => `tests/e2e/${n}.spec.ts`)]) ? 0 : 1);
 
 const specs = [...components, ...pages].map(n => `tests/e2e/${n}.spec.ts`).filter(f => existsSync(join(root, f)));
 let ok = true;
