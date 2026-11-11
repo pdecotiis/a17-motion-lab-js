@@ -467,7 +467,7 @@ html, body {
 /* A slot left out of this page version: nothing is shown there. */
 .lab-page-item--left-out { display: none; }
 /* The page lays out at its own width (set in the lab). */
-.lab-page-grid { display: flex; flex-direction: column; gap: 24px; }
+.lab-page-grid { position: relative; display: flex; flex-direction: column; gap: 24px; }   /* positioned: something laid over the whole page (an intro pattern) is placed against it */
 .lab-page-grid--flush { gap: 0; }
 .lab-page-item { width: 100%; }
 /* A page with an aside (a side menu): the aside sits at the left, full height and sticky as the window scrolls, and the other sections

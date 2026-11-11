@@ -36,7 +36,7 @@ import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
 import { toast, toastAfterReload, showPendingToast } from './lib/toast.js';
 import { archivedIdsOf, applyArchived, isArchived, activeVersions } from './lib/archived.js';
 import type { Json } from './lib/scale-apply.js';
-import { defaultStaggerOf, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken } from './lib/stagger.js';
+import { defaultStaggerOf, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken, pageHoldMs } from './lib/stagger.js';
 import { buildExportCode, EXPORT_FORMATS, EXPORT_LABELS, type ExportFormat } from './lib/export-code.js';
 import { buildLibraryEntries, libraryFilterFromParams } from './lib/library.js';
 import { renderEmptyState } from './lib/empty-state.js';
@@ -841,11 +841,14 @@ function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 
 
 // One motion on one element, played by the current runtime. The speed control sets the runtime's own
 // speed, so durations and delays here are at normal speed.
+// The wait (ms) the page asks of the sections that play as it opens (its `hold`), added to their delay while one starts.
+let pageHold = 0;
+
 function playStep(el: HTMLElement, version: MotionVersion, staggerIndex: number, extraDelayMs = 0): PlayHandle {
   const isReduced = prefersReducedMotion();
   // A stagger is a delay token (delay.80) or a literal (80ms).
   const staggerMs = version.stagger ? parseFloat(String(version.stagger in raw ? raw[version.stagger] : version.stagger)) : 0;
-  const staggerDelay = staggerMs * staggerIndex + extraDelayMs;
+  const staggerDelay = staggerMs * staggerIndex + extraDelayMs + pageHold;
 
   // reducedMotion: 'none' means no animation at all: the element shows its end state.
   // A motion with no opacity change (a preset's move track) has nothing to fade: it does not play, so it
@@ -1698,7 +1701,8 @@ function renderPageView(params: URLSearchParams): void {
     const token = staggerTokenFor(column.choice());
     const play = (staggerAt: number): void => {
       const staggered = token !== null && staggerAt > 0;
-      column.anims.set(pc.id, animateElement(target, staggered ? { ...ver, stagger: token } : ver, staggered ? staggerAt : 0));
+      pageHold = opening ? pageHoldMs(pageConfig.hold, raw) : 0;
+      try { column.anims.set(pc.id, animateElement(target, staggered ? { ...ver, stagger: token } : ver, staggered ? staggerAt : 0)); } finally { pageHold = 0; }
     };
 
     const slot: PageSlot = { wrapper, observer: null };

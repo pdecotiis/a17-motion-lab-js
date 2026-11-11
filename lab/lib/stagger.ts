@@ -31,3 +31,12 @@ export function pageStaggerToken(choice: string | null | undefined, tokens: stri
   const path = choice ? `delay.${choice}` : '';
   return tokens.includes(path) ? path : defaultToken;
 }
+
+// How long the sections that play as a page opens wait first, in ms: a token path or a time such as "2500ms"; 0 when the page has none.
+export function pageHoldMs(hold: string | undefined, raw: Record<string, unknown>): number {
+  if (hold === undefined || hold === '') return 0;
+  const text = String(hold in raw ? raw[hold] : hold);
+  const ms = text.endsWith('ms') ? parseFloat(text) : text.endsWith('s') ? parseFloat(text) * 1000 : parseFloat(text);
+  if (!(ms >= 0)) throw new Error(`A page's hold must be a duration or delay token, or a time such as "2500ms": "${hold}"`);
+  return ms;
+}
