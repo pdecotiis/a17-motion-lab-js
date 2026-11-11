@@ -7,7 +7,8 @@ import { orderedKeyframes } from './css-output.js';
 import { getTokenRefs } from './token-refs.js';
 import { describeTrigger, getReducedMotionPolicy } from './version-meta.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
-import { interactionParts, motionStates, motionTransitionPlan, partProps, stateNames, timingFor } from './interaction.js';
+import { interactionParts, isCoreTrigger, motionStates, motionTransitionPlan, partProps, stateNames, timingFor } from './interaction.js';
+import { getTrigger } from './project-triggers.js';
 
 // The same version as code for the library a project uses. The CSS export (css-output.ts) is the
 // baseline; these are the same motion in GSAP and Motion terms, built from the same version file and
@@ -152,6 +153,16 @@ function gsapStep(
 // and click (the same rules as the lab's player: a touch never hovers, a press lasts until the pointer is
 // released anywhere, focus is keyboard focus, the latest hold wins and the base state returns) and returns the
 // function that stops listening. Both libraries use the same wiring; only goTo differs.
+// A project trigger's own code, inside attach's loop over the triggers: one block per trigger name used (see lab/lib/project-triggers.ts for what is in scope).
+function customTriggerLines(triggers: NonNullable<MotionVersion['interaction']>['triggers'] & object): string[] {
+  const names = [...new Set(triggers.filter(t => !isCoreTrigger(t)).map(t => t.on))];
+  return names.flatMap(name => {
+    const code = getTrigger(name)?.exportCode;
+    const lines = code ? code(triggers.find(t => t.on === name)!) : [`// "${name}" is a project trigger with no export code: wire it by hand (its settings are in \`triggers\` above).`];
+    return [`    if (t.on === ${JSON.stringify(name)}) {`, ...lines.map(l => `      ${l}`), '      continue;', '    }'];
+  });
+}
+
 function attachLines(version: MotionVersion, base: string, raw: Record<string, unknown> = {}): string[] {
   const i = version.interaction!;
   const triggers = i.triggers ?? [];
@@ -164,29 +175,19 @@ function attachLines(version: MotionVersion, base: string, raw: Record<string, u
   return [
     '// What starts each move. hover, press and focus hold a state while they last; click sets one (or swaps two).',
     'const triggers = [',
-    ...triggers.map(t => `  ${JSON.stringify(t.on === 'interval' ? { ...t, every: parseMs(t.every, raw) } : t)},`),
+    ...triggers.map(t => `  ${JSON.stringify(!isCoreTrigger(t) ? (getTrigger(t.on)?.exportSettings?.(t, raw) ?? t) : t)},`),
     '];',
     '',
     `/** Wire the triggers on \`el\` (and on the data-motion elements they name). Returns a function that removes them. */`,
     `export function attach${base}(el) {`,
     `  let base = ${str(i.initial)};`,
     '  const holds = [];',
-    '  let timer;',
-    '  const settle = () => { goTo' + base + '(el, holds.length ? holds[holds.length - 1].state : base); rearm(); };',
+    '  const afterMove = [];   // functions called after every move (a project trigger can add one)',
+    '  const settle = () => { goTo' + base + '(el, holds.length ? holds[holds.length - 1].state : base); afterMove.forEach(fn => fn()); };',
     '  const off = [];',
-    '  // interval: step to the next state by itself, `every` ms after the last change (not under reduced motion)',
-    '  const rearm = () => {',
-    '    clearTimeout(timer);',
-    '    for (const t of triggers) if (t.on === "interval") timer = setTimeout(() => {',
-    '      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) base = t.toggle[(t.toggle.indexOf(base) + 1) % t.toggle.length];',
-    '      settle();',
-    '    }, t.every);',
-    '  };',
-    '  off.push(() => clearTimeout(timer));',
     '  const on = (node, type, fn) => { node.addEventListener(type, fn); off.push(() => node.removeEventListener(type, fn)); };',
-    '  rearm();',
     '  for (const t of triggers) {',
-    '    if (t.on === "interval") continue;',
+    ...customTriggerLines(triggers).map(l => l),
     '    if (t.on === "arrows") {',
     '      on(document, "keydown", e => {',
     '        if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;',

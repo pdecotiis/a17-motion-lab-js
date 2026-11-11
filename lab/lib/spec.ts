@@ -2,7 +2,8 @@ import type { ComponentStatus, MotionVersion, EntranceVersion, TweenModel, Sprin
 import { tokenVarName, type CompiledTokens } from './token-compiler.js';
 import { buildVersionCss, orderedKeyframes } from './css-output.js';
 import { getStepRefs, getTokenRefs } from './token-refs.js';
-import { interactionParts, partValues, resolveState, stateNames, timingFor } from './interaction.js';
+import { interactionParts, isCoreTrigger, partValues, resolveState, stateNames, timingFor } from './interaction.js';
+import { getTrigger } from './project-triggers.js';
 import { hasEntrance, resolveKeyframes, stepsOf } from './motion-models.js';
 import { motionTableMarkdown, motionTableOf } from './motion-table.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
@@ -124,13 +125,15 @@ function triggerLines(version: MotionVersion): string[] {
   const triggers = i.triggers ?? [];
   const led = new Set<string>();
   const rows = triggers.map(t => {
+    if (!isCoreTrigger(t)) {
+      const described = getTrigger(t.on)?.describe(t);
+      if (!described) return `| ${t.on} | | | a project trigger with no description |`;
+      described.led.forEach(st => led.add(st));
+      return `| ${described.event} | ${described.on} | ${described.means} | ${described.what} |`;
+    }
     if (t.on === 'arrows') {
       t.states.forEach(st => led.add(st));
       return `| arrows | the page (not while typing in a field) | ${TRIGGER_WORDS['arrows']} | steps through ${t.states.map(st => `**${st}**`).join(', ')}, left to right: left goes to the one before, right to the one after, and it stops at the ends |`;
-    }
-    if (t.on === 'interval') {
-      t.toggle.forEach(st => led.add(st));
-      return `| interval | a timer | every ${t.every} after the last change | goes to the next of ${t.toggle.map(s => `**${s}**`).join(', ')}, back to **${t.toggle[0]}** after the last; a click starts the wait again; not under reduced motion (the GSAP and Motion \`attach…(el)\` functions run it, the CSS has no timer) |`;
     }
     const where = t.target ? `the element marked \`data-motion="${t.target}"\`` : 'the component itself';
     if (t.on === 'click') {

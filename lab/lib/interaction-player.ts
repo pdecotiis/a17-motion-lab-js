@@ -1,7 +1,8 @@
 import { animate as motionAnimate } from 'motion';
 import type { InteractionTrigger, MotionVersion, ReducedMotionPolicy, StateValues } from './types.js';
 import { cssHandle, type PlayHandle, type Runtime } from './runtime.js';
-import { cssTransitionPlan, interactionParts, motionStates, motionTransitionPlan, partProps, partValues, resolveState, stateNames } from './interaction.js';
+import { getTrigger } from './project-triggers.js';
+import { cssTransitionPlan, interactionParts, isCoreTrigger, motionStates, motionTransitionPlan, partProps, partValues, resolveState, stateNames } from './interaction.js';
 
 // Plays a component's states in the lab. One player per component element: it knows which state the
 // component is in, moves the component (the root, and each layer that has values) to another state from
@@ -234,22 +235,19 @@ export function createInteractionPlayer(el: HTMLElement, version: MotionVersion,
         t.target ? [...el.querySelectorAll<HTMLElement>(`[data-motion="${t.target}"]`)] : [el];
 
       for (const t of interaction.triggers ?? []) {
-        // Steps to the next state by itself, `every` after the last state change (so a click starts the wait again). Not while locked (an entrance is playing:
-        // it tries again a wait later) and not under reduced motion.
-        if (t.on === 'interval') {
-          const raw = deps.raw[t.every] ?? t.every;
-          const text = String(raw), ms = text.endsWith('ms') ? parseFloat(text) : text.endsWith('s') ? parseFloat(text) * 1000 : parseFloat(text);
-          let timer = 0;
-          const arm = (): void => {
-            window.clearTimeout(timer);
-            timer = window.setTimeout(() => {
-              if (!locked && !deps.reducedMotion()) { base = t.toggle[(t.toggle.indexOf(base) + 1) % t.toggle.length]!; settle(); }
-              arm();
-            }, ms / deps.playbackRate());
-          };
-          moved.push(arm);
-          arm();
-          cleanups.push(() => { window.clearTimeout(timer); const at = moved.indexOf(arm); if (at >= 0) moved.splice(at, 1); });
+        // A project trigger (a file in /triggers/): it listens and moves the component through what it is given.
+        if (!isCoreTrigger(t)) {
+          const project = getTrigger(t.on);
+          if (!project) throw new Error(`Unknown trigger "${t.on}": a project trigger is a file in triggers/${t.on}.ts`);
+          cleanups.push(project.attach(t, {
+            el, raw: deps.raw,
+            goTo: state => { base = state; holds.length = 0; holdState.clear(); move(state); },
+            base: () => base,
+            isLocked: () => locked,
+            reducedMotion: deps.reducedMotion,
+            playbackRate: deps.playbackRate,
+            onMoved: fn => { moved.push(fn); return () => { const at = moved.indexOf(fn); if (at >= 0) moved.splice(at, 1); }; },
+          }));
           continue;
         }
         // Arrow keys step through a list of states, left to right: heard on the whole page, but not while typing in a field.

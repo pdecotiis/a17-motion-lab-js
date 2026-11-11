@@ -7,6 +7,21 @@ const SETUP = async (page: Page) => {
   await page.goto('/?view=tokens');
   await page.evaluate(async () => {
     const { createInteractionPlayer } = await import('/lib/interaction-player.ts' as string) as typeof import('../../lab/lib/interaction-player.js');
+    // a stand-in project trigger (the mechanism is the lab's; real ones live in the project's /triggers/): steps through its states by itself, restarted by any move
+    const { registerTrigger } = await import('/lib/project-triggers.ts' as string) as typeof import('../../lab/lib/project-triggers.js');
+    registerTrigger({
+      name: 'tick',
+      validate() {},
+      attach(settings, ctx) {
+        const s = settings as unknown as { every: number; toggle: string[] };
+        let timer = 0;
+        const arm = (): void => { window.clearTimeout(timer); timer = window.setTimeout(() => { if (!ctx.isLocked()) ctx.goTo(s.toggle[(s.toggle.indexOf(ctx.base()) + 1) % s.toggle.length]!); arm(); }, s.every); };
+        const stop = ctx.onMoved(arm);
+        arm();
+        return () => { window.clearTimeout(timer); stop(); };
+      },
+      describe: () => ({ heading: 'Tick', summary: '', led: [], event: 'tick', on: 'a timer', means: '', what: '' }),
+    });
     const raw = { 'duration.100': '100ms', 'easing.linear': [0, 0, 1, 1] };
     const timing = { model: 'tween' as const, duration: 'duration.100', easing: 'easing.linear' };
     const make = (id: string, top: number, triggers: unknown[], inner = '') => {
@@ -35,7 +50,7 @@ const SETUP = async (page: Page) => {
     make('foc', 280, [{ on: 'focus', state: 'a' }], '<button id="focbtn" style="margin:10px">focus me</button><input id="focin" style="margin:10px;width:60px">');
     make('clk', 360, [{ on: 'click', set: 'a' }]);
     make('tog', 440, [{ on: 'click', toggle: ['rest', 'b'] }]);
-    make('int', 680, [{ on: 'interval', every: '400ms', toggle: ['rest', 'a', 'b'] }, { on: 'click', set: 'rest' }]);
+    make('int', 680, [{ on: 'tick', every: 400, toggle: ['rest', 'a', 'b'] }, { on: 'click', set: 'rest' }]);
     make('arw', 600, [{ on: 'arrows', states: ['rest', 'a', 'b'] }]);
     make('lay', 520, [{ on: 'click', target: 'inner', set: 'a' }], '<span data-motion="inner" id="laybtn" style="display:inline-block;margin:10px">layer</span>');
   });
@@ -53,7 +68,7 @@ test.describe('Interaction triggers', () => {
     await expect(page.locator('#hov')).toHaveAttribute('data-state', 'rest');
   });
 
-  test('an interval steps through its states by itself, and a click starts the wait again', async ({ page }) => {
+  test('a project trigger steps through its states by itself, restarted by any move, and is removed with detach', async ({ page }) => {
     expect(await stateOf(page, 'int')).toBe('rest');
     await expect(page.locator('#int')).toHaveAttribute('data-state', 'a', { timeout: 1500 });
     await expect(page.locator('#int')).toHaveAttribute('data-state', 'b', { timeout: 1500 });

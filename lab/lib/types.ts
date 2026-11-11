@@ -76,15 +76,16 @@ export interface InteractionLayer {
 //   arrows                the left and right arrow keys step through `states`, left to right (left goes to the one before the
 //                         current state, right to the one after; it stops at the ends). Heard anywhere on the page except while
 //                         typing in a field.
-//   interval              goes to the next of its `toggle` states by itself, `every` (a delay or duration token, or a time such as "5000ms") after
-//                         the last state change (a click, or its own step, starts the wait again). Not under prefers-reduced-motion.
-export type TriggerEvent = 'hover' | 'press' | 'focus' | 'click' | 'arrows' | 'interval';
-export type InteractionTrigger =
+//   anything else         a project trigger: a file in /triggers/ (see lab/lib/project-triggers.ts), written as { on: '<its name>', ...its own settings }
+export type TriggerEvent = 'hover' | 'press' | 'focus' | 'click' | 'arrows';
+export type CoreTrigger =
   | { on: 'hover' | 'press' | 'focus'; state: string; target?: string }
   | { on: 'click'; set: string; target?: string }
   | { on: 'click'; toggle: [string, string, ...string[]]; target?: string }
-  | { on: 'arrows'; states: string[]; target?: string }
-  | { on: 'interval'; every: string; toggle: [string, string, ...string[]]; target?: string };
+  | { on: 'arrows'; states: string[]; target?: string };
+/** A trigger the project defines itself in /triggers/: `on` is its name and the rest are its own settings. */
+export interface CustomTrigger { on: string; target?: string; [setting: string]: unknown }
+export type InteractionTrigger = CoreTrigger | CustomTrigger;
 
 export interface Interaction {
   /** The state the component rests in, and starts in. */

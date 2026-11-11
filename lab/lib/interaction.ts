@@ -1,4 +1,5 @@
-import type { Interaction, InteractionTrigger, MotionVersion, StateValues, TransitionTiming, TriggerEvent } from './types.js';
+import type { CoreTrigger, Interaction, InteractionTrigger, MotionVersion, StateValues, TransitionTiming, TriggerEvent } from './types.js';
+import { getTrigger } from './project-triggers.js';
 import { resolveBounce, DEFAULT_BOUNCE } from './bounce.js';
 import { resolveRefs, findRefs } from './token-compiler.js';
 import { transformParts, TRANSFORM_IDENTITY } from './transform.js';
@@ -12,7 +13,7 @@ import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 const STRUCTURAL = ['display', 'position', 'content', 'innerHTML'];
 
 /** The events a trigger can listen for. */
-export const TRIGGER_EVENTS: readonly TriggerEvent[] = ['hover', 'press', 'focus', 'click', 'arrows', 'interval'];
+export const TRIGGER_EVENTS: readonly TriggerEvent[] = ['hover', 'press', 'focus', 'click', 'arrows'];
 
 const NAME = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -50,18 +51,21 @@ function validateTiming(version: MotionVersion, where: string, t: TransitionTimi
   }
 }
 
-function validateTrigger(version: MotionVersion, t: InteractionTrigger, names: string[], initial: string): void {
+/** Whether a trigger is one of the lab's own (the others are the project's, from /triggers/). */
+export const isCoreTrigger = (t: InteractionTrigger): t is CoreTrigger => (TRIGGER_EVENTS as readonly string[]).includes(t.on);
+
+function validateTrigger(version: MotionVersion, raw: InteractionTrigger, names: string[], initial: string): void {
   const id = `MotionVersion "${version.id}"`;
-  if (!TRIGGER_EVENTS.includes(t.on)) throw new Error(`${id} has an unknown trigger "${String(t.on)}" (use ${TRIGGER_EVENTS.join(', ')})`);
-  if (t.target !== undefined && !NAME.test(t.target)) throw new Error(`${id} trigger target "${t.target}" must be lowercase letters, numbers and hyphens, as in data-motion="${t.target}"`);
-  const known = (s: unknown, what: string): void => { if (typeof s !== 'string' || !names.includes(s)) throw new Error(`${id} ${t.on} trigger ${what} "${String(s)}", which is not one of its states (${names.join(', ')})`); };
-  if (t.on === 'interval') {
-    const { every, toggle } = t as { every: unknown; toggle: unknown };
-    if (typeof every !== 'string' || every === '') throw new Error(`${id} interval trigger needs "every": a delay or duration token, or a time such as "5000ms"`);
-    if (!Array.isArray(toggle) || toggle.length < 2 || new Set(toggle).size !== toggle.length) throw new Error(`${id} interval trigger needs a list of two or more different states to step through`);
-    toggle.forEach(s => known(s, 'steps through'));
+  if (!isCoreTrigger(raw)) {
+    const project = getTrigger(raw.on);
+    if (!project) throw new Error(`${id} has an unknown trigger "${String(raw.on)}" (use ${TRIGGER_EVENTS.join(', ')}). A project trigger is a file in triggers/${String(raw.on)}.ts`);
+    if (raw.target !== undefined && !NAME.test(String(raw.target))) throw new Error(`${id} trigger target "${String(raw.target)}" must be lowercase letters, numbers and hyphens, as in data-motion="${String(raw.target)}"`);
+    project.validate(raw, { id, states: names });
     return;
   }
+  const t = raw;
+  if (t.target !== undefined && !NAME.test(t.target)) throw new Error(`${id} trigger target "${t.target}" must be lowercase letters, numbers and hyphens, as in data-motion="${t.target}"`);
+  const known = (s: unknown, what: string): void => { if (typeof s !== 'string' || !names.includes(s)) throw new Error(`${id} ${t.on} trigger ${what} "${String(s)}", which is not one of its states (${names.join(', ')})`); };
   if (t.on === 'arrows') {
     const list = (t as { states: string[] }).states;
     if (!Array.isArray(list) || list.length < 2 || new Set(list).size !== list.length) throw new Error(`${id} arrows trigger needs a list of at least two different states, left to right`);

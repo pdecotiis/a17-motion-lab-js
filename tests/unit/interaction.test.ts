@@ -104,8 +104,8 @@ describe('triggers', () => {
     expect(v2.interaction!.triggers).toEqual([{ on: 'click', target: 'close', set: 'closed' }]);
   });
 
-  it('the events are hover, press, focus, click, arrows and interval', () => {
-    expect(TRIGGER_EVENTS).toEqual(['hover', 'press', 'focus', 'click', 'arrows', 'interval']);
+  it('the events are hover, press, focus, click and arrows', () => {
+    expect(TRIGGER_EVENTS).toEqual(['hover', 'press', 'focus', 'click', 'arrows']);
   });
 
   it('accepts hover, press and focus (to a state other than rest), and a click that sets or toggles', () => {
@@ -118,7 +118,7 @@ describe('triggers', () => {
   });
 
   it('refuses an unknown event, a state that does not exist, and a bad target name', () => {
-    expect(() => validateInteraction(withTriggers([{ on: 'swipe', state: 'open' } as never]))).toThrow('unknown trigger "swipe" (use hover, press, focus, click, arrows, interval)');
+    expect(() => validateInteraction(withTriggers([{ on: 'swipe', state: 'open' } as never]))).toThrow('unknown trigger "swipe" (use hover, press, focus, click, arrows)');
     expect(() => validateInteraction(withTriggers([{ on: 'hover', state: 'lost' }]))).toThrow('hover trigger goes to "lost", which is not one of its states (closed, open)');
     expect(() => validateInteraction(withTriggers([{ on: 'click', set: 'lost' }]))).toThrow('click trigger sets "lost"');
     expect(() => validateInteraction(withTriggers([{ on: 'hover', state: 'open', target: 'Page Title' }]))).toThrow('must be lowercase letters, numbers and hyphens, as in data-motion="Page Title"');
@@ -164,13 +164,6 @@ describe('layers of an interaction', () => {
     expect(() => validateInteraction(version({ hold: 1000 as never }))).toThrow('hold must be');
   });
 
-  it('accepts an interval trigger (a time or token and two or more states) and refuses a missing time or a short or unknown list', () => {
-    const withTrigger = (t: unknown): MotionVersion => version({ triggers: [t as never] });
-    expect(() => validateInteraction(withTrigger({ on: 'interval', every: '5000ms', toggle: ['closed', 'open'] }))).not.toThrow();
-    expect(() => validateInteraction(withTrigger({ on: 'interval', toggle: ['closed', 'open'] }))).toThrow('needs "every"');
-    expect(() => validateInteraction(withTrigger({ on: 'interval', every: '5000ms', toggle: ['open'] }))).toThrow('two or more different states');
-    expect(() => validateInteraction(withTrigger({ on: 'interval', every: '5000ms', toggle: ['closed', 'lost'] }))).toThrow('"lost", which is not one of its states');
-  });
   it('accepts an arrows trigger over a list of states and refuses a short, repeated or unknown list', () => {
     const withTrigger = (trigger: unknown): MotionVersion => version({ triggers: [trigger as never] });
     expect(() => validateInteraction(withTrigger({ on: 'arrows', states: ['closed', 'open'] }))).not.toThrow();
