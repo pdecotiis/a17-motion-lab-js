@@ -86,7 +86,7 @@ const pageModules = import.meta.glob<PageConfig>(
 // The project's own name (project.json at the repo root, if it has one) for the header and the tab title.
 const projectName = projectNameOf(Object.values(import.meta.glob<unknown>('../project.json', { eager: true, import: 'default' }))[0]);
 const brandEl = document.querySelector<HTMLElement>('.lab-header__brand');
-// The Beta tag is the template's: a project shows its own name instead.
+// The Dev tag is the template's: a project shows its own name instead.
 if (projectName) document.querySelector<HTMLElement>('.lab-header__brand .lab-badge')?.setAttribute('hidden', '');
 
 // The avatars beside the gear. Alone, one: who set the lab up on this computer (the computer's git user). With

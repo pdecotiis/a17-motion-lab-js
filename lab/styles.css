@@ -30,6 +30,7 @@
   --blue-900: #031d39;
   --color-bg: #ffffff;
   --color-spec: var(--blue-500);
+  --color-link: #186ae5; /* the kit's interactive/primary (blue-500 of its own scale): every text link in the lab */
   --color-spec-bg: rgba(0, 106, 255, 0.15); /* the lighter tint behind a spec mark */
   --color-card: var(--gray-50); /* the kit's background/secondary: every card, panel and example frame */
   --color-surface: #ffffff;
@@ -57,7 +58,7 @@
   --color-tint-pressed: rgba(0, 0, 0, 0.12);
   --control-height: 40px;
   --radius: 8px;
-  --radius-control: 8px; /* buttons, nav items, tabs, selects and inputs */
+  --radius-control: 4px; /* buttons, nav items, tabs, selects and inputs */
   --radius-xs: 2px;
   --header-height: 64px;
   --lab-font-sans: "Suisse Int'l", "Inter Variable", system-ui, -apple-system, sans-serif;
@@ -215,7 +216,7 @@ html, body {
 .lab-breadcrumb ol { display: flex; align-items: center; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .lab-breadcrumb li + li::before { content: '/'; margin-right: 8px; color: var(--color-text-muted); }
 .lab-breadcrumb a { color: var(--color-text-muted); text-decoration: none; border-radius: var(--radius-xs); }
-.lab-breadcrumb a:hover { color: var(--color-text); text-decoration: underline; }
+.lab-breadcrumb a:hover { text-decoration: underline; }
 .lab-breadcrumb a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .lab-breadcrumb [aria-current="page"] { font-weight: 500; }
 
@@ -538,7 +539,7 @@ html, body {
 /* The title always sits in the same 128px zone, so it is in the same place on every view; a description goes below the zone and makes the header taller. */
 .lab-hero__title { margin: 0; min-height: 128px; display: flex; align-items: flex-end; font: var(--type-display); }
 .lab-hero__text { margin: 8px 0 0; max-width: 72ch; color: var(--color-text-muted); font: var(--type-ui-1); }
-.lab-tokens-subtabs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 20px; background: var(--color-bg); }
+.lab-tokens-subtabs { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; padding: 16px 20px; background: var(--color-bg); }
 .lab-tokens-subtab {
   padding: 8px 12px;
   border: none;
@@ -772,7 +773,7 @@ html, body {
   height: 32px;
   padding: 0 12px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   background: var(--color-highlight);
   color: var(--color-text);
  
@@ -893,7 +894,7 @@ html, body {
 .lab-split__toggle { flex: none; width: 40px; padding: 0; justify-content: center; border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .lab-split__menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 5; min-width: 100%; padding: 4px; background: var(--color-bg); border: 1px solid var(--color-subtle); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); }
 .lab-split__menu[hidden] { display: none; }
-.lab-split__item { display: block; width: 100%; padding: 8px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text); font: var(--type-ui-2); text-align: left; white-space: nowrap; cursor: pointer; }
+.lab-split__item { display: block; width: 100%; padding: 8px 12px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: var(--type-ui-2); text-align: left; white-space: nowrap; cursor: pointer; }
 .lab-split__item:hover { background: var(--color-tint, rgba(0, 0, 0, 0.04)); }
 .lab-split__item:disabled { opacity: 0.4; cursor: default; }
 .lab-save-row[hidden] { display: none; }
@@ -905,3 +906,6 @@ html, body {
 .lab-version-archive:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
 .lab-version-archive:disabled { opacity: 0.4; cursor: default; }
 .lab-version-tab--archived, .lab-version-row:hover .lab-version-tab--archived { opacity: 0.5; cursor: default; color: var(--color-text-muted); }
+
+/* Text links use the kit's interactive/primary blue (the nav, the logo and the cards are links too, but they are not text links). */
+.lab-breadcrumb a, .lab-history__item a, .lab-token-chip-link, .lab-ask a, .lab-notice a, .lab-settings a, .lab-scale-panel a, .lab-sidebar a { color: var(--color-link); }
