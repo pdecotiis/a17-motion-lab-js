@@ -19,7 +19,7 @@ test('the page opens on the bento, then the menu slides in and the page settles'
     requestAnimationFrame(sample);
   });
   await page.goto('/?view=page&page=homepage-intro&size=actual');
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(5200);   // three scenes a second apart, then the settle
   const frames = await page.evaluate(() => (window as unknown as Record<string, { menu: number; logo: number[]; grid: number[]; title: number }[]>)['__frames']!);
   const first = frames[0]!, last = frames[frames.length - 1]!;
   expect(first.menu).toBe(0);                            // no menu yet

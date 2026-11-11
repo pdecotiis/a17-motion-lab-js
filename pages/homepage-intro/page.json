@@ -2,14 +2,40 @@
   "id": "homepage-intro",
   "title": "Homepage intro",
   "width": 1440,
-  "hold": "850ms",
+  "hold": "3100ms",
   "components": [
-    { "id": "menu", "component": "menu", "layout": "aside", "immediate": true },
-    { "id": "page-intro-pattern", "component": "page-intro-pattern", "immediate": true },
-    { "id": "header", "component": "header", "immediate": true },
-    { "id": "card-routing-shuffle", "component": "card-routing-shuffle", "immediate": true },
-    { "id": "page-header-title", "component": "page-header-title" },
-    { "id": "card-feature", "component": "card-feature" },
-    { "id": "prompts-footer-section", "component": "prompts-footer-section" }
+    {
+      "id": "menu",
+      "component": "menu",
+      "layout": "aside",
+      "immediate": true
+    },
+    {
+      "id": "page-intro-pattern",
+      "component": "page-intro-pattern",
+      "immediate": true
+    },
+    {
+      "id": "header",
+      "component": "header",
+      "immediate": true
+    },
+    {
+      "id": "card-routing-shuffle",
+      "component": "card-routing-shuffle",
+      "immediate": true
+    },
+    {
+      "id": "page-header-title",
+      "component": "page-header-title"
+    },
+    {
+      "id": "card-feature",
+      "component": "card-feature"
+    },
+    {
+      "id": "prompts-footer-section",
+      "component": "prompts-footer-section"
+    }
   ]
 }
