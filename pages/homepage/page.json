@@ -9,6 +9,10 @@
       "layout": "aside"
     },
     {
+      "id": "page-intro-pattern",
+      "component": "page-intro-pattern"
+    },
+    {
       "id": "header",
       "component": "header"
     },
@@ -27,10 +31,6 @@
     {
       "id": "prompts-footer-section",
       "component": "prompts-footer-section"
-    },
-    {
-      "id": "page-intro-pattern",
-      "component": "page-intro-pattern"
     }
   ],
   "hold": "2500ms"

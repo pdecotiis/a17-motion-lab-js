@@ -1,16 +1,18 @@
-/* The page's background pattern: the site's interactive dot field (see pattern/runtime.ts) in the top of the page, to the right of the menu (it does not go behind
-   the navigation: the menu is 304px wide) and down to about the top of the bento (the cards start near 380px). Its bottom and left edges fade into the page colour,
-   so it does not end in a hard line. The rest of the page is the page's own colour. It takes no room (it is positioned against the page grid), sits behind the
-   sections (z-index -1; the page grid is its own stacking context), never catches the pointer (the dots follow the pointer by a listener on the window) and is
-   redrawn 30 times a second, so it is only as big as it needs to be. A section's root paints the page colour by default, which would hide it, so on a page
-   that has the pattern the sections' roots are transparent. */
+/* The page's background pattern: the site's interactive dot field (see pattern/runtime.ts) in the top of the page, in the content column, so to the right of the menu
+   (it does not go behind the navigation) and down to about the top of the bento (the cards start near 380px). Its bottom and left edges fade into the page
+   colour, so it does not end in a hard line. The rest of the page is the page's own colour.
+   It stays where it is as the page scrolls. On the site that is position: fixed; in the lab the page scrolls in a window of its own, where fixed would hold to the
+   browser instead, so the slot's wrapper is sticky at the top of the window (zero tall, as the first item of the content column) and the pattern hangs from it.
+   It takes no room, sits behind the sections (z-index -1; the page grid is its own stacking context), never catches the pointer (the dots follow the pointer by a
+   listener on the window) and is redrawn 30 times a second, so it is only as big as it needs to be. A section's root paints the page colour by default, which
+   would hide it, so on a page that has the pattern the sections' roots are transparent. */
+.lab-page-item:has(> .page-intro-pattern) { position: sticky; top: 0; height: 0; z-index: -1; }
 .page-intro-pattern {
   position: absolute;
   top: 0;
   right: 0;
-  left: 304px;
+  left: 0;
   height: 400px;
-  z-index: -1;
   pointer-events: none;
   background: var(--background-default);
 }

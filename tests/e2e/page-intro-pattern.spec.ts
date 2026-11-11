@@ -7,12 +7,12 @@ test('the pattern is there first, and the sections fade in on top of it', async 
   const state = () => page.evaluate(() => {
     const pattern = document.querySelector('[data-motion="page-intro-pattern"]')!;
     const sections = [...document.querySelectorAll('[data-motion-target]')].filter(e => e !== pattern);
-    return { pattern: +getComputedStyle(pattern).opacity, zIndex: getComputedStyle(pattern).zIndex, sections: sections.map(e => +getComputedStyle(e).opacity), backgrounds: sections.map(e => getComputedStyle(e).backgroundColor) };
+    return { pattern: +getComputedStyle(pattern).opacity, zIndex: getComputedStyle(pattern.parentElement!).zIndex, sections: sections.map(e => +getComputedStyle(e).opacity), backgrounds: sections.map(e => getComputedStyle(e).backgroundColor) };
   });
   await page.waitForTimeout(600);
   const early = await state();
   expect(early.pattern).toBe(1);
-  expect(early.zIndex).toBe('-1');                       // behind the sections
+  expect(early.zIndex).toBe('-1');                       // behind the sections (its slot's wrapper)
   expect(Math.min(...early.sections)).toBe(0);           // the sections are still waiting
   await page.waitForTimeout(4500);
   const late = await state();
