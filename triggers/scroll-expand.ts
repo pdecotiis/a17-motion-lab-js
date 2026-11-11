@@ -1,9 +1,9 @@
 import type { ProjectTrigger } from '../lab/lib/project-triggers.js';
 
-// scroll-expand: as the page scrolls, one cell of a grid grows to fill the page's container (the column the component is in, as tall as the window) and the cells
+// scroll-expand: as the page scrolls, one cell of a grid grows to fill the page's container (the column the component is in, as tall as the window, inside the page's margins) and the cells
 // around it collapse to nothing, while the grid stays pinned. It is the scroll effect of the reference site, as a collapse rather than a zoom: nothing is scaled.
 // The side columns lose their width (flex-grow to 0), the cells above and below the grown one lose their height, the grown one takes all that is left (it always
-// fills the space exactly), and the grid grows from its own size to the container's. The gutters stay 8px while there is anything to be a gutter to: a gutter only
+// fills the space exactly), and the grid grows from its own size to the window's height, inside the margins. The gutters stay 8px while there is anything to be a gutter to: a gutter only
 // goes (over its last 8px) as the cell beside it disappears. The words and arrows on a card fade out as it collapses. It is scrubbed by the scroll (no easing), so it comes and goes with the scrollbar, and the root clips it: it
 // never goes over the menu or the header.
 //   { on: 'scroll-expand', cell: 'p1a' }      cell = the data-motion name of the cell that grows
@@ -59,6 +59,8 @@ const trigger: ProjectTrigger = {
         radius: parseFloat(getComputedStyle(grown).borderTopLeftRadius) || 0,
       };
       root.style.setProperty('--scroll-expand-distance', `${rest.windowH}px`);
+      root.style.height = '';
+      root.style.height = `${root.offsetHeight}px`;   // fixed: the grid changing size must not change the page's height (the scroll would shift with it)
       update();
     };
     const clear = (): void => {
@@ -69,13 +71,12 @@ const trigger: ProjectTrigger = {
     };
     const update = (): void => {
       const naturalTop = (root.getBoundingClientRect().top - rest.windowTop) / rest.zoom + rest.paddingTop;   // where the grid would be without being pinned
-      const p = clamp((rest.pinned - naturalTop) / rest.windowH);
-      if (p === 0) { clear(); return; }
-      // the grid grows from its own size to the container's (edge to edge, one window tall), pinned at the top of the window by the end
-      const gridW = lerp(rest.gridW, rest.gridW + 2 * rest.pad, p), gridH = lerp(rest.gridH, rest.windowH, p);
-      grid.style.top = `${lerp(rest.pinned, 0, p)}px`;
-      grid.style.width = `${gridW}px`;
-      grid.style.marginLeft = `${lerp(0, -rest.pad, p)}px`;
+      const scrolled = clamp((rest.pinned - naturalTop) / rest.windowH);
+      if (scrolled === 0) { clear(); return; }
+      const p = clamp(scrolled / 0.95);   // it is done a little before the end of the scroll, so it holds still at the end
+      // the grid grows from its own size to the container's (edge to edge, one window tall), pinned a margin below the top of the window by the end, with a margin below it too
+      const gridW = rest.gridW, gridH = lerp(rest.gridH, rest.windowH - 2 * rest.pad, p);
+      grid.style.top = `${lerp(rest.pinned, rest.pad, p)}px`;
       grid.style.aspectRatio = 'auto';
       grid.style.height = `${gridH}px`;
       // the side columns share what the others leave; the gutter beside them stays 8px until they are about to be gone
@@ -91,7 +92,6 @@ const trigger: ProjectTrigger = {
       neighbours.forEach((n, i) => { n.style.height = `${heights[i]}px`; n.style.marginBottom = `${gutters[i]}px`; });
       grown.style.marginBottom = `${cellGutter}px`;
       grown.style.height = `${gridH - cellGutter - below - gutters.reduce((sum, g) => sum + g, 0)}px`;
-      grown.style.borderRadius = `${lerp(rest.radius, 0, p)}px`;
       // what is written on a collapsing card fades out in the first half of the scroll
       fading.forEach(e => { e.style.opacity = String(clamp(1 - p / 0.5)); });
     };
@@ -105,6 +105,7 @@ const trigger: ProjectTrigger = {
       window.removeEventListener('resize', measure);
       cancelAnimationFrame(frame);
       clear();
+      root.style.removeProperty('height');
       root.style.removeProperty('--scroll-expand-distance');
       root.removeAttribute('data-scroll-expand');
     };
@@ -140,10 +141,8 @@ const trigger: ProjectTrigger = {
       '};',
       'const update = () => {',
       '  const p = Math.min(1, Math.max(0, (rest.pinned - (el.getBoundingClientRect().top + rest.paddingTop)) / rest.windowH));',
-      '  const gridH = lerp(rest.gridH, rest.windowH, p);',
-      '  grid.style.top = lerp(rest.pinned, 0, p) + "px";',
-      '  grid.style.width = lerp(rest.gridW, rest.gridW + 2 * rest.pad, p) + "px";',
-      '  grid.style.marginLeft = lerp(0, -rest.pad, p) + "px";',
+      '  const gridH = lerp(rest.gridH, rest.windowH - 2 * rest.pad, p);',
+      '  grid.style.top = lerp(rest.pinned, rest.pad, p) + "px";',
       '  grid.style.aspectRatio = "auto";',
       '  grid.style.height = gridH + "px";',
       '  grid.style.columnGap = lerp(rest.gap, 0, p) + "px";',
