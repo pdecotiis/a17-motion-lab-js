@@ -32,6 +32,8 @@ export interface TriggerContext {
   playbackRate(): number;
   /** Call `fn` every time the component moves to another state (by anything: a click, this trigger, the state buttons). Returns the function that stops it. */
   onMoved(fn: () => void): () => void;
+  /** Call `fn` whenever the lab puts the component back to its first state: a replay, and the end of an entrance. A trigger that runs on a clock starts it again here. Returns the function that stops it. */
+  onReset(fn: () => void): () => void;
 }
 
 /** What a trigger says about itself, for "What it does" (heading, summary) and spec.md (a table row: event, on, means, what happens). */
