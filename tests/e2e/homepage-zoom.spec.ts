@@ -10,7 +10,7 @@ test('the middle picture grows to the container as the page scrolls, and the cel
   const windowH = await page.locator('.lab-page-viewport').evaluate(el => el.clientHeight);
   expect(await box('p1a')).toEqual([696, 128, 352, 472]);          // at rest: as in the design
   await page.locator('.lab-page-viewport').evaluate(el => { el.scrollTop = 800; });
-  await expect.poll(() => box('p1a')).toEqual([336, 32, 1072, windowH - 64]);  // the container, one window tall, on the page's margins (32px each side, as the other cards)
+  await expect.poll(() => box('p1a')).toEqual([336, Math.max(32, Math.round((windowH - 536) / 2)), 1072, 536]);  // 2:1, on the page's margins (32px each side, as the other cards), in the middle of the window
   expect((await box('p0a'))[2]).toBe(0);                            // the side columns have collapsed
   expect((await box('p2a'))[2]).toBe(0);
   expect((await box('i1'))[3]).toBe(0);                             // and the card under it

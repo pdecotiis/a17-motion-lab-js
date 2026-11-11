@@ -2,7 +2,7 @@ import type { MotionVersion } from '../../../lab/lib/types.js';
 import { STATE_ORDER } from '../layouts.js';
 
 // v3: the bento as the page's design has it (the page layout, still), and nothing else: the cards come in one after another with the card preset, in reading
-// order, and then it waits. As the page scrolls the middle picture grows to fill the page's container and the cells around it collapse (the `scroll-expand` trigger in
+// order, and then it waits. As the page scrolls the middle picture grows to a 2:1 box on the page's margins and the cells around it collapse (the `scroll-expand` trigger in
 // triggers/scroll-expand.ts), while the grid stays pinned. The Shuffle button and its timer are not part of this one (the trigger hides the button).
 const each = <T>(f: (s: string) => T): Record<string, T> => Object.fromEntries(STATE_ORDER.map(s => [s, f(s)]));
 const STILL = { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-standard' };
