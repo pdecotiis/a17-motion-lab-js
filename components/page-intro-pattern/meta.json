@@ -1,0 +1,11 @@
+{
+  "name": "page-intro-pattern",
+  "layerName": "intro pattern",
+  "importedAt": "2026-11-10",
+  "frame": { "width": 1440, "height": 900 },
+  "designWidth": 1440,
+  "variables": [],
+  "assets": ["pattern.webp"],
+  "fontFallbacks": [],
+  "issues": ["Hand-built from the dotted background image the designer supplied; it is not a Figma frame."]
+}

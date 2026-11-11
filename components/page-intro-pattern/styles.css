@@ -1,0 +1,12 @@
+/* The intro pattern: a dotted background laid over the first screen of a page. It takes no room in the page (it is positioned against the page grid), never
+   catches the pointer, and the version fades it away after its hold. */
+.page-intro-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  width: 100%;
+  height: 900px;
+  pointer-events: none;
+  background: var(--background-default) url("assets/pattern.webp") center top / cover no-repeat;
+}
