@@ -1,0 +1,13 @@
+{
+  "id": "v3",
+  "label": "Tab pills",
+  "motionMap": {
+    "menu": "v1",
+    "header": "v3",
+    "page-header-title": "v1",
+    "grid-container-mosaic-routing": "v13",
+    "card-feature": "v1",
+    "prompts-footer-section": "v1"
+  },
+  "forkedFrom": "v1"
+}

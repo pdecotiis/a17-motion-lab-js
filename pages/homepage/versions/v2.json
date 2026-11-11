@@ -2,8 +2,8 @@
   "id": "v2",
   "label": "v2: Carousel",
   "motionMap": {
-    "menu": "v1",
-    "header": "v2",
+    "menu": "v2",
+    "header": "v3",
     "page-header-title": "v1",
     "grid-container-mosaic-routing": "v11",
     "card-feature": "v1",

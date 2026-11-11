@@ -1,0 +1,13 @@
+{
+  "id": "v5",
+  "label": "simple entrance",
+  "motionMap": {
+    "menu": "v1",
+    "header": "v3",
+    "page-header-title": "v1",
+    "grid-container-mosaic-routing": "card-routing-columns@v1",
+    "card-feature": "v1",
+    "prompts-footer-section": "v1"
+  },
+  "forkedFrom": "v3"
+}

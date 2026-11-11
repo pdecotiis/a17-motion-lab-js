@@ -2,10 +2,10 @@
   "id": "v1",
   "label": "Default",
   "motionMap": {
-    "menu": "v1",
-    "header": "v2",
+    "menu": "v2",
+    "header": "v3",
     "page-header-title": "v1",
-    "grid-container-mosaic-routing": "v1",
+    "grid-container-mosaic-routing": "card-routing-shuffle@v1",
     "card-feature": "v1",
     "prompts-footer-section": "v1"
   }
