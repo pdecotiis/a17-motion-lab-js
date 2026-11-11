@@ -5,7 +5,7 @@
   align-items: flex-start;
   width: var(--grid-xl-nav);
   /* the full height of the window, whatever it is (the lab's page window sets --page-preview-height; a real page uses the viewport) */
-  height: var(--page-preview-height, 100vh);
+  height: calc(var(--page-preview-height, 100vh) / var(--page-zoom, 1));   /* undoes the lab's fit-to-window zoom, so it still reaches the bottom */
   padding: var(--size-24, 24px);
   background: var(--background-default);
   box-sizing: border-box;
