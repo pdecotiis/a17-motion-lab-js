@@ -1,14 +1,14 @@
-/* The page's background pattern: a dotted image behind the first screen of the page. It takes no room (it is positioned against the page grid), sits behind the
-   sections (z-index -1; the page grid is its own stacking context) and never catches the pointer. A section's root paints the page colour by default, which
-   would hide it, so on a page that has the pattern the sections' roots are transparent and the page colour is the pattern's own. */
+/* The page's background pattern: the site's interactive dot field (see pattern/runtime.ts), behind the whole page. It takes no room (it is positioned against the
+   page grid), sits behind the sections (z-index -1; the page grid is its own stacking context) and never catches the pointer (the dots follow the pointer
+   by a listener on the window). A section's root paints the page colour by default, which would hide it, so on a page that has the pattern the sections' roots
+   are transparent and the page colour is the pattern's own. */
 .page-intro-pattern {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   z-index: -1;
-  width: 100%;
-  height: 900px;
   pointer-events: none;
-  background: var(--background-default) url("assets/pattern.webp") center top / cover no-repeat;
+  background: var(--background-default);
 }
+.page-intro-pattern__field { position: absolute; inset: 0; }
+.page-intro-pattern__field canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .lab-page-grid:has(.page-intro-pattern) [data-motion-target]:not(.page-intro-pattern) { background: transparent; }

@@ -2,10 +2,15 @@
   "name": "page-intro-pattern",
   "layerName": "intro pattern",
   "importedAt": "2026-11-10",
-  "frame": { "width": 1440, "height": 900 },
+  "frame": {
+    "width": 1440,
+    "height": 900
+  },
   "designWidth": 1440,
   "variables": [],
-  "assets": ["pattern.webp"],
+  "assets": [],
   "fontFallbacks": [],
-  "issues": ["Hand-built from the dotted background image the designer supplied; it is not a Figma frame."]
+  "issues": [
+    "Hand-built: the interactive dot field copied from the old Motion Lab's search modal (the Jane Street site's own pattern modules, pattern/pattern-chunk.js, run by pattern/runtime.ts). It replaces the background image used before."
+  ]
 }

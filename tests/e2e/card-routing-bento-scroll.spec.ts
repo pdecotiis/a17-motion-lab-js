@@ -25,7 +25,7 @@ test('the card routing bento takes the tab bento\'s place, and each cell plays a
   await expect(last).toHaveCSS('opacity', '1');
 });
 
-test('the other page versions keep the tab bento in that slot', async ({ page }) => {
-  await page.goto('/?view=page&page=homepage&pv=v1');
+test('a page version that still uses the tab bento keeps it in that slot', async ({ page }) => {
+  await page.goto('/?view=page&page=homepage&pv=v3');
   await expect(slot(page).locator('[data-motion="t-block"]')).toHaveCount(1);
 });
