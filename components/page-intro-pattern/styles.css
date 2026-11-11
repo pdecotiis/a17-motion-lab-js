@@ -1,10 +1,14 @@
-/* The page's background pattern: the site's interactive dot field (see pattern/runtime.ts), behind the whole page. It takes no room (it is positioned against the
+/* The page's background pattern: the site's interactive dot field (see pattern/runtime.ts), behind the first screen of the page (900px: the field is redrawn 30 times a second, so it is
+   not laid behind a page several screens tall). It takes no room (it is positioned against the
    page grid), sits behind the sections (z-index -1; the page grid is its own stacking context) and never catches the pointer (the dots follow the pointer
    by a listener on the window). A section's root paints the page colour by default, which would hide it, so on a page that has the pattern the sections' roots
    are transparent and the page colour is the pattern's own. */
 .page-intro-pattern {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 900px;
   z-index: -1;
   pointer-events: none;
   background: var(--background-default);
