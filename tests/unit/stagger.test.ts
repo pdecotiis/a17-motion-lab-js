@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defaultStaggerOf, delayTokenPaths, staggerFromParam, pageStaggerToken } from '../../lab/lib/stagger.js';
+import { defaultStaggerOf, delayTokenPaths, staggerFromParam, pageStaggerToken, pageHoldMs } from '../../lab/lib/stagger.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
 import type { DtcgGroup } from '../../lab/lib/types.js';
@@ -40,5 +40,18 @@ describe('stagger', () => {
     expect(pageStaggerToken('40', tokens, 'delay.120')).toBe('delay.40');
     expect(pageStaggerToken('none', tokens, 'delay.120')).toBeNull();
     expect(pageStaggerToken('999', tokens, 'delay.80')).toBe('delay.80');
+  });
+});
+
+describe('pageHoldMs', () => {
+  const raw = { 'duration.400': '400ms', 'delay.80': '80ms' };
+  it('reads a time or a token, and none is 0', () => {
+    expect(pageHoldMs(undefined, raw)).toBe(0);
+    expect(pageHoldMs('2500ms', raw)).toBe(2500);
+    expect(pageHoldMs('2s', raw)).toBe(2000);
+    expect(pageHoldMs('duration.400', raw)).toBe(400);
+  });
+  it('refuses something that is not a time', () => {
+    expect(() => pageHoldMs('soon', raw)).toThrow('A page\'s hold must be');
   });
 });

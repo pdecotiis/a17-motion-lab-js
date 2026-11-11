@@ -183,6 +183,9 @@ export interface PageConfig {
   title: string;
   /** The width (px) the page lays out at, zoomed to fit the lab; absent = 400, a column of cards. */
   width?: number;
+  /** How long the sections that play as the page opens wait first (a duration or delay token, or a time such as "2500ms"), so something that is not a section
+   *  (a background pattern that fades away) can show before the page fades in. Sections that play later, on scroll, do not wait. Absent = no wait. */
+  hold?: string;
   components: PageComponent[];
 }
 
