@@ -1,12 +1,14 @@
-/* The intro pattern: a dotted background laid over the first screen of a page. It takes no room in the page (it is positioned against the page grid), never
-   catches the pointer, and the version fades it away after its hold. */
+/* The page's background pattern: a dotted image behind the first screen of the page. It takes no room (it is positioned against the page grid), sits behind the
+   sections (z-index -1; the page grid is its own stacking context) and never catches the pointer. A section's root paints the page colour by default, which
+   would hide it, so on a page that has the pattern the sections' roots are transparent and the page colour is the pattern's own. */
 .page-intro-pattern {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 30;
+  z-index: -1;
   width: 100%;
   height: 900px;
   pointer-events: none;
   background: var(--background-default) url("assets/pattern.webp") center top / cover no-repeat;
 }
+.lab-page-grid:has(.page-intro-pattern) [data-motion-target]:not(.page-intro-pattern) { background: transparent; }

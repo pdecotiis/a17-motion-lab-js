@@ -1,20 +1,22 @@
 import { test, expect } from '@playwright/test';
 
-// The homepage opens on the dotted pattern; the sections wait (the page's hold, 2.5s), then the pattern fades away as they fade in.
-test('the pattern shows first, then fades away as the sections fade in', async ({ page }) => {
+// The homepage opens on the dotted background pattern; the sections wait (the page's hold, 2.5s), then fade in on top of it. The pattern never fades.
+test('the pattern is there first, and the sections fade in on top of it', async ({ page }) => {
   await page.goto('/?view=page&page=homepage&pv=v4');
   await page.locator('[data-motion="page-intro-pattern"]').waitFor();
-  const opacities = () => page.evaluate(() => {
+  const state = () => page.evaluate(() => {
     const pattern = document.querySelector('[data-motion="page-intro-pattern"]')!;
     const sections = [...document.querySelectorAll('[data-motion-target]')].filter(e => e !== pattern);
-    return { pattern: +getComputedStyle(pattern).opacity, sections: sections.map(e => +getComputedStyle(e).opacity) };
+    return { pattern: +getComputedStyle(pattern).opacity, zIndex: getComputedStyle(pattern).zIndex, sections: sections.map(e => +getComputedStyle(e).opacity), backgrounds: sections.map(e => getComputedStyle(e).backgroundColor) };
   });
   await page.waitForTimeout(600);
-  const early = await opacities();
+  const early = await state();
   expect(early.pattern).toBe(1);
-  expect(Math.min(...early.sections)).toBe(0);          // the sections are still waiting
+  expect(early.zIndex).toBe('-1');                       // behind the sections
+  expect(Math.min(...early.sections)).toBe(0);           // the sections are still waiting
   await page.waitForTimeout(4500);
-  const late = await opacities();
-  expect(late.pattern).toBe(0);                         // the pattern has gone
-  expect(Math.min(...late.sections)).toBe(1);           // and the sections are in
+  const late = await state();
+  expect(late.pattern).toBe(1);                          // the pattern stays
+  expect(Math.min(...late.sections)).toBe(1);            // the sections are in
+  expect(late.backgrounds.every(b => b === 'rgba(0, 0, 0, 0)')).toBe(true);   // and let it show through
 });
