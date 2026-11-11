@@ -4,7 +4,8 @@
   justify-content: space-between;
   align-items: flex-start;
   width: var(--grid-xl-nav);
-  height: 900px;
+  /* the full height of the window, whatever it is (the lab's page window sets --page-preview-height; a real page uses the viewport) */
+  height: var(--page-preview-height, 100vh);
   padding: var(--size-24, 24px);
   background: var(--background-default);
   box-sizing: border-box;

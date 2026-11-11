@@ -2,7 +2,7 @@
   "id": "v6",
   "label": "simple entrance square",
   "motionMap": {
-    "menu": "v1",
+    "menu": "v3",
     "header": "v3",
     "page-header-title": "v1",
     "grid-container-mosaic-routing": "card-routing-columns@v2",
