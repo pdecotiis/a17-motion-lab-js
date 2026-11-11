@@ -37,10 +37,12 @@ export function boxOf(layout: Layout, id: string): Box {
   }
   throw new Error(`no such cell: ${id}`);
 }
-/** What a cell's states set: its height, and the gap under it (a cell that shows has 8px below it, a collapsed one none), so the column's stack does the pushing. */
+/** The height of a column (px at the design width): a cell's height is written as a share of it, so the bento scales with its container and keeps these proportions. */
+export const GRID_H = 712;
+/** What a cell's states set: its height as a share of its column, and the gap under it (a cell that shows has 8px below it, a collapsed one none), so the column's stack does the pushing. */
 export function sizeOf(layout: Layout, id: string): { height: string; marginBottom: string } {
   const b = boxOf(layout, id);
-  return { height: `${b.h}px`, marginBottom: b.h ? `${GAP}px` : '0px' };
+  return { height: `${Math.round((b.h / GRID_H) * 100000) / 1000}%`, marginBottom: b.h ? `${GAP}px` : '0px' };
 }
 
 /** The pairs of cells that can overlap while the bento goes from one arrangement to the next, each cell moving in a straight line from its box to its box:

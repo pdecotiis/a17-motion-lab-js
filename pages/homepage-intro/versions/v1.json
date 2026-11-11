@@ -1,0 +1,14 @@
+{
+  "id": "v1",
+  "label": "Opening: bento fullscreen, three scenes, then the page settles",
+  "motionMap": {
+    "menu": "v3",
+    "page-intro-pattern": "v1",
+    "header": "v3",
+    "card-routing-shuffle": "v2",
+    "page-header-title": "v1",
+    "card-feature": "v1",
+    "prompts-footer-section": "v1"
+  },
+  "stagger": "none"
+}

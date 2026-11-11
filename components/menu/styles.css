@@ -121,3 +121,6 @@
 
 /* About is closed on the homepage, like the other two: its children are hidden (and are not part of the entrance's stagger). */
 .menu__children[hidden] { display: none; }
+
+/* The nav and the buttons keep their own width (the menu's 256px inside its padding) while the menu itself grows or shrinks around them, so they slide rather than reflow. */
+.menu__submenu, .menu__actions { min-width: 256px; }

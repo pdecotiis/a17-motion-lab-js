@@ -36,8 +36,8 @@ describe('card-routing-shuffle', () => {
     expect([d.p1a, d.i1]).toEqual([2, 1]);
     expect([d.g2, d.p2a]).toEqual([1, 2]);
   });
-  it('writes what a cell sets: its height and the gap under it', () => {
-    expect(sizeOf(LAYOUTS.default!, 'p0a')).toEqual({ height: '472px', marginBottom: '8px' });
-    expect(sizeOf(LAYOUTS.default!, 'p0b')).toEqual({ height: '0px', marginBottom: '0px' });
+  it('writes what a cell sets: its height (a share of its column) and the gap under it', () => {
+    expect(sizeOf(LAYOUTS.default!, 'p0a')).toEqual({ height: '66.292%', marginBottom: '8px' });
+    expect(sizeOf(LAYOUTS.default!, 'p0b')).toEqual({ height: '0%', marginBottom: '0px' });
   });
 });
