@@ -659,15 +659,16 @@ const pendingStarts = new WeakMap<HTMLElement, number>();
 
 function playInteractionEntrance(el: HTMLElement, version: MotionVersion): PlayHandle {
   const player = playerFor(el, version);
+  const pageWaitMs = pageHold;   // the page's hold: its first move waits for that too (it rests in its first state meanwhile)
   window.clearTimeout(pendingStarts.get(el));
   // Reset first, and move on once it has taken effect (Motion applies it on its next frame).
   void player.reset().then(() => {
     const next = player.states().find(s => s !== player.state());
     if (!next) return;
     const hold = version.interaction?.hold;
-    if (hold) {
+    if (hold || pageWaitMs > 0) {
       const rested = player.state();
-      const ms = parseMsLocal(String(hold in raw ? raw[hold] : hold));
+      const ms = (hold ? parseMsLocal(String(hold in raw ? raw[hold] : hold)) : 0) + pageWaitMs;
       pendingStarts.set(el, window.setTimeout(() => { if (player.state() === rested) player.goTo(next); }, ms / playbackRate));
       return;
     }
