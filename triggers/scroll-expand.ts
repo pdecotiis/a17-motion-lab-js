@@ -2,8 +2,9 @@ import type { ProjectTrigger } from '../lab/lib/project-triggers.js';
 
 // scroll-expand: as the page scrolls, one cell of a grid grows to fill the page's container (the column the component is in, as tall as the window) and the cells
 // around it collapse to nothing, while the grid stays pinned. It is the scroll effect of the reference site, as a collapse rather than a zoom: nothing is scaled.
-// The side columns lose their width (flex-grow to 0, and the gap), the cells above and below the grown one lose their height, the grown one takes it, and the
-// grid grows from its own size to the container's. It is scrubbed by the scroll (no easing), so it comes and goes with the scrollbar, and the root clips it: it
+// The side columns lose their width (flex-grow to 0), the cells above and below the grown one lose their height, the grown one takes all that is left (it always
+// fills the space exactly), and the grid grows from its own size to the container's. The gutters stay 8px while there is anything to be a gutter to: a gutter only
+// goes (over its last 8px) as the cell beside it disappears. The words and arrows on a card fade out as it collapses. It is scrubbed by the scroll (no easing), so it comes and goes with the scrollbar, and the root clips it: it
 // never goes over the menu or the header.
 //   { on: 'scroll-expand', cell: 'p1a' }      cell = the data-motion name of the cell that grows
 // What it needs of the component's CSS: the grid is `position: sticky` while `data-scroll-expand` is on the root (this trigger sets it), its columns are flex
@@ -17,7 +18,7 @@ const lerp = (from: number, to: number, p: number): number => from + (to - from)
 function scrollerOf(element: HTMLElement): HTMLElement | Window {
   for (let parent = element.parentElement; parent; parent = parent.parentElement) {
     const overflow = getComputedStyle(parent).overflowY;
-    if ((overflow === 'auto' || overflow === 'scroll') && parent.scrollHeight > parent.clientHeight) return parent;
+    if ((overflow === 'auto' || overflow === 'scroll')) return parent;   // not only one that already overflows: the page may still be laying out when this runs
   }
   return window;
 }
@@ -44,22 +45,24 @@ const trigger: ProjectTrigger = {
 
     // What everything is at rest, measured from the layout (not the screen: a card still rising in does not throw it off). In the page's own pixels: the lab may
     // show the page zoomed to fit, and `zoom` is that factor.
-    let rest = { zoom: 1, windowH: 1, windowTop: 0, gridW: 0, gridH: 0, pinned: 0, pad: 0, gap: 0, cellH: 0, neighbourH: [] as number[], neighbourGap: [] as number[], radius: 0, paddingTop: 0 };
+    const fading = [...sideColumns, ...neighbours].flatMap(c => [...c.querySelectorAll<HTMLElement>('[data-motion^="title-"], [data-motion^="arrow-"]')]);
+    let rest = { sideW: 0, zoom: 1, windowH: 1, windowTop: 0, gridW: 0, gridH: 0, pinned: 0, pad: 0, gap: 0, cellH: 0, cellGutter: 0, neighbourH: [] as number[], neighbourGap: [] as number[], radius: 0, paddingTop: 0 };
     const measure = (): void => {
       clear();
       const zoom = grid.getBoundingClientRect().width / (grid.offsetWidth || 1) || 1;
       const view = scroller instanceof Window ? { h: window.innerHeight, top: 0 } : { h: scroller.clientHeight, top: scroller.getBoundingClientRect().top };
       const style = getComputedStyle(root);
       rest = {
-        zoom, windowH: view.h / zoom, windowTop: view.top, gridW: grid.offsetWidth, gridH: grid.offsetHeight, pinned: parseFloat(getComputedStyle(grid).top) || 0,
+        sideW: sideColumns[0]?.offsetWidth ?? 0, zoom, windowH: view.h / zoom, windowTop: view.top, gridW: grid.offsetWidth, gridH: grid.offsetHeight, pinned: parseFloat(getComputedStyle(grid).top) || 0,
         pad: parseFloat(style.paddingLeft) || 0, paddingTop: parseFloat(style.paddingTop) || 0, gap: parseFloat(getComputedStyle(grid).columnGap) || 0,
-        cellH: grown.offsetHeight, neighbourH: neighbours.map(n => n.offsetHeight), neighbourGap: neighbours.map(n => parseFloat(getComputedStyle(n).marginBottom) || 0),
+        cellH: grown.offsetHeight, cellGutter: parseFloat(getComputedStyle(grown).marginBottom) || 0, neighbourH: neighbours.map(n => n.offsetHeight), neighbourGap: neighbours.map(n => parseFloat(getComputedStyle(n).marginBottom) || 0),
         radius: parseFloat(getComputedStyle(grown).borderTopLeftRadius) || 0,
       };
       root.style.setProperty('--scroll-expand-distance', `${rest.windowH}px`);
       update();
     };
     const clear = (): void => {
+      fading.forEach(e => e.style.removeProperty('opacity'));
       for (const style of [grid.style, grown.style, ...sideColumns.map(c => c.style), ...neighbours.map(n => n.style)]) {
         ['width', 'height', 'top', 'marginLeft', 'columnGap', 'aspectRatio', 'flexGrow', 'marginBottom', 'borderRadius'].forEach(property => style.removeProperty(property.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)));
       }
@@ -69,17 +72,28 @@ const trigger: ProjectTrigger = {
       const p = clamp((rest.pinned - naturalTop) / rest.windowH);
       if (p === 0) { clear(); return; }
       // the grid grows from its own size to the container's (edge to edge, one window tall), pinned at the top of the window by the end
+      const gridW = lerp(rest.gridW, rest.gridW + 2 * rest.pad, p), gridH = lerp(rest.gridH, rest.windowH, p);
       grid.style.top = `${lerp(rest.pinned, 0, p)}px`;
-      grid.style.width = `${lerp(rest.gridW, rest.gridW + 2 * rest.pad, p)}px`;
+      grid.style.width = `${gridW}px`;
       grid.style.marginLeft = `${lerp(0, -rest.pad, p)}px`;
       grid.style.aspectRatio = 'auto';
-      grid.style.height = `${lerp(rest.gridH, rest.windowH, p)}px`;
-      grid.style.columnGap = `${lerp(rest.gap, 0, p)}px`;
+      grid.style.height = `${gridH}px`;
+      // the side columns share what the others leave; the gutter beside them stays 8px until they are about to be gone
+      const sideW = Math.max(0, ((gridW - 2 * rest.gap) * (1 - p)) / (1 + 2 * (1 - p)));
+      grid.style.columnGap = `${Math.min(rest.gap, sideW)}px`;
       sideColumns.forEach(c => { c.style.flexGrow = String(1 - p); });
-      // the cell takes the whole column; the cells above and below it give up their height and their gap
-      grown.style.height = `${lerp(rest.cellH, lerp(rest.gridH, rest.windowH, p), p)}px`;
+      // the cells above and below the grown one give up their height, with a gutter that stays 8px until each is about to be gone; the grown one takes the rest
+      const heights = neighbours.map((_, i) => lerp(rest.neighbourH[i]!, 0, p));
+      const lastShown = heights.reduce((last, h, i) => (rest.neighbourH[i]! > 0 ? i : last), -1);
+      const gutters = heights.map((h, i) => (i === lastShown || rest.neighbourH[i]! === 0 ? 0 : Math.min(rest.neighbourGap[i]!, h)));
+      const below = heights.reduce((sum, h) => sum + h, 0);
+      const cellGutter = Math.min(rest.cellGutter, below);
+      neighbours.forEach((n, i) => { n.style.height = `${heights[i]}px`; n.style.marginBottom = `${gutters[i]}px`; });
+      grown.style.marginBottom = `${cellGutter}px`;
+      grown.style.height = `${gridH - cellGutter - below - gutters.reduce((sum, g) => sum + g, 0)}px`;
       grown.style.borderRadius = `${lerp(rest.radius, 0, p)}px`;
-      neighbours.forEach((n, i) => { n.style.height = `${lerp(rest.neighbourH[i]!, 0, p)}px`; n.style.marginBottom = `${lerp(rest.neighbourGap[i]!, 0, p)}px`; });
+      // what is written on a collapsing card fades out in the first half of the scroll
+      fading.forEach(e => { e.style.opacity = String(clamp(1 - p / 0.5)); });
     };
     let frame = 0;
     const onScroll = (): void => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; update(); }); };
@@ -105,7 +119,7 @@ const trigger: ProjectTrigger = {
       event: 'scroll-expand',
       on: 'the page scroll',
       means: 'the scroll position, one window of scrolling',
-      what: `grows \`data-motion="${cell}"\` to fill the container (one window tall) and collapses the cells around it (the side columns lose their width, the cells above and below it their height), scrubbed by the scroll with no easing, with the grid pinned (\`position: sticky\`) and clipped by its root. The CSS has no scroll link: the GSAP and Motion \`attach…(el)\` functions run it`,
+      what: `grows \`data-motion="${cell}"\` to fill the container (one window tall) and collapses the cells around it (the side columns lose their width, the cells above and below it their height; the gutters stay 8px until a cell is about to be gone, and what is written on a collapsing card fades out), scrubbed by the scroll with no easing, with the grid pinned (\`position: sticky\`) and clipped by its root. The CSS has no scroll link: the GSAP and Motion \`attach…(el)\` functions run it`,
     };
   },
 

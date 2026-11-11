@@ -112,7 +112,7 @@ const FADE_DISTANCE = 150;
 function scrollerOf(element: HTMLElement): HTMLElement | Window {
   for (let parent = element.parentElement; parent; parent = parent.parentElement) {
     const overflow = getComputedStyle(parent).overflowY;
-    if ((overflow === 'auto' || overflow === 'scroll') && parent.scrollHeight > parent.clientHeight) return parent;
+    if ((overflow === 'auto' || overflow === 'scroll')) return parent;   // not only one that already overflows: the page may still be laying out when this runs
   }
   return window;
 }
