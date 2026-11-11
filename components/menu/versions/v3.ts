@@ -56,7 +56,7 @@ export const v3: MotionVersion = {
     triggers: [
       { on: 'click', toggle: ['open', 'collapsed'], target: 'close' },
       // the opening: the menu slides in when the bento settles (same moment as its last scene)
-      { on: 'sequence', steps: [['open', '3000ms']] },
+      { on: 'sequence', steps: [['open', '3440ms']] },
     ],
   },
   forkedFrom: 'v2',

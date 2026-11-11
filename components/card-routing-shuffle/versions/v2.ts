@@ -1,8 +1,8 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 import { CELLS, LAYOUTS, STATE_ORDER, sizeOf } from '../layouts.js';
 
-// v2: the homepage opening. The bento fills the window (it is as wide as the page gives it, in the proportions of the settled page), and each scene holds for a second: it goes
-// through three scenes (the page layout, then two others, a second apart) before the page settles around it: the menu slides in and the bento narrows to its place beside it
+// v2: the homepage opening. The bento fills the window (it is as wide as the page gives it, in the proportions of the settled page), and each of the three scenes (the page layout, then two others) is shown in full for a
+// second, the third as long as the first two, before the page settles around it (a change takes 220ms, so the changes come 1220ms apart): the menu slides in and the bento narrows to its place beside it
 // (the menu and the page's own layout do that; the cells follow the width they are given), and the bento comes back to the page layout. The changes are fast: a
 // 100ms fade in, then 220ms for each change of scene, on a clock the menu shares (the `sequence` trigger in triggers/sequence.ts). After the opening it
 // behaves as v1 does: the Shuffle button goes to the next arrangement, and so does the timer.
@@ -24,8 +24,9 @@ export const v2: MotionVersion = {
     layers,
     triggers: [
       { on: 'click', toggle: STATE_ORDER as [string, string, ...string[]], target: 'shuffle' },
-      // the opening: two scenes after the first, then back to the page layout (times are from when the entrance has finished)
-      { on: 'sequence', steps: [['layout-2', '1000ms'], ['layout-3', '2000ms'], ['default', '3000ms']] },
+      // the opening: two scenes after the first, then back to the page layout as the page settles (times are from when the entrance has finished: each scene is
+      // fully shown for 1000ms, and a change takes 220ms)
+      { on: 'sequence', steps: [['layout-2', '1000ms'], ['layout-3', '2220ms'], ['default', '3440ms']] },
       // afterwards, the timer steps on by itself, as in v1 (the ring on the button fills over the same five seconds)
       { on: 'interval', every: '5000ms', toggle: STATE_ORDER as [string, string, ...string[]] },
     ],

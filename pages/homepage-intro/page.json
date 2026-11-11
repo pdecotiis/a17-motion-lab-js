@@ -2,7 +2,7 @@
   "id": "homepage-intro",
   "title": "Homepage intro",
   "width": 1440,
-  "hold": "3100ms",
+  "hold": "3540ms",
   "components": [
     {
       "id": "menu",
