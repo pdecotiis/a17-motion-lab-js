@@ -6,7 +6,7 @@ import { setRuntime } from './lab.js';
 test.describe('Navigation', () => {
   test('the items are Tokens, Components, Pages and Presets: there is no Component item', async ({ page }) => {
     await page.goto('/?view=library');
-    await expect(page.locator('.lab-nav__btn')).toHaveText(['Components', 'Pages', 'Presets', 'Tokens']);
+    await expect(page.locator('.lab-nav__btn')).toHaveText(['Components', 'Pages', 'Tokens', 'Presets']);
     await expect(page.locator('.lab-nav__btn[data-view="component"]')).toHaveCount(0);
   });
 

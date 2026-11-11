@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// The top-level views share one page header (the view's name, large), the nav runs Components, Pages, Presets, Tokens,
+// The top-level views share one page header (the view's name, large), the nav runs Components, Pages, Tokens, Presets,
 // and Pages is a library of pages like Components is of components. These run on whatever the project has: with no
 // pages the Pages view is the "ask Claude" screen, so the checks that need a page skip.
 test.describe('the shared header and the Pages library', () => {
@@ -58,6 +58,6 @@ test.describe('the shared header and the Pages library', () => {
 
   test('the nav runs Components, Pages, Presets, Tokens', async ({ page }) => {
     await page.goto('/?view=tokens');
-    await expect(page.locator('.lab-nav__btn')).toHaveText(['Components', 'Pages', 'Presets', 'Tokens']);
+    await expect(page.locator('.lab-nav__btn')).toHaveText(['Components', 'Pages', 'Tokens', 'Presets']);
   });
 });
