@@ -25,6 +25,8 @@ export const v5: MotionVersion = {
       { on: 'interval', every: '5000ms', toggle: ORDER, pause: 'playpause', pauseOnHover: CARDS },
     ],
   },
+  // the arrows, the play / pause button and the black pill respond to the pointer with the button preset (hover tint, press scale), like the shuffle button did
+  elements: { ...v4.elements, prev: 'button', next: 'button', playpause: 'button', dots: 'button' },
   forkedFrom: 'v4',
 };
 

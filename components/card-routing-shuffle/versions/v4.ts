@@ -23,9 +23,16 @@ const layoutOf = (s: string) => (s === INTRO ? CARDS_ONLY : PAIR_LAYOUTS[s]!);
 const COLUMN_DELAY = ['', 'delay.40', 'delay.70'];
 const delayOf = (id: string): string => COLUMN_DELAY[COLUMNS.findIndex(c => c.includes(id))]!;
 
+// A cell's 8px gutter is its margin below, and it never changes: a collapsed cell takes its gutter back with a margin above of -8px instead (so it still takes no room), which means the gap
+// between a picture and the card next to it is 8px all through a move and does not shrink while a card or picture is growing.
+const gutterSizeOf = (layout: Parameters<typeof sizeOf>[0], id: string) => {
+  const { height } = sizeOf(layout, id);
+  return { height, marginTop: height === '0%' ? '-8px' : '0px', marginBottom: '8px' };
+};
+
 const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> = {};
 for (const id of CELLS) {
-  layers[id] = { states: each(s => sizeOf(layoutOf(s), id)), transitions: each(s => (s === PAIR_ORDER[0] && delayOf(id) ? { ...MOVE, delay: delayOf(id) } : MOVE)) };
+  layers[id] = { states: each(s => gutterSizeOf(layoutOf(s), id)), transitions: each(s => (s === PAIR_ORDER[0] && delayOf(id) ? { ...MOVE, delay: delayOf(id) } : MOVE)) };
 }
 // a colour card's title and arrow fade out as it collapses and in as it appears (a card is shown where its height is more than nothing)
 for (const id of CELLS.filter(isColour)) {

@@ -8,7 +8,7 @@
   font-feature-settings: "lnum" 1, "pnum" 1;
 }
 .card-routing-shuffle__grid { display: flex; gap: 8px; width: 100%; aspect-ratio: 1072 / 712; }   /* the proportions of the design: 1072 x 712 */
-.card-routing-shuffle__col { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; container-type: size; }   /* the columns share the width and are as tall as the grid; cell heights are shares of this */
+.card-routing-shuffle__col { clip-path: inset(0 -9999px -9999px -9999px); display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; container-type: size; }   /* the columns share the width and are as tall as the grid; cell heights are shares of this */
 .card-routing-shuffle__cell { position: relative; flex: none; height: 232px; margin-bottom: 8px; overflow: hidden; border-radius: var(--size-24); box-sizing: border-box; background: var(--background-quaternary, #e8e7e5); }
 .card-routing-shuffle__cell--orange, .card-routing-shuffle__cell--yellow, .card-routing-shuffle__cell--indigo, .card-routing-shuffle__cell--green {
   cursor: pointer;
@@ -98,12 +98,11 @@
 .card-routing-shuffle__playpause, .card-routing-shuffle__dots { display: none; }
 .card-routing-shuffle[data-pausable] .card-routing-shuffle__playpause { display: flex; }
 .card-routing-shuffle[data-pausable] .card-routing-shuffle__dots { display: flex; }
-.card-routing-shuffle[data-pausable] .card-routing-shuffle__float { display: none; }
 .card-routing-shuffle[data-pausable] .card-routing-shuffle__pager { gap: 4px; }
 .card-routing-shuffle__icon-play { display: none; }
 .card-routing-shuffle[data-paused] .card-routing-shuffle__icon-play { display: block; }
 .card-routing-shuffle[data-paused] .card-routing-shuffle__icon-pause { display: none; }
-.card-routing-shuffle__dots { align-items: center; gap: 8px; height: 48px; margin-left: auto; padding: 0 24px; border-radius: var(--radius-full); background: var(--background-inverse); box-sizing: border-box; }
+.card-routing-shuffle__dots { position: absolute; right: 0; bottom: 0; align-items: center; gap: 8px; height: 48px; padding: 0 24px; border-radius: var(--radius-full); background: var(--background-inverse); box-sizing: border-box; }
 .card-routing-shuffle__dot {
   position: relative; flex: none; width: 8px; height: 8px; padding: 0; border: 0; border-radius: var(--radius-full); overflow: hidden; cursor: pointer;
   background: rgba(255, 255, 255, 0.56);
