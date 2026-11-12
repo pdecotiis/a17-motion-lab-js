@@ -67,8 +67,7 @@ const trigger: ProjectTrigger = {
       'const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;',
       'const steps = reduced ? [t.steps[t.steps.length - 1]] : t.steps;',
       'for (const [state, at] of steps) {',
-      '  const timer = setTimeout(() => { base = state; settle(); }, reduced ? 0 : at);',
-      '  off.push(() => clearTimeout(timer));',
+      '  setTimeout(() => show(state), reduced ? 0 : at);',
       '}',
     ];
   },

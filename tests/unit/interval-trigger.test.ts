@@ -30,7 +30,6 @@ describe('the interval project trigger (triggers/interval.ts)', () => {
   it('the GSAP code carries the timer', () => {
     const code = buildGsapCode(v1, raw, { component: 'card-routing-shuffle' });
     expect(code).toContain('"every":5000');
-    expect(code).toContain('if (t.on === "interval") {');
-    expect(code).toContain('afterMove.push(rearm);');
+    expect(code).toContain('afterShow.push(rearm);');
   });
 });

@@ -155,8 +155,8 @@ const trigger: ProjectTrigger = {
       'if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {',
       '  measure();',
       '  update();',
-      '  on(window, "scroll", update);',
-      '  on(window, "resize", () => { measure(); update(); });',
+      '  window.addEventListener("scroll", update);',
+      '  window.addEventListener("resize", () => { measure(); update(); });',
       '}',
     ];
   },
