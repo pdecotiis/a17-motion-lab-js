@@ -98,6 +98,7 @@
 .card-routing-shuffle__playpause, .card-routing-shuffle__dots { display: none; }
 .card-routing-shuffle[data-pausable] .card-routing-shuffle__playpause { display: flex; }
 .card-routing-shuffle[data-pausable] .card-routing-shuffle__dots { display: flex; }
+.card-routing-shuffle[data-pausable] .card-routing-shuffle__shuffle { display: none; }   /* the pagination is the control here: the pill takes the shuffle button's place, sticky the same way */
 .card-routing-shuffle[data-pausable] .card-routing-shuffle__pager { gap: 4px; }
 .card-routing-shuffle__icon-play { display: none; }
 .card-routing-shuffle[data-paused] .card-routing-shuffle__icon-play { display: block; }
