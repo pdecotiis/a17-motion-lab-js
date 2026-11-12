@@ -26,7 +26,7 @@ describe.skipIf(!SAMPLES_PRESENT)('npm run spec --format', () => {
 
   it('--format gsap adds motion.gsap.js, --format motion adds motion.motion.js, --format all adds both', () => {
     expect(run('card', 'v2', '--format', 'gsap').status).toBe(0);
-    expect(readFileSync(join(out, 'card', 'v2', 'motion.gsap.js'), 'utf8')).toContain('import { gsap } from "gsap"');
+    expect(readFileSync(join(out, 'card', 'v2', 'motion.gsap.js'), 'utf8')).toContain('gsap.registerPlugin(CustomEase);');
     expect(existsSync(join(out, 'card', 'v2', 'motion.motion.js'))).toBe(false);
 
     expect(run('card', 'v1', '--format', 'motion').status).toBe(0);

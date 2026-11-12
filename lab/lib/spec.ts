@@ -194,7 +194,7 @@ export function buildVersionExport(
     const cls = el.name ? `${name}-${el.name}` : name;
     const gap = first.elementStagger ? describeValue(first.elementStagger, raw, '0ms') : undefined;
     return [
-      `The **${first.preset}** preset (shared by the whole project, in \`presets/\`: \`presets.css\`, \`presets.gsap.js\`, \`presets.motion.js\`). Add \`.motion-preset-${first.preset}\`${first.version.model.delay || gap || el.name === null ? ` and \`.${cls}\` (it sets the delay${gap ? ' and the stagger' : ''})` : ''} to the element${el.name ? ` marked \`data-motion="${el.name}"\`` : ''}.`,
+      `The **${first.preset}** preset (shared by the whole project, in \`presets/\`: \`presets.css\`, \`presets.motion.js\`). Add \`.motion-preset-${first.preset}\`${first.version.model.delay || gap || el.name === null ? ` and \`.${cls}\` (it sets the delay${gap ? ' and the stagger' : ''})` : ''} to the element${el.name ? ` marked \`data-motion="${el.name}"\`` : ''}.`,
       ...(gap ? [`Each matching element starts ${gap} after the one before: set \`--motion-item\` to 0, 1, 2… on them (CSS); the code does it itself.`] : []),
       '',
       ...el.entries.flatMap(e => [

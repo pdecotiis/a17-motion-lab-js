@@ -383,15 +383,16 @@ describe('the spec of an interaction version', () => {
 });
 
 describe('the GSAP and Motion code of states', () => {
-  it('GSAP: the states, the timing into each, and a goTo that retargets', () => {
+  it('GSAP: what each state changes, the timing into each, and one show() that retargets', () => {
     const code = buildGsapCode(v2, raw, { component: 'side-panel' });
-    expect(code).toContain('closed: { opacity: 0, x: 52 },');
-    expect(code).toContain('open: { opacity: 1, x: 0 },');
-    expect(code).toContain('open: { duration: 0.7, ease: "expressive-entrance" }');
-    expect(code).toContain('closed: { duration: 0.25, ease: "productive-exit" }');
-    expect(code).toContain('export function goToSidePanelV2(el, state)');
+    expect(code).toContain('root: { opacity: 0, x: 52 },');
+    expect(code).toContain('root: { opacity: 1, x: 0 },');
+    expect(code).toContain('open: { duration: 0.7, ease: "expressive-entrance" },');
+    expect(code).toContain('closed: { duration: 0.25, ease: "productive-exit" },');
+    expect(code).toContain('function show(state) {');
     expect(code).toContain('overwrite: "auto"');
     expect(code).toContain('GSAP has no springs');
+    expect(code).not.toContain('export function');
   });
 
   it('Motion: springs into each state with the transition\'s bounce, and the honest note about speed', () => {
@@ -404,24 +405,26 @@ describe('the GSAP and Motion code of states', () => {
   });
 
   // The GSAP code, run for real: moving to a state takes the CSS transition's duration and easing.
-  it('the GSAP code runs in GSAP, and each move lasts as long as the CSS transition into that state', () => {
+  it('the GSAP code runs, and each move lasts as long as the CSS transition into that state', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const code = buildGsapCode(v2, raw, { component: 'side-panel' });
-    const mod = new Function('gsap', 'CustomEase', 'window', `${code.replace(/^import .*$/gm, '').replace(/export function/g, 'function')}\nreturn { goToSidePanelV2, setupSidePanelV2 };`)(
-      gsap, CustomEase, { matchMedia: () => ({ matches: false }) },
-    ) as { goToSidePanelV2: (el: object, s: string) => gsap.core.Tween; setupSidePanelV2: (el: object) => void };
+    const el = { dataset: {} as Record<string, string>, addEventListener: () => undefined, querySelector: () => ({ addEventListener: () => undefined }), querySelectorAll: () => [] as unknown[] };
+    const moves: { duration: number; ease: string }[] = [];
+    const wrapped = { ...gsap, registerPlugin: () => undefined, set: () => undefined, to: (_t: unknown, vars: { duration: number; ease: string }) => { moves.push(vars); return {}; } };
+    const { show } = new Function('gsap', 'CustomEase', 'window', 'document', code + '\nreturn { show };')(
+      wrapped, CustomEase, { matchMedia: () => ({ matches: false }) }, { querySelector: () => el, addEventListener: () => undefined },
+    ) as { show: (state: string) => void };
     const css = buildVersionCss(v2, raw, { component: 'side-panel' });
     const cssMs = (state: string): number => {
       const selector = state === 'closed' ? '\\.motion-side-panel-v2 \\{' : `\\.motion-side-panel-v2\\[data-state="${state}"\\] \\{`;
       const block = new RegExp(`${selector}([\\s\\S]*?)\\n\\}`).exec(css)![1]!;
       return parseFloat(/transition-duration: var\([^,]+, (\d+)ms\)/.exec(block)![1]!);
     };
-    const el = { dataset: {} as Record<string, string> };
-    mod.setupSidePanelV2(el);
     expect(el.dataset['state']).toBe('closed');
     for (const state of ['open', 'closed']) {
-      const tween = mod.goToSidePanelV2(el, state);
-      expect(tween.duration() * 1000, state).toBeCloseTo(cssMs(state), 3);
+      moves.length = 0;
+      show(state);
+      expect(moves[0]!.duration * 1000, state).toBeCloseTo(cssMs(state), 3);
       expect(el.dataset['state']).toBe(state);
     }
   });

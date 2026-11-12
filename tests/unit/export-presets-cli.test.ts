@@ -51,7 +51,7 @@ describe('npm run spec -- --presets', () => {
       const r = run(out, '--presets');
       expect(r.status, r.stderr).toBe(0);
       expect(readdirSync(out)).toEqual(['presets']);
-      expect(files(join(out, 'presets'))).toEqual(['presets.css', 'presets.gsap.js', 'presets.motion.js']);
+      expect(files(join(out, 'presets'))).toEqual(['presets.css', 'presets.motion.js']);
       expect(readFileSync(join(out, 'presets/presets.css'), 'utf8')).toContain(`.motion-preset-${preset}`);
     } finally { rmSync(out, { recursive: true, force: true }); }
   });
@@ -60,7 +60,7 @@ describe('npm run spec -- --presets', () => {
     const out = outDir();
     try {
       expect(run(out, '--presets', '--format', 'gsap').status).toBe(0);
-      expect(files(join(out, 'presets'))).toEqual(['presets.css', 'presets.gsap.js']);
+      expect(files(join(out, 'presets'))).toEqual(['presets.css']);
     } finally { rmSync(out, { recursive: true, force: true }); }
   });
 });
@@ -72,8 +72,8 @@ describe('a version that uses presets', () => {
       const r = run(out, 'demo', 'v2', '--format', 'all');
       expect(r.status, r.stderr).toBe(0);
       expect(files(join(out, 'demo/v2'))).toEqual(['motion.css', 'motion.gsap.js', 'motion.motion.js', 'spec.md', 'tokens.css']);
-      expect(files(join(out, 'presets'))).toEqual(['presets.css', 'presets.gsap.js', 'presets.motion.js']);
-      expect(readFileSync(join(out, 'demo/v2/motion.gsap.js'), 'utf8')).toContain('from "../../presets/presets.gsap.js"');
+      expect(files(join(out, 'presets'))).toEqual(['presets.css', 'presets.motion.js']);
+      expect(readFileSync(join(out, 'demo/v2/motion.gsap.js'), 'utf8')).toContain('const presets = {');
       expect(readFileSync(join(out, 'demo/v2/motion.motion.js'), 'utf8')).toContain('from "../../presets/presets.motion.js"');
       expect(readFileSync(join(out, 'demo/v2/spec.md'), 'utf8')).toContain('shared by the whole project, in `presets/`');
     } finally { rmSync(out, { recursive: true, force: true }); }

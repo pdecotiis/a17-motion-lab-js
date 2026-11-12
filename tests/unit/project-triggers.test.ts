@@ -25,9 +25,11 @@ const tick: ProjectTrigger = {
   exportSettings: (s, r) => ({ ...s, every: parseFloat(String(r[String(s['every'])] ?? s['every'])) }),
   exportCode: () => [
     'let timer;',
-    'const rearm = () => { clearTimeout(timer); timer = setTimeout(() => { base = t.toggle[(t.toggle.indexOf(base) + 1) % t.toggle.length]; settle(); }, t.every); };',
-    'afterMove.push(rearm);',
-    'off.push(() => clearTimeout(timer));',
+    'const rearm = () => {',
+    '  clearTimeout(timer);',
+    '  timer = setTimeout(() => show(t.toggle[(t.toggle.indexOf(el.dataset.state) + 1) % t.toggle.length]), t.every);',
+    '};',
+    'afterShow.push(rearm);',
     'rearm();',
   ],
 };
@@ -69,25 +71,23 @@ describe('project triggers', () => {
     for (const code of [buildGsapCode(ticking, raw, { component: 'thing' }), buildMotionCode(ticking, raw, { component: 'thing' })]) {
       expect(code).toContain('"on":"tick"');
       expect(code).toContain('"every":500');                         // the settings as exportSettings wrote them
-      expect(code).toContain('if (t.on === "tick") {');
-      expect(code).toContain('afterMove.push(rearm);');
+      expect(code).toContain('afterShow.push(rearm);');
     }
     registerTrigger({ ...tick, exportCode: undefined });
     expect(buildGsapCode(ticking, raw, { component: 'thing' })).toContain('"tick" is a project trigger with no export code');
   });
 
-  describe('the exported attach', () => {
+  describe('the exported code', () => {
     beforeEach(() => { vi.useFakeTimers(); });
     afterEach(() => { vi.useRealTimers(); });
-    it('steps by itself, restarts on a move, and stops when removed', () => {
+    it('steps by itself and starts the wait again after a move', () => {
       const code = buildGsapCode(ticking, raw, { component: 'thing' });
       const gsap = { registerPlugin() {}, set: () => undefined, to: () => ({}) };
-      const mod = new Function('gsap', 'CustomEase', 'window', 'document', `${code.replace(/^import .*$/gm, '').replace(/export function/g, 'function').replace(/^CustomEase\.create.*$/gm, '')}\nreturn { attachThingV1, setupThingV1 };`)(
-        gsap, { create() {} }, { matchMedia: () => ({ matches: false }) }, { addEventListener() {}, removeEventListener() {} },
-      ) as { attachThingV1: (el: object) => () => void; setupThingV1: (el: object) => void };
-      const el = { dataset: {} as Record<string, string>, addEventListener() {}, removeEventListener() {}, querySelectorAll: () => [] as unknown[] };
-      mod.setupThingV1(el);
-      const stop = mod.attachThingV1(el);
+      const el = { dataset: {} as Record<string, string>, addEventListener() {}, querySelectorAll: () => [] as unknown[] };
+      new Function('gsap', 'CustomEase', 'window', 'document', code)(
+        gsap, { create() {} }, { matchMedia: () => ({ matches: false }) }, { querySelector: () => el, addEventListener() {} },
+      );
+      expect(el.dataset['state']).toBe('a');
       vi.advanceTimersByTime(499);
       expect(el.dataset['state']).toBe('a');
       vi.advanceTimersByTime(2);
@@ -96,9 +96,6 @@ describe('project triggers', () => {
       expect(el.dataset['state']).toBe('c');
       vi.advanceTimersByTime(500);
       expect(el.dataset['state']).toBe('a');                           // round to the first
-      stop();
-      vi.advanceTimersByTime(5000);
-      expect(el.dataset['state']).toBe('a');                           // removed: nothing steps any more
     });
   });
 });
