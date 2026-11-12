@@ -7,8 +7,8 @@ import type { Layout } from './layouts.js';
 const SMALL_ON_TOP: Layout = { y0: 1, p0a: 2, p1a: 2, i1: 1, g2: 1, p2a: 2 };   // small, big | big, small | small, big (the page)
 const BIG_ON_TOP: Layout = { p0a: 2, i0: 1, g1: 1, p1b: 2, p2a: 2, y2: 1 };     // big, small | small, big | big, small
 
-/** a1 and b1 are the two arrangements; a2, b2, a3 and b3 are the same two again with other pictures. */
+/** The two arrangements, and the order the shuffle goes through them: round and round, with the pictures changing each time. */
 export const PAIR_LAYOUTS: Record<string, Layout> = {
-  a1: SMALL_ON_TOP, b1: BIG_ON_TOP, a2: SMALL_ON_TOP, b2: BIG_ON_TOP, a3: SMALL_ON_TOP, b3: BIG_ON_TOP,
+  'small-on-top': SMALL_ON_TOP, 'big-on-top': BIG_ON_TOP,
 };
 export const PAIR_ORDER = Object.keys(PAIR_LAYOUTS);

@@ -12,7 +12,7 @@ describe('the shuffle bento v4 arrangements', () => {
   });
   it('the first is the page (small, big | big, small | small, big) and each is the opposite of the one before, column for column', () => {
     const topOf = (state: string): number[] => COLUMNS.map(column => column.map(id => PAIR_LAYOUTS[state]![id] ?? 0).find(rows => rows > 0)!);
-    expect(topOf('a1')).toEqual([1, 2, 1]);
+    expect(topOf('small-on-top')).toEqual([1, 2, 1]);
     PAIR_ORDER.forEach((state, k) => {
       const next = PAIR_ORDER[(k + 1) % PAIR_ORDER.length]!;
       expect(topOf(next), `${state} -> ${next}`).toEqual(topOf(state).map(rows => 3 - rows));
