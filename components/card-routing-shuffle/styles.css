@@ -10,15 +10,17 @@
 .card-routing-shuffle__grid { display: flex; gap: 8px; width: 100%; aspect-ratio: 1072 / 712; }   /* the proportions of the design: 1072 x 712 */
 .card-routing-shuffle__col { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; container-type: size; }   /* the columns share the width and are as tall as the grid; cell heights are shares of this */
 .card-routing-shuffle__cell { position: relative; flex: none; height: 232px; margin-bottom: 8px; overflow: hidden; border-radius: var(--size-24); box-sizing: border-box; background: var(--background-quaternary, #e8e7e5); }
-.card-routing-shuffle__cell--yellow, .card-routing-shuffle__cell--indigo, .card-routing-shuffle__cell--green {
+.card-routing-shuffle__cell--orange, .card-routing-shuffle__cell--yellow, .card-routing-shuffle__cell--indigo, .card-routing-shuffle__cell--green {
   cursor: pointer;
 }
 /* the padding is on an inner box, so a collapsed cell can be 0 tall (padding on the cell itself would keep it 48px) */
 .card-routing-shuffle__inner { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: var(--size-24); box-sizing: border-box; }
+.card-routing-shuffle__cell--orange { background: var(--background-accent-primary); }
 .card-routing-shuffle__cell--yellow { background: var(--background-accent-1); }
 .card-routing-shuffle__cell--indigo { background: var(--background-accent-3); }
 .card-routing-shuffle__cell--green { background: var(--background-accent-2); }
 .card-routing-shuffle__title { margin: 0; font-family: var(--heading-family); font-weight: var(--heading-weight); font-size: var(--font-size-20); line-height: 1.3; color: var(--text-on-accent-1); }
+.card-routing-shuffle__cell--orange .card-routing-shuffle__title { color: var(--text-on-accent-primary); }
 .card-routing-shuffle__cell--indigo .card-routing-shuffle__title { color: var(--text-on-accent-3); }
 .card-routing-shuffle__cell--green .card-routing-shuffle__title { color: var(--text-on-accent-2); }
 .card-routing-shuffle__arrow { display: block; flex: none; width: 24px; height: 24px; }
@@ -47,9 +49,9 @@
 .card-routing-shuffle__ring-track { opacity: 0.25; }
 .card-routing-shuffle__ring-fill { stroke-dasharray: 1; stroke-dashoffset: 1; stroke-linecap: round; }
 .card-routing-shuffle[data-state="cards"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-2"] .card-routing-shuffle__ring-fill,
-.card-routing-shuffle[data-state="layout-4"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-6"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="big-on-top"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="big-on-top"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="big-on-top"] .card-routing-shuffle__ring-fill { animation: card-routing-shuffle-ring-b 5s linear forwards; }
+.card-routing-shuffle[data-state="layout-4"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-6"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-2"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-4"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-2"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-4"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-2"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-4"] .card-routing-shuffle__ring-fill { animation: card-routing-shuffle-ring-b 5s linear forwards; }
 .card-routing-shuffle[data-state="default"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-3"] .card-routing-shuffle__ring-fill,
-.card-routing-shuffle[data-state="layout-5"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="small-on-top"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="small-on-top"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="small-on-top"] .card-routing-shuffle__ring-fill { animation: card-routing-shuffle-ring-a 5s linear forwards; }
+.card-routing-shuffle[data-state="layout-5"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-1"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-3"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-1"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-3"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-1"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-3"] .card-routing-shuffle__ring-fill { animation: card-routing-shuffle-ring-a 5s linear forwards; }
 @keyframes card-routing-shuffle-ring-a { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes card-routing-shuffle-ring-b { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { .card-routing-shuffle__ring-fill { animation: none !important; stroke-dashoffset: 1; } }
@@ -65,6 +67,13 @@
 .card-routing-shuffle__cell[data-motion="p2a"] { height: 66.292%; margin-bottom: 8px; }
 .card-routing-shuffle__cell[data-motion="v2"] { height: 0%; margin-bottom: 0px; }
 .card-routing-shuffle__cell[data-motion="y2"] { height: 0%; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="o0"] { height: 0%; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="g0"] { height: 0%; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="y0b"] { height: 0%; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="o1"] { height: 0%; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="y1"] { height: 0%; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="o2"] { height: 0%; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="i2"] { height: 0%; margin-bottom: 0px; }
 
 /* v3: the grid is pinned while the page scrolls and one cell grows as the others collapse (the scroll-expand trigger sets data-scroll-expand, the distance and the sizes).
    It is pinned just below the header (80px) and the root's top padding (48px), which is where it already sits, so it does not jump. The stage gives it one window of scrolling to
@@ -81,3 +90,30 @@
 .card-routing-shuffle__bar { display: flex; align-items: center; height: 72px; padding-top: 24px; box-sizing: border-box; }
 .card-routing-shuffle__pager { display: flex; gap: 8px; }
 .card-routing-shuffle__pager-button { display: flex; align-items: center; justify-content: center; flex: none; width: 48px; height: 48px; padding: 0; border: 0; border-radius: var(--radius-full); background: var(--background-quaternary, #e8e7e5); color: var(--text-default); cursor: pointer; }
+
+/* v5: the pagination. A play / pause button after the arrows (the interval trigger's `pause`, which also sets data-pausable and, while paused, data-paused on the root),
+   and on the right a black pill of four bullets, one for each arrangement (Figma "button block": 48px round buttons 4px apart, a pill with 8px bullets 8px apart and
+   24px sides). The current arrangement's bullet is the larger one (32 x 8): it fills over the interval (5s, the same as the trigger's), then it shrinks back as the
+   next bullet grows and fills in its turn. A bullet is a button: a click goes to its arrangement. None of it shows for the other versions. */
+.card-routing-shuffle__playpause, .card-routing-shuffle__dots { display: none; }
+.card-routing-shuffle[data-pausable] .card-routing-shuffle__playpause { display: flex; }
+.card-routing-shuffle[data-pausable] .card-routing-shuffle__dots { display: flex; }
+.card-routing-shuffle[data-pausable] .card-routing-shuffle__float { display: none; }
+.card-routing-shuffle[data-pausable] .card-routing-shuffle__pager { gap: 4px; }
+.card-routing-shuffle__icon-play { display: none; }
+.card-routing-shuffle[data-paused] .card-routing-shuffle__icon-play { display: block; }
+.card-routing-shuffle[data-paused] .card-routing-shuffle__icon-pause { display: none; }
+.card-routing-shuffle__dots { align-items: center; gap: 8px; height: 48px; margin-left: auto; padding: 0 24px; border-radius: var(--radius-full); background: var(--background-inverse); box-sizing: border-box; }
+.card-routing-shuffle__dot {
+  position: relative; flex: none; width: 8px; height: 8px; padding: 0; border: 0; border-radius: var(--radius-full); overflow: hidden; cursor: pointer;
+  background: rgba(255, 255, 255, 0.56);
+  transition: width var(--motion-duration-400, 400ms) var(--motion-easing-expressive-standard, cubic-bezier(0.45, 0.05, 0.35, 1));
+}
+.card-routing-shuffle__dot-fill { position: absolute; inset: 0; background: #fff; transform: scaleX(0); transform-origin: left center; }
+.card-routing-shuffle[data-state="arrangement-1"] [data-motion="dot-1"], .card-routing-shuffle[data-state="arrangement-2"] [data-motion="dot-2"],
+.card-routing-shuffle[data-state="arrangement-3"] [data-motion="dot-3"], .card-routing-shuffle[data-state="arrangement-4"] [data-motion="dot-4"] { width: 32px; }
+.card-routing-shuffle[data-state="arrangement-1"] [data-motion="dot-1"] .card-routing-shuffle__dot-fill, .card-routing-shuffle[data-state="arrangement-2"] [data-motion="dot-2"] .card-routing-shuffle__dot-fill,
+.card-routing-shuffle[data-state="arrangement-3"] [data-motion="dot-3"] .card-routing-shuffle__dot-fill, .card-routing-shuffle[data-state="arrangement-4"] [data-motion="dot-4"] .card-routing-shuffle__dot-fill { animation: card-routing-shuffle-dot-fill 5s linear forwards; }
+.card-routing-shuffle[data-paused] .card-routing-shuffle__dot-fill { animation-play-state: paused !important; }
+@keyframes card-routing-shuffle-dot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .card-routing-shuffle__dot-fill { animation: none !important; } .card-routing-shuffle__dot { transition: none; } }

@@ -7,7 +7,7 @@ import { PAIR_LAYOUTS, PAIR_ORDER } from './layouts-pairs.js';
 export const POOL = Array.from({ length: 14 }, (_, i) => `photo-${i + 1}.jpg`);
 
 /** The cells that hold a picture (the ones that are not colour cards). */
-export const PICTURE_CELLS = COLUMNS.flat().filter(id => !/^[yig]/.test(id));
+export const PICTURE_CELLS = COLUMNS.flat().filter(id => !/^[yigo]/.test(id));
 
 /** Which picture each cell shows in each arrangement it is visible in, for a list of arrangements that follow one another round and round. */
 function assign(layouts: Record<string, Layout>, order: string[]): Record<string, Record<string, string>> {

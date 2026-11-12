@@ -12,11 +12,21 @@ describe('the shuffle bento v4 arrangements', () => {
   });
   it('the first is the page (small, big | big, small | small, big) and each is the opposite of the one before, column for column', () => {
     const topOf = (state: string): number[] => COLUMNS.map(column => column.map(id => PAIR_LAYOUTS[state]![id] ?? 0).find(rows => rows > 0)!);
-    expect(topOf('small-on-top')).toEqual([1, 2, 1]);
+    expect(topOf('arrangement-1')).toEqual([1, 2, 1]);
     PAIR_ORDER.forEach((state, k) => {
       const next = PAIR_ORDER[(k + 1) % PAIR_ORDER.length]!;
       expect(topOf(next), `${state} -> ${next}`).toEqual(topOf(state).map(rows => 3 - rows));
     });
+  });
+  it('the colour cards go round: each is one column to the right of where it was, a new colour enters at the left, and after four it is the first again', () => {
+    const colourAt = (state: string): (string | undefined)[] => COLUMNS.map(column => column.find(id => /^[oyig]/.test(id) && (PAIR_LAYOUTS[state]![id] ?? 0) > 0)?.[0]);
+    expect(PAIR_ORDER).toHaveLength(4);
+    PAIR_ORDER.forEach((state, k) => {
+      const now = colourAt(state), next = colourAt(PAIR_ORDER[(k + 1) % 4]!);
+      expect(now.every(Boolean), state).toBe(true);
+      expect(next.slice(1), `${state} -> next`).toEqual(now.slice(0, 2));
+    });
+    expect(colourAt('arrangement-1')).toEqual(['o', 'i', 'g']);   // the page: orange, indigo, green
   });
   it('the cells push each other: nothing overlaps from one arrangement to the next', () => {
     PAIR_ORDER.forEach((state, k) => expect(overlapsBetween(PAIR_LAYOUTS[state]!, PAIR_LAYOUTS[PAIR_ORDER[(k + 1) % PAIR_ORDER.length]!]!), state).toEqual([]));

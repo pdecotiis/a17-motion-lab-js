@@ -6,11 +6,12 @@
 export type Layout = Record<string, number>;
 
 /** Each column's cells, top to bottom: the colour card (y = yellow Machine Learning, i = indigo Trading, g = green Technology) and the picture (p) or video (v). */
-export const COLUMNS: string[][] = [['y0', 'p0a', 'p0b', 'i0'], ['g1', 'p1a', 'p1b', 'i1'], ['g2', 'p2a', 'v2', 'y2']];
+// Orange (o, the primary accent, Machine Learning) joined them for v4 and v5: a column's cards at the top come before its pictures, the ones at the bottom after.
+export const COLUMNS: string[][] = [['o0', 'g0', 'y0', 'p0a', 'p0b', 'y0b', 'i0'], ['o1', 'g1', 'p1a', 'p1b', 'i1', 'y1'], ['o2', 'g2', 'p2a', 'v2', 'i2', 'y2']];
 export const CELLS = COLUMNS.flat();
-export const kindOf = (id: string): 'picture' | 'video' | 'yellow' | 'indigo' | 'green' =>
-  id[0] === 'v' ? 'video' : id[0] === 'y' ? 'yellow' : id[0] === 'i' ? 'indigo' : id[0] === 'g' ? 'green' : 'picture';
-export const isColour = (id: string): boolean => ['yellow', 'indigo', 'green'].includes(kindOf(id));
+export const kindOf = (id: string): 'picture' | 'video' | 'orange' | 'yellow' | 'indigo' | 'green' =>
+  id[0] === 'v' ? 'video' : id[0] === 'o' ? 'orange' : id[0] === 'y' ? 'yellow' : id[0] === 'i' ? 'indigo' : id[0] === 'g' ? 'green' : 'picture';
+export const isColour = (id: string): boolean => ['orange', 'yellow', 'indigo', 'green'].includes(kindOf(id));
 
 export const LAYOUTS: Record<string, Layout> = {
   default: { y0: 1, p0a: 2, p1a: 2, i1: 1, g2: 1, p2a: 2 },                       // the page: a card on top, at the bottom, on top
