@@ -21,7 +21,7 @@ test('card-routing-shuffle v5: bullets, arrows and pause', async ({ page }) => {
   await expect(root).toHaveAttribute('data-state', 'arrangement-2', { timeout: 7000 });
 });
 
-// Hovering a card or the black pagination pill holds the timer and the fill; moving away carries on.
+// Hovering a colour card holds the timer and the fill; moving away carries on. The pagination pill does not hold it.
 test('card-routing-shuffle v5: hover holds the carousel', async ({ page }) => {
   await page.goto('/?view=component&component=card-routing-shuffle&version=v5&preview=1');
   const root = page.locator('.card-routing-shuffle');
@@ -29,11 +29,11 @@ test('card-routing-shuffle v5: hover holds the carousel', async ({ page }) => {
   await page.click('[data-motion="dot-1"]');
   await expect(root).toHaveAttribute('data-state', 'arrangement-1');
   await page.hover('[data-motion="dots"]');
+  await expect(root).not.toHaveAttribute('data-held', '');
+  await page.hover('[data-motion="o0"]');
   await expect(root).toHaveAttribute('data-held', '');
   await page.waitForTimeout(5800);
   await expect(root).toHaveAttribute('data-state', 'arrangement-1');   // held: it did not step
-  await page.hover('[data-motion="o0"]');
-  await expect(root).toHaveAttribute('data-held', '');
   await page.mouse.move(2, 2);
   await expect(root).not.toHaveAttribute('data-held', '');
   await expect(root).toHaveAttribute('data-state', 'arrangement-2', { timeout: 7000 });

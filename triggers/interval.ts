@@ -123,7 +123,7 @@ const trigger: ProjectTrigger = {
     }
     return [
       '// interval: step to the next state by itself, `every` ms after the last change (not under reduced motion).',
-      '// It waits while paused (the play / pause button) or while the pointer is over a card or the pagination pill, and carries on with the time that was left.',
+      '// It waits while paused (the play / pause button) or while the pointer is over a colour card, and carries on with the time that was left.',
       'let timer;',
       'let left = t.every;   // what is left of the wait',
       'let startedAt;',
