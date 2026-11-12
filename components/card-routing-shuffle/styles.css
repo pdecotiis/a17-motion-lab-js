@@ -114,6 +114,6 @@
 .card-routing-shuffle[data-state="arrangement-3"] [data-motion="dot-3"], .card-routing-shuffle[data-state="arrangement-4"] [data-motion="dot-4"] { width: 32px; }
 .card-routing-shuffle[data-state="arrangement-1"] [data-motion="dot-1"] .card-routing-shuffle__dot-fill, .card-routing-shuffle[data-state="arrangement-2"] [data-motion="dot-2"] .card-routing-shuffle__dot-fill,
 .card-routing-shuffle[data-state="arrangement-3"] [data-motion="dot-3"] .card-routing-shuffle__dot-fill, .card-routing-shuffle[data-state="arrangement-4"] [data-motion="dot-4"] .card-routing-shuffle__dot-fill { animation: card-routing-shuffle-dot-fill 5s linear forwards; }
-.card-routing-shuffle[data-paused] .card-routing-shuffle__dot-fill { animation-play-state: paused !important; }
+.card-routing-shuffle[data-held] .card-routing-shuffle__dot-fill { animation-play-state: paused !important; }
 @keyframes card-routing-shuffle-dot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .card-routing-shuffle__dot-fill { animation: none !important; } .card-routing-shuffle__dot { transition: none; } }
