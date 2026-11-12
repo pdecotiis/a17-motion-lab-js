@@ -29,8 +29,10 @@
 .card-routing-shuffle__photo {
   position: absolute; top: 50%; left: 50%; display: block; max-width: none; aspect-ratio: 16 / 9; width: auto; object-fit: cover;
   height: calc(var(--photo-follow) * 100% + (1 - var(--photo-follow)) * 66.292cqh);   /* two rows is the tallest a cell gets: 472 of 712 */ transform: translate(-50%, -50%);
+  opacity: 0;   /* a cell holds several pictures, one for each arrangement it shows in (see pictures.ts): the version fades the right one in */
   min-width: 100%; min-height: 100%;   /* but never smaller than its cell: a cell that grows past two rows (the scroll expand) is always filled, with no gap above or below */
 }
+.card-routing-shuffle__photo[data-first] { opacity: 1; }   /* the first arrangement's picture, before a version has said anything */
 /* the shuffle button floats at the bottom right (Figma "button": 136 x 48, a pill, refresh icon and label), 32px from the edges, and stays there as the page scrolls:
    a zero-height sticky strip after the grid holds it, and the button sits on the strip's bottom edge */
 .card-routing-shuffle__float { position: sticky; bottom: 32px; z-index: 2; height: 0; }   /* it lets go on the bottom edge of the bar, level with the arrows */

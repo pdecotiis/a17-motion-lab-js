@@ -1,5 +1,6 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 import { CELLS, LAYOUTS, STATE_ORDER, sizeOf } from '../layouts.js';
+import { pictureStates } from '../pictures.js';
 
 // v2: the homepage opening. The bento fills the window (it is as wide as the page gives it, in the proportions of the settled page), and each of the three scenes (the page layout, then two others) is shown in full for a
 // second, the third as long as the first two, before the page settles around it (a change takes 220ms, so the changes come 1220ms apart): the menu slides in and the bento narrows to its place beside it
@@ -11,6 +12,8 @@ const each = <T>(f: (s: string) => T): Record<string, T> => Object.fromEntries(S
 
 const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> = {};
 for (const id of CELLS) layers[id] = { states: each(s => sizeOf(LAYOUTS[s]!, id)), transitions: each(() => SCENE) };
+// the pictures: each arrangement shows its own (pictures.ts), so the pictures change each time the bento does
+for (const [name, states] of Object.entries(pictureStates(STATE_ORDER))) layers[name] = { states, transitions: each(() => SCENE) };
 
 export const v2: MotionVersion = {
   id: 'v2',

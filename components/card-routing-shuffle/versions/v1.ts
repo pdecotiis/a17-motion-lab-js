@@ -1,5 +1,6 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 import { CELLS, COLUMNS, LAYOUTS, STATE_ORDER, sizeOf } from '../layouts.js';
+import { pictureStates } from '../pictures.js';
 
 // v1: the page's bento, reduced to its core. Three columns, each a stack of colour cards and pictures, the page's arrangement first (a card on top, at the
 // bottom, on top). The cells trade height, so a cell that grows pushes the ones next to it and they collapse, and a card or picture that is new comes in from the
@@ -23,6 +24,8 @@ const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> =
 for (const id of CELLS) {
   layers[id] = { states: each(s => sizeOf(layoutOf(s), id)), transitions: each(s => (s === 'default' && delayOf(id) ? { ...MOVE, delay: delayOf(id) } : MOVE)) };
 }
+// the pictures: each arrangement shows its own (pictures.ts), so the pictures change each time the bento does
+for (const [name, states] of Object.entries(pictureStates(ALL))) layers[name] = { states, transitions: each(() => MOVE) };
 
 export const v1: MotionVersion = {
   id: 'v1',
