@@ -1,0 +1,16 @@
+{
+  "name": "card-routing-slideshow",
+  "layerName": "card routing",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "23996:489900"
+  },
+  "importedAt": "2026-11-12",
+  "frame": { "width": 1072, "height": 532 },
+  "designWidth": 1072,
+  "variables": [],
+  "assets": [],
+  "fontFallbacks": [],
+  "issues": ["Hand-built from the frames xl · open (cards, picture, wide, and trading, technology and machine learning in two looks each), page home; the pictures and patterns are exported from them.", "In the trading frame with the small card (look B) the arrow sits at the right of the card; here it is at the left, like the other cards."]
+}

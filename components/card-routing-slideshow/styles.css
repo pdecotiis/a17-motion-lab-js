@@ -1,0 +1,75 @@
+/* Card routing slideshow: a 1072 x 532 stage that morphs. Nothing slides: the stage is a stack of three bands (the intro's picture, the intro's colour cards, the slides), the slides band
+   holds two columns, and each column is a stack of cells whose heights change, so what goes away gives its room to what comes (geometry.ts says how big every part is in every state).
+   A part's box is its visible height plus an 8px gutter below it, clipped off (the fill stops 8px short of the box), so the gap between neighbours is 8px all through a move and a part that grows
+   from nothing is never flush against the one above it. Sizes are in container units (cqh) so the stage keeps its proportions at any width. The stylesheet is the first state. */
+.card-routing-slideshow {
+  width: 100%;
+  padding: var(--space-7) var(--layout-margin);
+  background: var(--background-default);
+  box-sizing: border-box;
+  font-feature-settings: "lnum" 1, "pnum" 1;
+}
+.card-routing-slideshow__stage { display: flex; flex-direction: column; width: 100%; aspect-ratio: 1072 / 532; container-type: size; overflow: clip; }
+.card-routing-slideshow__band { position: relative; flex: none; width: 100%; overflow: hidden; height: calc(0cqh + 0px); }
+.card-routing-slideshow__band[data-motion="band-cards"] { height: calc(32.3308cqh + 8px); }   /* the first state: the three colour cards */
+.card-routing-slideshow__fill { position: absolute; inset: 0 0 8px 0; overflow: hidden; border-radius: var(--size-24); background: var(--background-quaternary, #e8e7e5); }
+.card-routing-slideshow__fill--row { display: flex; gap: 8px; border-radius: 0; background: none; }
+.card-routing-slideshow__columns { position: absolute; top: 0; left: 0; display: flex; gap: 8px; width: 100%; height: 100cqh; }   /* as tall as the stage, whatever the band's height: the band is a window onto it */
+.card-routing-slideshow__column { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; height: 100%; }
+.card-routing-slideshow__cell { position: relative; flex: none; overflow: hidden; height: calc(0cqh + 0px); }
+.card-routing-slideshow__square { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; border-radius: var(--size-24); background: var(--background-quaternary, #e8e7e5); }
+
+/* pictures have a fixed size (the part's full size), so a part that grows is a window that opens onto the picture, not a picture that stretches. The squares are anchored to the edge that stays put:
+   the top for the row above the trading card, the bottom for the rows below the others' cards */
+.card-routing-slideshow__pic { position: absolute; top: 0; left: 0; display: block; width: 100%; height: 100cqh; max-width: none; object-fit: cover; }
+.card-routing-slideshow__pic--wide { height: 66.1654cqh; }   /* 352 of the stage's 532 */
+.card-routing-slideshow__pic--top, .card-routing-slideshow__pic--bottom { height: calc((100cqh - 8px) / 2); }
+.card-routing-slideshow__pic--bottom { top: auto; bottom: 0; }
+
+/* colour cards */
+.card-routing-slideshow__card { cursor: pointer; color: var(--text-on-accent-1); background: var(--background-accent-1); }
+.card-routing-slideshow__card--yellow { background: var(--background-accent-1); color: var(--text-on-accent-1); }
+.card-routing-slideshow__card--indigo { background: var(--background-accent-3); color: var(--text-on-accent-3); }
+.card-routing-slideshow__card--green { background: var(--background-accent-2); color: var(--text-on-accent-2); }
+.card-routing-slideshow__fill--row > .card-routing-slideshow__card { flex: 1 1 0; min-width: 0; position: relative; overflow: hidden; border-radius: var(--size-24); }   /* the intro's three cards */
+/* the small card (look B, and the intro's cards): a title at the top, an arrow at the bottom */
+.card-routing-slideshow__route { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: var(--size-24); box-sizing: border-box; }
+.card-routing-slideshow__title { margin: 0; font-family: var(--heading-family); font-weight: var(--heading-weight); font-size: var(--font-size-20); line-height: 1.3; color: inherit; }
+.card-routing-slideshow__arrow { display: block; flex: none; width: 24px; height: 24px; }
+/* the big card (look A): the pattern, a large title and a line of copy. It is as big as the card at its biggest and does not reflow as the card shrinks: it is anchored to the edge the card keeps
+   (the bottom for the trading card, whose row opens above it), and fades out as the small card's content fades in */
+.card-routing-slideshow__cell .card-routing-slideshow__route { opacity: 0; }
+.card-routing-slideshow__feature { position: absolute; left: 0; width: 100%; height: 100cqh; padding: var(--size-32); box-sizing: border-box; opacity: 0; }
+.card-routing-slideshow__feature--top { top: 0; }
+.card-routing-slideshow__feature--bottom { bottom: 0; }
+.card-routing-slideshow__feature-art { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+.card-routing-slideshow__feature-title { position: relative; margin: 0; font-family: var(--heading-family); font-weight: var(--heading-weight); font-size: var(--font-size-42); line-height: 1.3; color: inherit; }
+.card-routing-slideshow__feature-copy { position: absolute; left: var(--size-32); bottom: var(--size-32); width: calc(100% - 2 * var(--size-32)); margin: 0; font-family: var(--body-family); font-size: var(--font-size-14); line-height: 1.5; color: inherit; }
+
+/* the bar under the stage: the pagination arrows and the play / pause button at the left, the black pill of bullets at the right, floating at the bottom of the window like the shuffle button */
+.card-routing-slideshow__bar { display: flex; align-items: center; height: 72px; padding-top: 24px; box-sizing: border-box; }
+.card-routing-slideshow__pager { display: flex; gap: 4px; }
+.card-routing-slideshow__pager-button { display: flex; align-items: center; justify-content: center; flex: none; width: 48px; height: 48px; padding: 0; border: 0; border-radius: var(--radius-full); background: var(--background-quaternary, #e8e7e5); color: var(--text-default); cursor: pointer; }
+.card-routing-slideshow__playpause, .card-routing-slideshow__dots { display: none; }
+.card-routing-slideshow[data-pausable] .card-routing-slideshow__playpause { display: flex; }
+.card-routing-slideshow[data-pausable] .card-routing-slideshow__dots { display: flex; }
+.card-routing-slideshow__icon-play { display: none; }
+.card-routing-slideshow[data-paused] .card-routing-slideshow__icon-play { display: block; }
+.card-routing-slideshow[data-paused] .card-routing-slideshow__icon-pause { display: none; }
+.card-routing-slideshow__float { position: sticky; bottom: 32px; z-index: 2; height: 0; }
+.card-routing-slideshow__dots { position: absolute; right: 0; bottom: 0; align-items: center; gap: 8px; height: 48px; padding: 0 24px; border-radius: var(--radius-full); background: var(--background-inverse); box-sizing: border-box; }
+.card-routing-slideshow__dot {
+  position: relative; flex: none; width: 8px; height: 8px; padding: 0; border: 0; border-radius: var(--radius-full); overflow: hidden; cursor: pointer;
+  background: rgba(255, 255, 255, 0.56);
+  transition: width var(--motion-duration-400, 400ms) var(--motion-easing-expressive-standard, cubic-bezier(0.45, 0.05, 0.35, 1));
+}
+.card-routing-slideshow__dot-fill { position: absolute; inset: 0; background: #fff; transform: scaleX(0); transform-origin: left center; }
+/* the current slide's bullet is the larger one (32 x 8) and fills over the interval (5s, the same as the trigger's), keyed on the root's data-state */
+.card-routing-slideshow[data-state="trading-1"] [data-motion="dot-1"], .card-routing-slideshow[data-state="trading-2"] [data-motion="dot-2"], .card-routing-slideshow[data-state="technology-1"] [data-motion="dot-3"],
+.card-routing-slideshow[data-state="technology-2"] [data-motion="dot-4"], .card-routing-slideshow[data-state="machine-learning-1"] [data-motion="dot-5"], .card-routing-slideshow[data-state="machine-learning-2"] [data-motion="dot-6"] { width: 32px; }
+.card-routing-slideshow[data-state="trading-1"] [data-motion="dot-1"] .card-routing-slideshow__dot-fill, .card-routing-slideshow[data-state="trading-2"] [data-motion="dot-2"] .card-routing-slideshow__dot-fill,
+.card-routing-slideshow[data-state="technology-1"] [data-motion="dot-3"] .card-routing-slideshow__dot-fill, .card-routing-slideshow[data-state="technology-2"] [data-motion="dot-4"] .card-routing-slideshow__dot-fill,
+.card-routing-slideshow[data-state="machine-learning-1"] [data-motion="dot-5"] .card-routing-slideshow__dot-fill, .card-routing-slideshow[data-state="machine-learning-2"] [data-motion="dot-6"] .card-routing-slideshow__dot-fill { animation: card-routing-slideshow-dot-fill 5s linear forwards; }
+.card-routing-slideshow[data-held] .card-routing-slideshow__dot-fill { animation-play-state: paused !important; }
+@keyframes card-routing-slideshow-dot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .card-routing-slideshow__dot-fill { animation: none !important; } .card-routing-slideshow__dot { transition: none; } }
