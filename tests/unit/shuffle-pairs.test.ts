@@ -26,7 +26,7 @@ describe('the shuffle bento v4 arrangements', () => {
       expect(now.every(Boolean), state).toBe(true);
       expect(next.slice(1), `${state} -> next`).toEqual(now.slice(0, 2));
     });
-    expect(colourAt('arrangement-1')).toEqual(['o', 'i', 'g']);   // the page: orange, indigo, green
+    expect(colourAt('arrangement-1')).toEqual(['o', 'y', 'g']);   // the page: primary, 1, 2 across
   });
   it('the cells push each other: nothing overlaps from one arrangement to the next', () => {
     PAIR_ORDER.forEach((state, k) => expect(overlapsBetween(PAIR_LAYOUTS[state]!, PAIR_LAYOUTS[PAIR_ORDER[(k + 1) % PAIR_ORDER.length]!]!), state).toEqual([]));

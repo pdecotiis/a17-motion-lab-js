@@ -13,7 +13,7 @@ const MOVE = { model: 'tween' as const, duration: 'duration.400', easing: 'easin
 // The intro: the three colour cards alone ('cards': no pictures yet), then the pictures open (the first move, to the first arrangement), the middle one above its
 // card, which it pushes down. 'cards' is not part of the shuffle.
 const INTRO = 'cards';
-const CARDS_ONLY = { o0: 1, i1: 1, g2: 1 };
+const CARDS_ONLY = { o0: 1, y1: 1, g2: 1 };
 const ALL = [INTRO, ...PAIR_ORDER];
 const each = <T>(f: (s: string) => T): Record<string, T> => Object.fromEntries(ALL.map(s => [s, f(s)]));
 const layoutOf = (s: string) => (s === INTRO ? CARDS_ONLY : PAIR_LAYOUTS[s]!);
@@ -49,7 +49,7 @@ export const v4: MotionVersion = {
   // the grid fades in quickly and the three colour cards rise in with the card preset, then the pictures open (the interaction's first move)
   model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-entrance' },
   keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
-  layers: { o0: { preset: 'card' }, i1: { preset: 'card', delay: 'delay.70' }, g2: { preset: 'card', delay: 'delay.120' } },
+  layers: { o0: { preset: 'card' }, y1: { preset: 'card', delay: 'delay.70' }, g2: { preset: 'card', delay: 'delay.120' } },
   interaction: {
     initial: INTRO,
     hold: 'duration.300', // the cards are seen for a quick beat before the pictures open
