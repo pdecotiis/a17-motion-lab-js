@@ -12,7 +12,7 @@ const FADE = { model: 'tween' as const, duration: 'duration.220', easing: 'easin
 const MOVE = { model: 'tween' as const, duration: 'duration.400', easing: 'easing.expressive-standard' };
 // The intro: the three colour cards alone ('cards': no pictures yet), then the pictures open (the first move, to the first arrangement), the middle one above its
 // card, which it pushes down. 'cards' is not part of the shuffle.
-const INTRO = 'cards';
+const INTRO = 'cards-only';
 const CARDS_ONLY = { o0: 1, y1: 1, g2: 1 };
 const ALL = [INTRO, ...PAIR_ORDER];
 const each = <T>(f: (s: string) => T): Record<string, T> => Object.fromEntries(ALL.map(s => [s, f(s)]));
@@ -23,11 +23,12 @@ const layoutOf = (s: string) => (s === INTRO ? CARDS_ONLY : PAIR_LAYOUTS[s]!);
 const COLUMN_DELAY = ['', 'delay.40', 'delay.70'];
 const delayOf = (id: string): string => COLUMN_DELAY[COLUMNS.findIndex(c => c.includes(id))]!;
 
-// A cell's 8px gutter is its margin below, and it never changes: a collapsed cell takes its gutter back with a margin above of -8px instead (so it still takes no room), which means the gap
-// between a picture and the card next to it is 8px all through a move and does not shrink while a card or picture is growing.
+// A cell's box is its visible part plus the 8px gutter below it (the stylesheet clips the gutter off for these states, see "gutter" in styles.css). So the gap between two cells is
+// 8px all through a move: a cell that grows from nothing grows its gutter first and only then shows, instead of appearing flush against the card above or below it.
+// Both ends of the height are calc() so the CSS and Motion runtimes interpolate them the same way.
 const gutterSizeOf = (layout: Parameters<typeof sizeOf>[0], id: string) => {
   const { height } = sizeOf(layout, id);
-  return { height, marginTop: height === '0%' ? '-8px' : '0px', marginBottom: '8px' };
+  return { height: height === '0%' ? 'calc(0% + 0px)' : `calc(${height} + 8px)`, marginTop: '0px', marginBottom: '0px' };
 };
 
 const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> = {};

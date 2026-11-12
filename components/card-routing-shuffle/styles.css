@@ -48,7 +48,7 @@
 .card-routing-shuffle__ring { display: block; flex: none; width: 24px; height: 24px; transform: rotate(-90deg); }
 .card-routing-shuffle__ring-track { opacity: 0.25; }
 .card-routing-shuffle__ring-fill { stroke-dasharray: 1; stroke-dashoffset: 1; stroke-linecap: round; }
-.card-routing-shuffle[data-state="cards"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-2"] .card-routing-shuffle__ring-fill,
+.card-routing-shuffle[data-state="cards"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="cards-only"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-2"] .card-routing-shuffle__ring-fill,
 .card-routing-shuffle[data-state="layout-4"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-6"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-2"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-4"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-2"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-4"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-2"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-4"] .card-routing-shuffle__ring-fill { animation: card-routing-shuffle-ring-b 5s linear forwards; }
 .card-routing-shuffle[data-state="default"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="layout-3"] .card-routing-shuffle__ring-fill,
 .card-routing-shuffle[data-state="layout-5"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-1"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-3"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-1"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-3"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-1"] .card-routing-shuffle__ring-fill, .card-routing-shuffle[data-state="arrangement-3"] .card-routing-shuffle__ring-fill { animation: card-routing-shuffle-ring-a 5s linear forwards; }
@@ -117,3 +117,9 @@
 .card-routing-shuffle[data-held] .card-routing-shuffle__dot-fill { animation-play-state: paused !important; }
 @keyframes card-routing-shuffle-dot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .card-routing-shuffle__dot-fill { animation: none !important; } .card-routing-shuffle__dot { transition: none; } }
+
+/* gutter: in v4 and v5 (their states are cards-only and arrangement-N) a cell's box is its visible part plus the 8px gutter below it, and the gutter is clipped off. A cell that
+   grows from nothing therefore grows its gutter first and shows after it, so it is never flush against its neighbour; the rounded corners come from the clip. */
+.card-routing-shuffle:is([data-state="cards-only"], [data-state^="arrangement-"]) .card-routing-shuffle__cell { border-radius: 0; clip-path: inset(0 0 8px 0 round var(--size-24)); }
+.card-routing-shuffle:is([data-state="cards-only"], [data-state^="arrangement-"]) .card-routing-shuffle__inner { bottom: 8px; }
+.card-routing-shuffle:is([data-state="cards-only"], [data-state^="arrangement-"]) .card-routing-shuffle__photo { top: calc(50% - 4px); }
