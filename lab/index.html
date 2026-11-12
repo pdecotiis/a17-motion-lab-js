@@ -39,6 +39,15 @@
     </main>
   </div>
 
+  <dialog id="code-dialog" class="lab-code-dialog" aria-labelledby="code-title">
+    <header class="lab-code-dialog__header">
+      <h2 class="lab-code-dialog__title"><span id="code-title"></span> <span class="lab-code-dialog__sub">Generated code</span></h2>
+      <select class="lab-select" id="export-format" aria-label="Export format"></select>
+      <button type="button" class="lab-btn lab-btn--sm lab-btn--primary" id="copy-css-btn">Copy CSS</button>
+      <button type="button" class="lab-btn lab-btn--icon" id="code-close" aria-label="Close"></button>
+    </header>
+    <pre class="lab-css-pre" id="css-pre" tabindex="0"></pre>
+  </dialog>
   <dialog id="settings-dialog" class="lab-settings" aria-labelledby="settings-title">
     <header class="lab-settings__header">
       <h2 id="settings-title" class="lab-settings__title">Settings</h2>

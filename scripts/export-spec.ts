@@ -12,7 +12,7 @@
  *   spec.md      when it plays, what animates, timing, reduced motion, what the lab doesn't cover
  *
  * The entrance presets belong to the project, not to a version, so they are written once, to <out>/presets/
- * (presets.css, and presets.gsap.js / presets.motion.js with --format): a version that uses them imports them
+ * (presets.css, and presets.motion.js with --format): a version that uses them imports them
  * from there. `--presets` writes just those files, the project's shared presets, with no component.
  *
  * With no version, exports the component's latest version when the component is approved.
@@ -22,7 +22,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { compileTokens } from '../lab/lib/token-compiler.js';
 import { buildVersionExport } from '../lab/lib/spec.js';
-import { buildExportCode, buildPresetsGsap, buildPresetsMotion, EXPORT_FILES, EXPORT_FORMATS, PRESET_FILES, type ExportFormat } from '../lab/lib/export-code.js';
+import { buildExportCode, buildPresetsMotion, EXPORT_FILES, EXPORT_FORMATS, PRESET_FILES, type ExportFormat } from '../lab/lib/export-code.js';
 import { buildPresetsCss, elementPresetsUsed, presetsUsed } from '../lab/lib/css-output.js';
 import { stepsOf } from '../lab/lib/motion-models.js';
 import { DEFAULT_BOUNCE } from '../lab/lib/motion-args.js';
@@ -82,7 +82,6 @@ const writePresets = (formats: ExportFormat[]): void => {
   const dir = join(outRoot, 'presets');
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, PRESET_FILES.css), buildPresetsCss(tokens.raw));
-  if (formats.includes('gsap')) writeFileSync(join(dir, PRESET_FILES.gsap), buildPresetsGsap(tokens.raw));
   if (formats.includes('motion')) writeFileSync(join(dir, PRESET_FILES.motion), buildPresetsMotion(tokens.raw, globalBounce));
   console.log(`presets → ${dir}`);
 };

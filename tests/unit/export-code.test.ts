@@ -31,18 +31,20 @@ describe('formats', () => {
   it('buildExportCode returns the CSS as given, and GSAP or Motion code otherwise', () => {
     const v = tween();
     expect(buildExportCode('css', v, raw, { css: 'CSS', component: 'card' })).toBe('CSS');
-    expect(buildExportCode('gsap', v, raw, { css: 'CSS', component: 'card' })).toContain('import { gsap } from "gsap"');
+    expect(buildExportCode('gsap', v, raw, { css: 'CSS', component: 'card' })).toContain('gsap.registerPlugin(CustomEase);');
     expect(buildExportCode('motion', v, raw, { css: 'CSS', component: 'card' })).toContain('import { animate } from "motion"');
   });
 });
 
 describe('buildGsapCode', () => {
-  it('writes seconds, a CustomEase for the easing token, and a function named for the version', () => {
+  it('writes seconds, a CustomEase for the easing token, and plain top-level code', () => {
     const code = buildGsapCode(tween(), raw, { component: 'side-panel' });
-    expect(code).toContain('export function playSidePanelV1(el, { index = 0 } = {}) {');
-    expect(code).toContain('CustomEase.create("productive-standard", "0.2, 0, 0.38, 0.9"); // easing.productive-standard');
-    expect(code).toContain('tl.fromTo(el, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.25, ease: "productive-standard" }, 0);');
+    expect(code).toContain('gsap.registerPlugin(CustomEase);');
+    expect(code).toContain('CustomEase.create("productive-standard", "0.2,0,0.38,0.9");');
+    expect(code).toContain('const el = document.querySelector(".side-panel");');
+    expect(code).toContain('tl.from(el, { opacity: 0, y: 16, duration: 0.25, ease: "productive-standard" }, 0);');
     expect(code).toContain('GSAP has no springs, so this is easing only.');
+    expect(code).not.toContain('export function');
   });
 
   it('converts transform functions to GSAP properties', () => {
@@ -62,12 +64,11 @@ describe('buildGsapCode', () => {
     expect(buildGsapCode(v, raw, { component: 'c' })).toContain('// Not converted (GSAP wants x, y, scale, rotation): skewX(10deg)');
   });
 
-  it('puts a stagger on the timeline and a delay at the step\'s position', () => {
+  it("puts a step's delay at its position on the timeline, and says what the page stagger is", () => {
     const v = tween({ stagger: 'delay.80', model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-standard', delay: 'delay.40' } });
     const code = buildGsapCode(v, raw, { component: 'c' });
-    expect(code).toContain('const stagger = 0.08; // delay.80');
-    expect(code).toContain('gsap.timeline({ delay: index * stagger })');
     expect(code).toContain('}, 0.04);');
+    expect(code).toContain('each section starts 0.08s after the one before (delay.80)');
   });
 
   it('plays more than two frames as GSAP keyframes with easeEach', () => {
@@ -81,24 +82,23 @@ describe('buildGsapCode', () => {
     expect(keyword).toContain('ease: "power1.out"');
     expect(keyword).not.toContain('CustomEase.create');
     const curve = buildGsapCode(tween({ model: { model: 'tween', duration: '300ms', easing: 'cubic-bezier(0.1, 0.2, 0.3, 0.4)' } }), raw, { component: 'c' });
-    expect(curve).toContain('CustomEase.create("custom-1", "0.1, 0.2, 0.3, 0.4"); // hard-coded, not a token');
+    expect(curve).toContain('CustomEase.create("custom-1", "0.1,0.2,0.3,0.4");');
   });
 
   it('plays a spring version as its easing, and says GSAP has no springs', () => {
     const code = buildGsapCode(panelVersions.find(v => v.id === 'v1')!, raw, { component: 'side-panel' });
-    expect(code).toContain('authored as a spring (GSAP has no springs, so the easing plays)');
-    expect(code).toContain('{ opacity: 0, x: 48 }, { opacity: 1, x: 0, duration: 0.7, ease: "expressive-entrance" }');
+    expect(code).toContain('GSAP has no springs, so this is easing only.');
+    expect(code).toContain('tl.from(el, { opacity: 0, x: 48, duration: 0.7, ease: "expressive-entrance" }, 0);');
     expect(code).not.toContain('bounce');
   });
 
   it('writes the reduced-motion branch: an opacity fade, or nothing for "none"', () => {
-    expect(buildGsapCode(tween(), raw, { component: 'c' })).toContain('{ opacity: 0 }, { opacity: 1, duration: 0.15, ease: "productive-standard" }');
-    const none = buildGsapCode(tween({ reducedMotion: 'none' }), raw, { component: 'c' });
-    expect(none).toContain('reduced motion: no animation, the element shows its end state');
+    expect(buildGsapCode(tween(), raw, { component: 'c' })).toContain('tl.from(el, { opacity: 0, duration: 0.15, ease: "productive-standard" }, 0);');
+    expect(buildGsapCode(tween({ reducedMotion: 'none' }), raw, { component: 'c' })).not.toContain('prefers-reduced-motion: reduce');
   });
 
   it('says when it plays, as the CSS does', () => {
-    expect(buildGsapCode(tween({ trigger: { on: 'click' } }), raw, { component: 'c' })).toContain('// Plays: On click.');
+    expect(buildGsapCode(tween({ trigger: { on: 'click' } }), raw, { component: 'c' })).toContain('// Plays: On click');
     expect(buildGsapCode(tween(), raw, { component: 'c' })).toContain('trigger not specified');
   });
 });
@@ -162,41 +162,48 @@ describe('the GSAP code runs in GSAP and matches the CSS timing', () => {
     });
   };
 
-  const run = (v: MotionVersion, component: string, index: number, reduced = false) => {
+  const run = (v: MotionVersion, component: string, reduced = false) => {
     const code = buildGsapCode(v, raw, { component });
-    const fn = `play${component.split('-').map(w => w[0]!.toUpperCase() + w.slice(1)).join('')}${v.id.toUpperCase()}`;
-    const play = new Function('gsap', 'CustomEase', 'window', `${code.replace(/^import .*$/gm, '').replace('export function', 'function')}\nreturn ${fn};`)(
-      gsap, CustomEase, { matchMedia: () => ({ matches: reduced }) },
-    ) as (el: unknown, o: { index: number }) => gsap.core.Timeline;
+    const timelines: gsap.core.Timeline[] = [];
     const layers: Record<string, object> = {};
-    const el = { querySelectorAll: (sel: string) => [(layers[sel] ??= {})] };
-    const tl = play(el, { index });
-    tl.pause();
-    return tl;
+    const el = { querySelectorAll: (sel: string) => [(layers[sel] ??= {})], addEventListener: () => undefined, dataset: {} };
+    const wrapped = {
+      ...gsap,
+      registerPlugin: () => undefined,
+      timeline: (vars: Record<string, unknown> = {}) => {
+        const { scrollTrigger: _s, ...rest } = vars;
+        const tl = gsap.timeline(rest);
+        tl.pause();
+        timelines.push(tl);
+        return tl;
+      },
+      matchMedia: () => ({ add: (q: string, fn: () => void) => { if (q.endsWith(reduced ? ': reduce)' : ': no-preference)')) fn(); } }),
+    };
+    new Function('gsap', 'CustomEase', 'ScrollTrigger', 'document', 'window', code)(
+      wrapped, CustomEase, {}, { querySelector: () => el, addEventListener: () => undefined }, { matchMedia: () => ({ matches: reduced }) },
+    );
+    return timelines;
   };
 
   for (const [component, versions] of [['card', cardVersions], ['side-panel', panelVersions]] as const) {
     for (const v of versions.filter(x => !x.interaction)) {
-      it(`${component} ${v.id}: the root and each layer start and last as the CSS says, staggered by index`, () => {
+      it(`${component} ${v.id}: the root and each layer start and last as the CSS says`, () => {
         const expected = cssTimings(buildVersionCss(v, raw, { component }));
-        for (const index of [0, 2]) {
-          const tl = run(v, component, index);
-          const children = tl.getChildren(false, true, false);
-          expect(children.length, `${component} ${v.id}`).toBe(expected.length);
-          children.forEach((child, i) => {
-            const e = expected[i]!;
-            expect(child.duration() * 1000, `${v.id} step ${i} duration`).toBeCloseTo(e.duration, 3);
-            expect((tl.delay() + child.startTime()) * 1000, `${v.id} step ${i} start at index ${index}`).toBeCloseTo(e.delay + index * e.stagger, 3);
-          });
-        }
+        const [tl] = run(v, component);
+        const children = tl!.getChildren(false, true, false);
+        expect(children.length, `${component} ${v.id}`).toBe(expected.length);
+        children.forEach((child, i) => {
+          const e = expected[i]!;
+          expect(child.duration() * 1000, `${v.id} step ${i} duration`).toBeCloseTo(e.duration, 3);
+          expect((tl!.delay() + child.startTime()) * 1000, `${v.id} step ${i} start`).toBeCloseTo(e.delay, 3);
+        });
       });
     }
   }
 
   it('under reduced motion it plays only a short fade, or nothing for "none"', () => {
-    const fade = run(cardVersions.find(v => v.id === 'v1')!, 'card', 0, true);
-    for (const child of fade.getChildren(false, true, false)) expect(child.duration()).toBeLessThanOrEqual(0.15);
-    const none = run({ ...cardVersions[0]!, reducedMotion: 'none' }, 'card', 0, true);
-    expect(none.getChildren(false, true, false)).toHaveLength(0);
+    const [fade] = run(cardVersions.find(v => v.id === 'v1')!, 'card', true);
+    for (const child of fade!.getChildren(false, true, false)) expect(child.duration()).toBeLessThanOrEqual(0.15);
+    expect(run({ ...cardVersions[0]!, reducedMotion: 'none' }, 'card', true)).toHaveLength(0);
   });
 });

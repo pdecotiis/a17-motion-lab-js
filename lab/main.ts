@@ -306,6 +306,7 @@ function openSettings(): void {
 }
 settingsButton.innerHTML = ICONS.settings;
 document.getElementById('settings-close')!.innerHTML = ICONS.close;
+document.getElementById('code-close')!.innerHTML = ICONS.close;
 settingsButton.addEventListener('click', openSettings);
 document.getElementById('settings-close')!.addEventListener('click', () => settingsDialog.close());
 // A click on the backdrop (the dialog itself, outside its content) closes it, as Escape does.
@@ -1097,19 +1098,11 @@ function renderComponentView(params: URLSearchParams): void {
             <ol class="lab-history" id="version-history"></ol>
           </div>
         </details>
-        <details class="lab-controls lab-accordion">
-          <summary class="lab-controls__title">Generated code</summary>
-          <div class="lab-accordion__body">
-            <label class="lab-control-label">
-              Format
-              <select class="lab-select" id="export-format" aria-label="Export format">
-                ${EXPORT_FORMATS.map(f => `<option value="${f}">${EXPORT_LABELS[f]}</option>`).join('')}
-              </select>
-            </label>
-            <pre class="lab-css-pre" id="css-pre"></pre>
-            <button class="lab-btn lab-btn--sm" id="copy-css-btn">Copy CSS</button>
-          </div>
-        </details>
+        <section class="lab-controls lab-code-row" aria-label="Generated code">
+          <h3 class="lab-controls__title">Generated code</h3>
+          <p class="lab-code-row__text">CSS, GSAP or Motion, written from this version for a developer.</p>
+          <button class="lab-btn lab-btn--sm" id="view-code-btn" aria-haspopup="dialog">View code</button>
+        </section>
         <section class="lab-controls" aria-label="Compare"${SHOW_COMPARE ? '' : ' hidden'}>
           <h3 class="lab-controls__title">Compare with</h3>
           <select class="lab-select" id="compare-select">
@@ -1388,9 +1381,15 @@ function renderComponentView(params: URLSearchParams): void {
   if (motionTableShown()) renderMotionTable(document.getElementById('motion-table')!, version, componentName);
 
   // Generated code section
+  // It opens in a dialog of its own (lab/index.html), so the code has the whole window instead of a strip of the side panel.
   const cssPre = document.getElementById('css-pre')!;
   const exportFormat = document.getElementById('export-format') as HTMLSelectElement;
   const copyBtn = document.getElementById('copy-css-btn')!;
+  const codeDialog = document.getElementById('code-dialog') as HTMLDialogElement;
+  const chosenFormat = exportFormat.value;
+  exportFormat.innerHTML = EXPORT_FORMATS.map(f => `<option value="${f}">${EXPORT_LABELS[f]}</option>`).join('');
+  if (chosenFormat) exportFormat.value = chosenFormat;
+  document.getElementById('code-title')!.textContent = `${componentName} ${version.id}`;
   // The same version as CSS (the baseline), GSAP (easing only) or Motion (springs): never changed by the runtime.
   const renderExport = (): void => {
     const format = exportFormat.value as ExportFormat;
@@ -1399,15 +1398,19 @@ function renderComponentView(params: URLSearchParams): void {
     });
     copyBtn.textContent = `Copy ${EXPORT_LABELS[format]}`;
   };
-  exportFormat.addEventListener('change', renderExport);
+  // Handlers are assigned (not added), so opening another version never stacks them on the one dialog.
+  exportFormat.onchange = renderExport;
   renderExport();
-
-  copyBtn.addEventListener('click', () => {
-    const css = cssPre.textContent ?? '';
-    navigator.clipboard.writeText(css).catch(() => {
-      console.log('Copy CSS:', css);
-    });
-  });
+  document.getElementById('view-code-btn')!.onclick = () => { renderExport(); if (!codeDialog.open) codeDialog.showModal(); };
+  document.getElementById('code-close')!.onclick = () => codeDialog.close();
+  codeDialog.onclick = e => { if (e.target === codeDialog) codeDialog.close(); };
+  copyBtn.onclick = () => {
+    const code = cssPre.textContent ?? '';
+    navigator.clipboard.writeText(code).then(() => {
+      copyBtn.textContent = 'Copied';
+      setTimeout(renderExport, 1500);
+    }).catch(() => { console.log('Copy code:', code); });
+  };
 
   compareSelect.addEventListener('change', () => {
     const compareArea = document.getElementById('compare-area')!;

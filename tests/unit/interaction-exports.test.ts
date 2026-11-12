@@ -61,44 +61,47 @@ describe('trigger-aware CSS', () => {
 });
 
 describe('GSAP and Motion exports with layers and triggers', () => {
-  it('both name each part, and attach the triggers', () => {
-    for (const code of [buildGsapCode(withImage, raw, { component: 'card' }), buildMotionCode(withImage, raw, { component: 'card' })]) {
-      expect(code).toContain('layer: "image"');
-      expect(code).toContain('export function attachCardV2(el)');
-      expect(code).toContain('"on":"hover"');
-      expect(code).toContain('return () => off.forEach');
-    }
+  it('GSAP names each part and says what its triggers do', () => {
+    const code = buildGsapCode(withImage, raw, { component: 'card' });
+    expect(code).toContain('image: { scale: 1 },');
+    expect(code).toContain('image: { scale: 1.03 },');
+    expect(code).toContain('const differently = {');
+    expect(code).toContain('el.addEventListener("pointerenter"');
+    expect(code).not.toContain('export function');
   });
-  it('a version with no triggers has no attach', () => {
+  it('Motion names each part, and attaches the triggers', () => {
+    const code = buildMotionCode(withImage, raw, { component: 'card' });
+    expect(code).toContain('layer: "image"');
+    expect(code).toContain('export function attachCardV2(el)');
+    expect(code).toContain('"on":"hover"');
+    expect(code).toContain('return () => off.forEach');
+  });
+  it('a version with no triggers has no trigger code', () => {
     const none = { ...cardV2, interaction: { ...cardV2.interaction!, triggers: undefined } };
-    expect(buildGsapCode(none, raw, { component: 'card' })).not.toContain('export function attach');
+    expect(buildGsapCode(none, raw, { component: 'card' })).not.toContain('addEventListener');
+    expect(buildMotionCode(none, raw, { component: 'card' })).not.toContain('export function attach');
   });
-  it('the generated attach wires and removes listeners, and hover goes to hovered then back', () => {
+  it('the generated code listens, and hover goes to hovered then back', () => {
     const code = buildGsapCode(cardV2, raw, { component: 'card' });
-    const calls: string[] = [];
     const listeners: { node: unknown; type: string; fn: (e: unknown) => void }[] = [];
     const mkNode = () => ({
       dataset: {} as Record<string, string>,
       addEventListener(type: string, fn: (e: unknown) => void) { listeners.push({ node: this, type, fn }); },
-      removeEventListener(type: string, fn: (e: unknown) => void) { const k = listeners.findIndex(l => l.node === this && l.type === type && l.fn === fn); if (k >= 0) listeners.splice(k, 1); },
       querySelectorAll: () => [] as unknown[],
     });
-    const gsap = { registerPlugin() {}, set: () => undefined, to: (_n: unknown, v: { duration: number }) => { calls.push(String(v.duration)); return {}; } };
-    const mod = new Function('gsap', 'CustomEase', 'window', 'document', `${code.replace(/^import .*$/gm, '').replace(/export function/g, 'function').replace(/^CustomEase\.create.*$/gm, '')}\nreturn { attachCardV2, setupCardV2 };`)(
-      gsap, { create() {} }, { matchMedia: () => ({ matches: false }) }, { addEventListener() {}, removeEventListener() {} },
-    ) as { attachCardV2: (el: object) => () => void; setupCardV2: (el: object) => void };
     const el = mkNode();
-    mod.setupCardV2(el);
-    const stop = mod.attachCardV2(el);
+    const gsap = { registerPlugin() {}, set: () => undefined, to: () => ({}), matchMedia: () => ({ add: () => undefined }) };
+    new Function('gsap', 'CustomEase', 'window', 'document', code)(
+      gsap, { create() {} }, { matchMedia: () => ({ matches: false }) }, { querySelector: () => el, addEventListener() {} },
+    );
     const on = (type: string, e: unknown = {}) => listeners.filter(l => l.type === type).forEach(l => l.fn(e));
+    expect(el.dataset['state']).toBe('default');
     on('pointerenter', { pointerType: 'mouse' });
     expect(el.dataset['state']).toBe('hovered');
     on('pointerleave');
     expect(el.dataset['state']).toBe('default');
     on('pointerenter', { pointerType: 'touch' });
     expect(el.dataset['state']).toBe('default');
-    stop();
-    expect(listeners.length).toBe(0);
   });
 });
 
@@ -130,17 +133,28 @@ describe('a version with an entrance and states (card v2)', () => {
     expect(cardCss).toContain('.motion-card-v2:active {');
     expect(cardCss).not.toContain('[data-motion="image"]');
   });
-  it.each([['GSAP', buildGsapCode, 'playCardV2(el).then(() => attachCardV2(el))'], ['Motion', buildMotionCode, 'Promise.all(playCardV2(el)).then(() => attachCardV2(el))']] as const)('%s: play and attach in one file with one import', (_n, build, hint) => {
-    const code = build(cardV2, raw, { component: 'card' });
-    expect(code).toContain('export function playCardV2(el');
-    expect(code).toContain('export function attachCardV2(el)');
-    expect(code).toContain('export function goToCardV2(el, state)');
-    expect(code).toContain(hint);
-    expect(code.match(/^import /gm)).toHaveLength(_n === 'GSAP' ? 2 : 1);
+  it('GSAP: the entrance, the states and the triggers in one file, read top to bottom', () => {
+    const code = buildGsapCode(cardV2, raw, { component: 'card' });
+    expect(code).toContain('// entrance');
+    expect(code).toContain('const states = {');
+    expect(code).toContain('function show(state) {');
+    expect(code.indexOf('// entrance')).toBeLessThan(code.indexOf('const states = {'));
+    expect(code).toContain('// triggers');
+    expect(code).not.toContain('export function');
+    expect(code.match(/^import /gm)).toBeNull();
     const creates = code.match(/^CustomEase\.create\(.*$/gm) ?? [];
     expect(new Set(creates).size).toBe(creates.length);
     expect(code.match(/^\/\/ Tokens:/gm)).toHaveLength(1);
     expect(code).toContain('distance.4');
+  });
+  it('Motion: play and attach in one file with one import', () => {
+    const code = buildMotionCode(cardV2, raw, { component: 'card' });
+    expect(code).toContain('export function playCardV2(el');
+    expect(code).toContain('export function attachCardV2(el)');
+    expect(code).toContain('export function goToCardV2(el, state)');
+    expect(code).toContain('Promise.all(playCardV2(el)).then(() => attachCardV2(el))');
+    expect(code.match(/^import /gm)).toHaveLength(1);
+    expect(code.match(/^\/\/ Tokens:/gm)).toHaveLength(1);
   });
   it('spec.md has the entrance, its layers, the triggers and the states', () => {
     const { markdown: md } = buildVersionExport('card', cardV2, cardVersions, tokens);

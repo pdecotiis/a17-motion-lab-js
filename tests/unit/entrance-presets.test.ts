@@ -10,7 +10,7 @@ import { PRESETS, PRESET_NAMES, SEPARATE_FADE, hasFadeTrack, presetTracks, type 
 import { hasEntrance, isPresetStep, stepsOf, validateMotionVersion } from '../../lab/lib/motion-models.js';
 import { getStepRefs, pairingWarnings, type StepRefs } from '../../lab/lib/token-refs.js';
 import { buildPresetsCss, buildVersionCss, presetsUsed } from '../../lab/lib/css-output.js';
-import { buildGsapCode, buildMotionCode, buildPresetsGsap, buildPresetsMotion, PRESET_FILES } from '../../lab/lib/export-code.js';
+import { buildGsapCode, buildMotionCode, buildPresetsMotion, PRESET_FILES } from '../../lab/lib/export-code.js';
 import { buildVersionExport } from '../../lab/lib/spec.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
 import tokensJson from '../../tokens/motion.json';
@@ -248,21 +248,20 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.css and the component CSS', () => {
   });
 });
 
-describe.skipIf(!TEMPLATE_PRESETS)('presets.gsap.js and presets.motion.js', () => {
-  const gsapShared = buildPresetsGsap(raw);
+describe.skipIf(!TEMPLATE_PRESETS)('presets.motion.js and the GSAP presets table', () => {
   const motionShared = buildPresetsMotion(raw, 'bounce.25');
 
   it('file names per format', () => {
-    expect(PRESET_FILES).toEqual({ css: 'presets.css', gsap: 'presets.gsap.js', motion: 'presets.motion.js' });
+    expect(PRESET_FILES).toEqual({ css: 'presets.css', motion: 'presets.motion.js' });
   });
 
-  it('GSAP: a presets table in seconds and pixels with the easings registered, and playPreset', () => {
-    expect(gsapShared).toContain('CustomEase.create("expressive-entrance", "0, 0, 0.3, 1")');
-    expect(gsapShared).toContain('CustomEase.create("productive-entrance"');
-    expect(gsapShared).toContain('title: { rise: 20, move: { duration: 0.7, ease: "expressive-entrance" }, fade: { duration: 0.25, ease: "productive-entrance" } }');
-    expect(gsapShared).toContain('card: { rise: 20, scale: 0.95,');
-    expect(gsapShared).toContain('ui: { rise: 8, move: { duration: 0.15, ease: "productive-standard" }, fade: { duration: 0.1, ease: "productive-entrance" } }');
-    expect(gsapShared).toContain('export function playPreset(target, name, { delay = 0, stagger = 0 } = {})');
+  it('GSAP: the component carries a presets table in seconds and pixels, no shared file', () => {
+    const g = buildGsapCode(demo, raw, { component: 'card' });
+    expect(g).toContain('CustomEase.create("expressive-entrance"');
+    expect(g).toContain('const presets = {');
+    expect(g).toContain('card: {');
+    expect(g).not.toContain('import ');
+    expect(g).not.toContain('playPreset');
   });
 
   it('Motion: springs, the fade with no bounce, the move with the global bounce', () => {
@@ -274,13 +273,10 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.gsap.js and presets.motion.js', () =
     expect(buildPresetsMotion(raw, 'bounce.50')).toContain('const bounce = 0.5; // bounce.50');
   });
 
-  it('the component code calls playPreset for each element and imports the shared file', () => {
+  it('the component code plays a preset for each element', () => {
     const g = buildGsapCode(demo, raw, { component: 'card' });
-    expect(g).toContain('import { playPreset } from "./presets.gsap.js";');
-    expect(g).toContain('tl.add(playPreset(el, "card", { delay: 0 }), 0);');
-    expect(g).toContain('playPreset(el.querySelectorAll("[data-motion=\\"title\\"]"), "title", { delay: 0.08, stagger: 0.04 }), 0);');
-    expect(g).toContain('"text", { delay: 0.12 }');
-    expect(g).not.toContain('CustomEase.create'); // the easings live in the shared file
+    expect(g).toContain('...presets.card.fade');
+    expect(g).toContain('...presets.title.move');
 
     const m = buildMotionCode(demo, raw, { component: 'card' });
     expect(m).toContain('import { playPreset } from "./presets.motion.js";');
@@ -291,12 +287,11 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.gsap.js and presets.motion.js', () =
   it('page stagger adds index * stagger under Motion and a timeline delay under GSAP', () => {
     const staggered: MotionVersion = { ...demo, stagger: 'delay.80' };
     expect(buildMotionCode(staggered, raw, { component: 'card' })).toContain('{ delay: 0 + index * stagger }');
-    expect(buildGsapCode(staggered, raw, { component: 'card' })).toContain('gsap.timeline({ delay: index * stagger })');
+    expect(buildGsapCode(staggered, raw, { component: 'card' })).toContain('each section starts 0.08s after the one before (delay.80)');
   });
 
   it('includePresets puts the shared file above, with no duplicate imports', () => {
     for (const [code, shared, importLine] of [
-      [buildGsapCode(demo, raw, { component: 'card', includePresets: true }), gsapShared, './presets.gsap.js'],
       [buildMotionCode(demo, raw, { component: 'card', includePresets: true }), motionShared, './presets.motion.js'],
     ] as const) {
       expect(code.startsWith(shared.trimEnd())).toBe(true);
@@ -311,33 +306,6 @@ describe.skipIf(!TEMPLATE_PRESETS)('presets.gsap.js and presets.motion.js', () =
     const plain = buildGsapCode({ id: 'v1', label: 'x', model: { model: 'tween', duration: 'duration.250', easing: 'easing.productive-entrance' }, keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }], lineage: 'test' }, raw, { component: 'x', includePresets: true });
     expect(plain).not.toContain('playPreset');
   });
-
-  it('runs: playPreset adds a fade tween and then a move tween with the delay and stagger; reduced motion keeps only the fade', () => {
-    const run = (reduced: boolean) => {
-      const calls: { from: Record<string, number>; to: Record<string, number>; position: number }[] = [];
-      const fakeGsap = {
-        registerPlugin() {},
-        timeline: () => {
-          const tl = { fromTo: (_t: unknown, from: Record<string, number>, to: Record<string, number>, position: number) => { calls.push({ from, to, position }); return tl; } };
-          return tl;
-        },
-      };
-      const code = gsapShared.replace(/^import .*$/gm, '').replace(/^CustomEase\.create.*$/gm, '').replace(/^gsap\.registerPlugin.*$/gm, '').replace('export function', 'function');
-      const { playPreset } = new Function('gsap', 'CustomEase', 'window', `${code}\nreturn { playPreset };`)(
-        fakeGsap, { create() {} }, { matchMedia: () => ({ matches: reduced }) },
-      ) as { playPreset: (target: unknown, name: string, o?: { delay?: number; stagger?: number }) => unknown };
-      playPreset({}, 'card', { delay: 0.08, stagger: 0.04 });
-      return calls;
-    };
-    const full = run(false);
-    expect(full).toHaveLength(2);
-    expect(full[0]).toMatchObject({ from: { opacity: 0 }, to: { opacity: 1, duration: 0.25, ease: 'productive-entrance', stagger: 0.04 }, position: 0.08 });
-    expect(full[1]).toMatchObject({ from: { y: 20, scale: 0.95 }, to: { y: 0, scale: 1, duration: 0.7, ease: 'expressive-entrance', stagger: 0.04 }, position: 0.08 });
-    const reduced = run(true);
-    expect(reduced).toHaveLength(1);
-    expect(reduced[0]!.to['duration']).toBe(0.15);
-    expect(reduced[0]!.from).toEqual({ opacity: 0 });
-  });
 });
 
 describe.skipIf(!TEMPLATE_PRESETS)('spec.md for a preset version', () => {
@@ -345,7 +313,7 @@ describe.skipIf(!TEMPLATE_PRESETS)('spec.md for a preset version', () => {
 
   it('names the preset for each element, with its fade and move tracks', () => {
     expect(markdown).toContain('The **card** preset');
-    expect(markdown).toContain('`presets.css`, `presets.gsap.js`, `presets.motion.js`');
+    expect(markdown).toContain('`presets.css`, `presets.motion.js`');
     expect(markdown).toContain('## Layer: title');
     expect(markdown).toContain('The **title** preset');
     expect(markdown).toContain('### Fade');

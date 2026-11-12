@@ -9,6 +9,10 @@ import { describeTrigger, getReducedMotionPolicy } from './version-meta.js';
 import { REDUCED_MOTION_FADE_MS } from './reduced-motion.js';
 import { interactionParts, isCoreTrigger, motionStates, motionTransitionPlan, partProps, stateNames, timingFor } from './interaction.js';
 import { getTrigger } from './project-triggers.js';
+import { EaseRegistry, camel, num, parseMs, pascal, seconds, str } from './export-helpers.js';
+import { buildGsapCode } from './gsap-code.js';
+
+export { buildGsapCode };
 
 // The same version as code for the library a project uses. The CSS export (css-output.ts) is the
 // baseline; these are the same motion in GSAP and Motion terms, built from the same version file and
@@ -24,7 +28,8 @@ export const EXPORT_FILES: Record<ExportFormat, string> = { css: 'motion.css', g
 
 // The shared preset definitions, one file per format. They belong to the project, not to a version: npm run spec
 // writes them once, to <out>/presets/, and a version's code imports them from there (`presetsPath`).
-export const PRESET_FILES: Record<ExportFormat, string> = { css: PRESETS_CSS_FILE, gsap: 'presets.gsap.js', motion: 'presets.motion.js' };
+// GSAP has none: its code carries the presets it uses in the one file.
+export const PRESET_FILES: Record<'css' | 'motion', string> = { css: PRESETS_CSS_FILE, motion: 'presets.motion.js' };
 
 export interface ExportCodeOptions {
   component?: string;
@@ -34,18 +39,6 @@ export interface ExportCodeOptions {
   globalBounce?: string;
   /** Where the code imports the shared preset files from, with a trailing slash (default: the same folder). */
   presetsPath?: string;
-}
-
-const pascal = (s: string): string => s.split(/[^a-zA-Z0-9]+/).filter(Boolean).map(w => w[0]!.toUpperCase() + w.slice(1)).join('');
-const camel = (s: string): string => s.replace(/-([a-z])/g, (_m, c: string) => c.toUpperCase());
-const num = (n: number): string => String(Math.round(n * 10000) / 10000);
-const seconds = (ms: number): string => num(ms / 1000);
-const str = (s: string): string => JSON.stringify(s);
-
-function parseMs(value: string | undefined, raw: Record<string, unknown>): number {
-  const v = value !== undefined && value in raw ? raw[value] : value;
-  if (typeof v !== 'string') return 0;
-  return v.endsWith('ms') ? parseFloat(v) : v.endsWith('s') ? parseFloat(v) * 1000 : parseFloat(v);
 }
 
 function header(version: MotionVersion, component: string, what: string): string[] {
@@ -65,90 +58,6 @@ function tokenComment(version: MotionVersion, raw: Record<string, unknown>, form
 
 // ── GSAP ───────────────────────────────────────────────────────────────────
 
-// One keyframe as GSAP properties. GSAP wants x, y, scale and rotation, not a transform string, so
-// translate/scale/rotate functions are converted; anything else is listed as unsupported.
-function gsapProps(kf: Keyframe): { props: [string, string][]; unsupported: string[] } {
-  const props: [string, string][] = [];
-  const unsupported: string[] = [];
-  const n = (v: string): number => parseFloat(v);
-  for (const [key, value] of Object.entries(kf)) {
-    if (['offset', 'easing', 'composite'].includes(key)) continue;
-    if (key === 'transform' && typeof value === 'string') {
-      if (value.trim() === 'none') continue;
-      for (const m of value.matchAll(/(\w+)\(([^)]*)\)/g)) {
-        const fn = m[1]!;
-        const parts = m[2]!.split(',').map(s => s.trim());
-        const axis = (name: 'x' | 'y', v: string): void => { props.push(v.endsWith('%') ? [`${name}Percent`, num(n(v))] : [name, num(n(v))]); };
-        if (fn === 'translateX') axis('x', parts[0]!);
-        else if (fn === 'translateY') axis('y', parts[0]!);
-        else if (fn === 'translate') { axis('x', parts[0]!); axis('y', parts[1] ?? '0'); }
-        else if (fn === 'scale' && parts[1] === undefined) props.push(['scale', num(n(parts[0]!))]);
-        else if (fn === 'scale') props.push(['scaleX', num(n(parts[0]!))], ['scaleY', num(n(parts[1]!))]);
-        else if (fn === 'scaleX' || fn === 'scaleY') props.push([fn, num(n(parts[0]!))]);
-        else if (fn === 'rotate') props.push(['rotation', num(n(parts[0]!))]);
-        else unsupported.push(`${fn}(${parts.join(', ')})`);
-      }
-    } else if (key === 'opacity') {
-      props.push(['opacity', String(value)]);
-    } else {
-      props.push([camel(key), str(String(value))]);
-    }
-  }
-  return { props, unsupported };
-}
-
-const obj = (props: [string, string][], extra: [string, string][] = []): string =>
-  `{ ${[...props, ...extra].map(([k, v]) => `${/^[a-zA-Z_]\w*$/.test(k) ? k : str(k)}: ${v}`).join(', ')} }`;
-
-const GSAP_KEYWORDS: Record<string, string> = { linear: 'none', 'ease-in': 'power1.in', 'ease-out': 'power1.out', 'ease-in-out': 'power1.inOut' };
-
-// Easings the code registers with CustomEase, by name, and the GSAP ease name for one easing value.
-class EaseRegistry {
-  readonly entries = new Map<string, { bezier: string; comment: string }>();
-  constructor(private raw: Record<string, unknown>) {}
-  nameOf(easing: string): string {
-    if (easing in GSAP_KEYWORDS) return GSAP_KEYWORDS[easing]!;
-    let bezier: string | undefined;
-    let name: string;
-    const token = this.raw[easing];
-    if (Array.isArray(token) && token.length === 4) {
-      bezier = token.join(', ');
-      name = easing.slice(easing.indexOf('.') + 1);
-    } else {
-      const m = /^cubic-bezier\(\s*([^)]+)\)$/.exec(easing);
-      bezier = m ? m[1]!.split(',').map(s => s.trim()).join(', ') : easing === 'ease' ? '0.25, 0.1, 0.25, 1' : undefined;
-      name = easing === 'ease' ? 'ease' : `custom-${this.entries.size + 1}`;
-    }
-    if (bezier === undefined) return 'none';
-    this.entries.set(name, { bezier, comment: easing in this.raw ? easing : 'hard-coded, not a token' });
-    return name;
-  }
-}
-
-function gsapStep(
-  version: EntranceVersion, raw: Record<string, unknown>, ease: EaseRegistry, target: string, position: string, notes: string[],
-): string[] {
-  const model = version.model;
-  const p = playbackOf(version, raw);
-  const name = ease.nameOf(model.easing);
-  const frames = orderedKeyframes(p.keyframes);
-  const converted = frames.map(f => gsapProps(f.kf));
-  for (const c of converted) for (const u of c.unsupported) notes.push(`// Not converted (GSAP wants x, y, scale, rotation): ${u}`);
-  const label = `// ${model.easing in raw ? model.easing : 'hard-coded easing'}${model.model === 'spring' ? ', authored as a spring (GSAP has no springs, so the easing plays)' : ''}`;
-
-  if (frames.length === 2) {
-    return [
-      `  ${label}`,
-      `  tl.fromTo(${target}, ${obj(converted[0]!.props)}, ${obj(converted[1]!.props, [['duration', seconds(p.pairedMs)], ['ease', str(name)]])}, ${position});`,
-    ];
-  }
-  const kfs = frames.map((f, i) => `${str(`${Math.round(f.offset * 100)}%`)}: ${obj(converted[i]!.props)}`).join(', ');
-  return [
-    `  ${label}`,
-    `  tl.to(${target}, { keyframes: { ${kfs}, easeEach: ${str(name)} }, duration: ${seconds(p.pairedMs)} }, ${position});`,
-  ];
-}
-
 // The interaction's triggers as code a developer can drop in: `attach<Base>(el)` listens for hover, press, focus
 // and click (the same rules as the lab's player: a touch never hovers, a press lasts until the pointer is
 // released anywhere, focus is keyboard focus, the latest hold wins and the base state returns) and returns the
@@ -159,7 +68,7 @@ function customTriggerLines(triggers: NonNullable<MotionVersion['interaction']>[
   return names.flatMap(name => {
     const code = getTrigger(name)?.exportCode;
     const lines = code ? code(triggers.find(t => t.on === name)!) : [`// "${name}" is a project trigger with no export code: wire it by hand (its settings are in \`triggers\` above).`];
-    return [`    if (t.on === ${JSON.stringify(name)}) {`, ...lines.map(l => `      ${l}`), '      continue;', '    }'];
+    return [`    if (t.on === ${JSON.stringify(name)}) {`, '      const show = state => { base = state; settle(); };', '      const afterShow = afterMove;', ...lines.map(l => `      ${l}`), '      continue;', '    }'];
   });
 }
 
@@ -239,81 +148,6 @@ function attachLines(version: MotionVersion, base: string, raw: Record<string, u
 
 const jsKey = (n: string): string => (/^[a-zA-Z_]\w*$/.test(n) ? n : str(n));
 
-// An interaction version as GSAP: per part (the component, then each layer) the states and the timing into
-// each, a function that moves an element to a state, and one that wires the triggers. A move interrupted
-// halfway is retargeted from where the element is (`overwrite: "auto"`).
-function buildGsapInteraction(version: MotionVersion, raw: Record<string, unknown>, component: string): string {
-  const i = version.interaction!;
-  const base = `${pascal(component)}${pascal(version.id)}`;
-  const names = stateNames(i);
-  const parts = interactionParts(i).filter(part => partProps(i, part).length > 0);
-  const many = parts.length > 1;
-  const ease = new EaseRegistry(raw);
-  const gsapName = (k: string): string => (k === 'rotate' ? 'rotation' : k);
-  const partLines = parts.flatMap(part => {
-    const states = motionStates(i, raw, part);
-    const stateLine = (n: string): string =>
-      `      ${jsKey(n)}: { ${Object.entries(states[n]!).map(([k, v]) => `${gsapName(k)}: ${typeof v === 'number' ? num(v) : str(v)}`).join(', ')} },`;
-    const timing = names.map(n => {
-      const t = timingFor(i, part, n);
-      const delay = parseMs(t.delay, raw);
-      return `      ${jsKey(n)}: { duration: ${seconds(parseMs(t.duration, raw))}, ease: ${str(ease.nameOf(t.easing))}${delay ? `, delay: ${seconds(delay)}` : ''} }, // ${t.easing in raw ? t.easing : 'hard-coded easing'}${t.model === 'spring' ? ' (authored as a spring: GSAP has no springs, so the easing plays)' : ''}`;
-    });
-    return [
-      `  { layer: ${part === null ? 'null' : str(part)}, // ${part === null ? 'the element itself' : `elements marked data-motion="${part}"`}`,
-      '    states: {', ...names.map(stateLine), '    },',
-      '    // The timing of going TO each state.',
-      '    transitions: {', ...timing, '    },',
-      '  },',
-    ];
-  });
-  const hasOpacity = parts.some(part => partProps(i, part).includes('opacity'));
-  const fade = hasOpacity && getReducedMotionPolicy(version) === 'fade';
-  const out: string[] = [
-    ...header(version, component, 'GSAP has no springs, so this is easing only.'),
-    tokenComment(version, raw, 'gsap'),
-    '',
-    'import { gsap } from "gsap";',
-    'import { CustomEase } from "gsap/CustomEase";',
-    '',
-    'gsap.registerPlugin(CustomEase);',
-    ...[...ease.entries].map(([n, e]) => `CustomEase.create(${str(n)}, ${str(e.bezier)}); // ${e.comment}`),
-    '',
-    'const parts = [',
-    ...partLines,
-    '];',
-    '',
-    'const nodesOf = (el, layer) => (layer ? [...el.querySelectorAll(\'[data-motion="\' + layer + \'"]\')] : [el]);',
-    '',
-    `/** Put \`el\` in its default state (${i.initial}) with no animation. */`,
-    `export function setup${base}(el) {`,
-    `  for (const { layer, states } of parts) gsap.set(nodesOf(el, layer), states.${jsKey(i.initial)});`,
-    `  el.dataset.state = ${str(i.initial)};`,
-    '}',
-    '',
-    `/** Move \`el\` to a state (${names.join(', ')}). A move cut short is retargeted from where it is.${many ? ' Returns one tween per part.' : ''} */`,
-    `export function goTo${base}(el, state) {`,
-    '  el.dataset.state = state;',
-    '  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;',
-    '  const tweens = [];',
-    '  for (const { layer, states, transitions } of parts) {',
-    '    const nodes = nodesOf(el, layer);',
-    '    if (reduced) {',
-    fade
-      ? `      // reduced motion: the opacity change still fades (at most ${REDUCED_MOTION_FADE_MS}ms), movement snaps\n      const { opacity, ...movement } = states[state];\n      gsap.set(nodes, movement);\n      if (opacity !== undefined) tweens.push(gsap.to(nodes, { opacity, duration: Math.min(transitions[state].duration, ${seconds(REDUCED_MOTION_FADE_MS)}), ease: transitions[state].ease, overwrite: "auto" }));`
-      : '      // reduced motion: no animation, the element goes straight to the state\n      gsap.set(nodes, states[state]);',
-    '    } else {',
-    '      tweens.push(gsap.to(nodes, { ...states[state], ...transitions[state], overwrite: "auto" }));',
-    '    }',
-    '  }',
-    many ? '  return tweens;' : '  return tweens[0];',
-    '}',
-    '',
-    ...attachLines(version, base, raw),
-  ];
-  return out.join('\n');
-}
-
 // An interaction version as Motion: every transition a spring. Motion's time-defined springs (a duration
 // and a bounce) retarget from the current value but do not inherit the speed of the move they cut short.
 function buildMotionInteraction(version: MotionVersion, raw: Record<string, unknown>, component: string, globalBounce: string): string {
@@ -386,52 +220,6 @@ const tokensOf = (name: string): string => {
   const p = presetOf(name);
   return [p.rise, p.scale, p.move.duration, p.move.easing, ...(p.fade ? [p.fade.duration, p.fade.easing] : [])].filter(Boolean).join(', ');
 };
-
-// presets.gsap.js: every preset as data, and playPreset(target, name, { delay, stagger }). GSAP has no springs, so
-// the fade and the move are tweens with the preset's easing. A preset with no fade timing fades with the move's.
-export function buildPresetsGsap(raw: Record<string, unknown>): string {
-  const ease = new EaseRegistry(raw);
-  const timing = (m: { duration: string; easing: string }): string => `{ duration: ${seconds(parseMs(m.duration, raw))}, ease: ${str(ease.nameOf(m.easing))} }`;
-  const rows = PRESET_NAMES.map(name => {
-    const tracks = presetTracks(name);
-    const move = tracks.find(t => t.track !== 'fade')!;
-    const fade = tracks.find(t => t.track === 'fade');
-    const p = presetOf(name);
-    return `  ${name}: { rise: ${num(px(raw, p.rise))}, ${p.scale ? `scale: ${num(Number(raw[p.scale]))}, ` : ''}move: ${timing(move.model)}${fade ? `, fade: ${timing(fade.model)}` : ''} }, // ${tokensOf(name)}`;
-  });
-  return [
-    '// Entrance presets: named, standard entrances (see the Presets view in Motion Lab). Shared by every component that uses one.',
-    '// Generated by Motion Lab from the same tokens as presets.css. GSAP has no springs, so this is easing only.',
-    '',
-    'import { gsap } from "gsap";',
-    'import { CustomEase } from "gsap/CustomEase";',
-    '',
-    'gsap.registerPlugin(CustomEase);',
-    ...[...ease.entries].map(([n, e]) => `CustomEase.create(${str(n)}, ${str(e.bezier)}); // ${e.comment}`),
-    '',
-    'const presets = {',
-    ...rows,
-    '};',
-    '',
-    '/**',
-    ' * Play a preset on `target` (an element, or several). `delay` is when it starts and `stagger` the gap between',
-    ' * several elements, both in seconds. Returns the timeline.',
-    ' */',
-    'export function playPreset(target, name, { delay = 0, stagger = 0 } = {}) {',
-    '  const p = presets[name];',
-    '  const tl = gsap.timeline();',
-    '  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;',
-    '  const fade = p.fade ?? p.move;',
-    '  // reduced motion: only the opacity fade, at most 150ms; no movement',
-    '  tl.fromTo(target, { opacity: 0 }, { opacity: 1, duration: reduced ? Math.min(fade.duration, 0.15) : fade.duration, ease: fade.ease, stagger }, delay);',
-    '  if (!reduced) {',
-    '    tl.fromTo(target, p.scale ? { y: p.rise, scale: p.scale } : { y: p.rise }, { y: 0, ...(p.scale ? { scale: 1 } : {}), duration: p.move.duration, ease: p.move.ease, stagger }, delay);',
-    '  }',
-    '  return tl;',
-    '}',
-    '',
-  ].join('\n');
-}
 
 // presets.motion.js: the same table for Motion: every preset a spring. The fade has no bounce (opacity never
 // overshoots) unless the preset has no fade timing, when it shares the move's; the move uses `bounce`.
@@ -524,80 +312,6 @@ function mergeEntranceAndStates(entrance: string, states: string, version: Motio
   out.splice(first + 1, 0, hint);
   const trimmed = out.join('\n').replace(/\n+$/, '\n');
   return `${trimmed}\n// ── States ─────────────────────────────────────────────────────────────────\n\n${body.join('\n')}`;
-}
-
-// The version as GSAP code: a timeline of the root and each layer, easing only.
-export function buildGsapCode(version: MotionVersion, raw: Record<string, unknown>, options: ExportCodeOptions = {}): string {
-  const code = gsapCode(version, raw, { ...options, includePresets: false });
-  if (!options.includePresets || presetsUsed(stepsOf(version)).length === 0) return code;
-  return withSharedPresets(code, buildPresetsGsap(raw), /^import \{ playPreset \}/);
-}
-
-function gsapCode(version: MotionVersion, raw: Record<string, unknown>, options: ExportCodeOptions): string {
-  const { component = 'component' } = options;
-  if (version.interaction) {
-    const states = buildGsapInteraction(version, raw, component);
-    if (!hasEntrance(version)) return states;
-    const { interaction: _i, ...entranceOnly } = version;
-    return mergeEntranceAndStates(gsapCode(entranceOnly, raw, options), states, version, raw, 'gsap', component);
-  }
-  const fn = `play${pascal(component)}${pascal(version.id)}`;
-  const steps = stepsOf(version);
-  const ease = new EaseRegistry(raw);
-  const notes: string[] = [];
-  const staggerMs = version.stagger ? parseMs(version.stagger, raw) : 0;
-  const reducedPolicy = getReducedMotionPolicy(version);
-
-  const presetLines = presetCallLines(steps, raw, 'gsap', Boolean(version.stagger));
-  const hasPlain = steps.some(e => !e.preset);
-  const body: string[] = [];
-  const reduced: string[] = [];
-  steps.filter(e => !e.preset).forEach(({ name, version: step }) => {
-    const target = name ? `el.querySelectorAll(${str(`[data-motion="${name}"]`)})` : 'el';
-    const position = seconds(parseMs(step.model.delay, raw));
-    body.push(...gsapStep(step, raw, ease, target, position, notes));
-    const rp = playbackOf(step, raw, { reducedMotion: true });
-    if (rp.keyframes.some(k => 'opacity' in k)) {
-      const first = rp.keyframes[0]!.opacity;
-      const last = rp.keyframes[rp.keyframes.length - 1]!.opacity;
-      reduced.push(`    tl.fromTo(${target}, { opacity: ${first} }, { opacity: ${last}, duration: ${seconds(Math.min(rp.pairedMs, REDUCED_MOTION_FADE_MS))}, ease: ${str(ease.nameOf(step.model.easing))} }, ${position});`);
-    }
-  });
-
-  const out: string[] = [
-    ...header(version, component, 'GSAP has no springs, so this is easing only.'),
-    tokenComment(version, raw, 'gsap'),
-    '',
-    'import { gsap } from "gsap";',
-    'import { CustomEase } from "gsap/CustomEase";',
-    '',
-    ...(presetLines.length ? [`import { playPreset } from "${options.presetsPath ?? './'}presets.gsap.js";`] : []),
-    '',
-    'gsap.registerPlugin(CustomEase);',
-    ...[...ease.entries].map(([n, e]) => `CustomEase.create(${str(n)}, ${str(e.bezier)}); // ${e.comment}`),
-    '',
-    `/** Play on \`el\`, the element marked data-motion-target.${version.stagger ? ' `index` staggers siblings: 0, 1, 2…' : ''} Returns the timeline. */`,
-    `export function ${fn}(el, { index = 0 } = {}) {`,
-    ...(version.stagger ? [`  const stagger = ${seconds(staggerMs)}; // ${version.stagger in raw ? version.stagger : 'hard-coded, not a token'}`] : []),
-    `  const tl = gsap.timeline(${version.stagger ? '{ delay: index * stagger }' : ''});`,
-    '',
-    ...(presetLines.length ? ['  // Presets (presets.gsap.js): they play only the opacity fade under reduced motion.', ...presetLines, ''] : []),
-    ...(hasPlain ? [
-      '  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {',
-      reducedPolicy === 'none' || reduced.length === 0
-        ? '    return tl; // reduced motion: no animation, the element shows its end state'
-        : `    // reduced motion: an opacity fade of at most ${REDUCED_MOTION_FADE_MS}ms, no movement\n${reduced.join('\n')}\n    return tl;`,
-      '  }',
-      '',
-      ...body,
-      '',
-    ] : []),
-    '  return tl;',
-    '}',
-    ...notes,
-    '',
-  ];
-  return out.join('\n');
 }
 
 // ── Motion ─────────────────────────────────────────────────────────────────

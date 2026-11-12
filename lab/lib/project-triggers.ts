@@ -55,10 +55,9 @@ export interface ProjectTrigger {
   describe(settings: CustomTrigger): TriggerDescription;
   exportSettings?(settings: CustomTrigger, raw: Record<string, unknown>): CustomTrigger;
   /**
-   * The trigger as plain JavaScript lines, placed inside the exported `attach…(el)` function (GSAP and Motion share them). In scope: `t` (the trigger's
-   * settings as written by exportSettings), `el`, `base` (assignable: the base state), `settle()` (go to where the component should be now), `on(node, type, fn)`
-   * (add a listener that is removed when attach's result is called), `off` (an array of functions to run on removal: push your own) and `afterMove`
-   * (an array of functions called after every move: push one to run on each state change). Without it the code says the trigger needs wiring by hand.
+   * The trigger as plain JavaScript lines for the GSAP and Motion files, written the way a developer would write it by hand. In scope: `t` (the trigger's
+   * settings as written by exportSettings), `el` (the component), `show(state)` (go to a state), `afterShow` (an array: push a function to run after every
+   * move, so a timer can start again) and the state it is in now, `el.dataset.state`. Without it the code says the trigger needs wiring by hand.
    */
   exportCode?(settings: CustomTrigger): string[];
 }
