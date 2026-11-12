@@ -7,6 +7,8 @@ import { PAIR_PICTURE_OF, pictureStates } from '../pictures.js';
 // arrangement is the opposite of the one before, column for column (see layouts-pairs.ts). The colour cards go round: each time the bento changes every card is presented
 // one column to the right (there are four colours, orange the primary accent, yellow, green and indigo, so it is the first arrangement again after four). The pictures change
 // each time. The shuffle button, the arrows and the timer step through them.
+// the fade of a card's title and arrow is about twice as fast as the height change (400ms): the nearest duration token to 200ms
+const FADE = { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-standard' };
 const MOVE = { model: 'tween' as const, duration: 'duration.400', easing: 'easing.expressive-standard' };
 // The intro: the three colour cards alone ('cards': no pictures yet), then the pictures open (the first move, to the first arrangement), the middle one above its
 // card, which it pushes down. 'cards' is not part of the shuffle.
@@ -28,8 +30,8 @@ for (const id of CELLS) {
 // a colour card's title and arrow fade out as it collapses and in as it appears (a card is shown where its height is more than nothing)
 for (const id of CELLS.filter(isColour)) {
   const shown = each(s => ({ opacity: sizeOf(layoutOf(s), id).height === '0%' ? 0 : 1 }));
-  layers[`title-${id}`] = { states: shown, transitions: each(() => MOVE) };
-  layers[`arrow-${id}`] = { states: shown, transitions: each(() => MOVE) };
+  layers[`title-${id}`] = { states: shown, transitions: each(() => FADE) };
+  layers[`arrow-${id}`] = { states: shown, transitions: each(() => FADE) };
 }
 // the pictures: each arrangement shows its own (pictures.ts), so the pictures change each time the bento does
 for (const [name, states] of Object.entries(pictureStates(ALL, PAIR_PICTURE_OF, PAIR_ORDER[0]))) layers[name] = { states, transitions: each(() => MOVE) };
