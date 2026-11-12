@@ -9,7 +9,7 @@
 }
 .card-routing-shuffle__grid { display: flex; gap: 8px; width: 100%; aspect-ratio: 1072 / 712; }   /* the proportions of the design: 1072 x 712 */
 .card-routing-shuffle__col { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; container-type: size; }   /* the columns share the width and are as tall as the grid; cell heights are shares of this */
-.card-routing-shuffle__cell { position: relative; flex: none; height: 232px; margin-bottom: 8px; overflow: hidden; border-radius: var(--size-24); box-sizing: border-box; background: #e0e0de; }
+.card-routing-shuffle__cell { position: relative; flex: none; height: 232px; margin-bottom: 8px; overflow: hidden; border-radius: var(--size-24); box-sizing: border-box; background: var(--background-inverse); }
 .card-routing-shuffle__cell--yellow, .card-routing-shuffle__cell--indigo, .card-routing-shuffle__cell--green {
   cursor: pointer;
 }
