@@ -99,7 +99,7 @@ test.describe('Component status and lineage', () => {
 
   test('generated CSS is named, token-based and carries a reduced-motion block', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
-    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+    await page.locator('#view-code-btn').click();
     const css = page.locator('#css-pre');
     await expect(css).toContainText('@keyframes motion-card-v1');
     await expect(css).toContainText('var(--motion-duration-200, 200ms)');
@@ -126,18 +126,18 @@ test.describe('Sidebar accordions', () => {
   const accordions = (page: import('@playwright/test').Page) => page.locator('.lab-sidebar > details.lab-accordion');
   const summary = (page: import('@playwright/test').Page, title: string) => page.locator('.lab-sidebar > details > summary', { hasText: title });
 
-  test('the panels are accordions, in the order Version, Details, Version history, Generated code', async ({ page }) => {
-    await expect(accordions(page).locator('> summary')).toHaveText(['Version', 'Details', 'Version history', 'Generated code']);
+  test('the panels are accordions, in the order Version, Details, Version history', async ({ page }) => {
+    await expect(accordions(page).locator('> summary')).toHaveText(['Version', 'Details', 'Version history']);
   });
 
-  test('only Version is open by default; Details, Version history and Generated code are closed', async ({ page }) => {
+  test('only Version is open by default; Details and Version history are closed', async ({ page }) => {
     await expect(accordions(page).nth(0)).toHaveAttribute('open', '');
-    for (const i of [1, 2, 3]) await expect(accordions(page).nth(i)).not.toHaveAttribute('open', '');
+    for (const i of [1, 2]) await expect(accordions(page).nth(i)).not.toHaveAttribute('open', '');
     await expect(page.locator('#version-tabs')).toBeVisible();
     await expect(page.locator('#version-spec-meta')).toBeHidden();
     await expect(page.locator('#tokens-used-list')).toBeHidden();
     await expect(page.locator('#version-history')).toBeHidden();
-    await expect(page.locator('#css-pre')).toBeHidden();
+    await expect(page.locator('#css-pre')).toBeHidden();   // the code is in a dialog, shut until View code
   });
 
   test('clicking a title opens and closes its panel', async ({ page }) => {
@@ -147,9 +147,11 @@ test.describe('Sidebar accordions', () => {
     await summary(page, 'Version history').click();
     await expect(page.locator('#version-history')).toBeHidden();
 
-    await summary(page, 'Generated code').click();
+    await page.locator('#view-code-btn').click();
     await expect(page.locator('#css-pre')).toBeVisible();
     await expect(page.locator('#css-pre')).toContainText('@keyframes motion-card-v1');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#css-pre')).toBeHidden();
 
     await summary(page, 'Details').click();
     await expect(page.locator('#tokens-used-list')).toBeVisible();
@@ -170,15 +172,14 @@ test.describe('Sidebar accordions', () => {
   });
 
   test('the title can be opened from the keyboard', async ({ page }) => {
-    await summary(page, 'Generated code').focus();
+    await page.locator('#view-code-btn').focus();
     await page.keyboard.press('Enter');
     await expect(page.locator('#css-pre')).toBeVisible();
   });
 
   test('the Compare with panel is switched off (SHOW_COMPARE in lab/main.ts): built but hidden, after the accordions', async ({ page }) => {
-    await expect(page.locator('.lab-sidebar > details')).toHaveCount(4);
-    await expect(page.locator('.lab-sidebar > section')).toHaveCount(1);
-    await expect(page.locator('.lab-sidebar > section')).toBeHidden();
+    await expect(page.locator('.lab-sidebar > details')).toHaveCount(3);
+    await expect(page.locator('.lab-sidebar > section[aria-label="Compare"]')).toBeHidden();
     await expect(page.locator('#compare-select')).toBeHidden();
     const last = await page.locator('.lab-sidebar > *').last().evaluate(el => el.tagName);
     expect(last).toBe('SECTION');
@@ -336,10 +337,10 @@ test.describe('Runtime (CSS / Motion)', () => {
 
   test('exports are as authored whatever the runtime: the CSS is the same', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v1');
-    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+    await page.locator('#view-code-btn').click();
     const before = await page.locator('#css-pre').textContent();
     await page.goto('/?view=component&component=card&version=v1&runtime=motion');
-    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+    await page.locator('#view-code-btn').click();
     expect(await page.locator('#css-pre').textContent()).toBe(before);
   });
 
@@ -359,7 +360,7 @@ test.describe('Runtime (CSS / Motion)', () => {
 test.describe('Export format', () => {
   const open = async (page: import('@playwright/test').Page, url: string) => {
     await page.goto(url);
-    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+    await page.locator('#view-code-btn').click();
   };
 
   test('defaults to CSS and offers GSAP and Motion', async ({ page }) => {
@@ -374,9 +375,9 @@ test.describe('Export format', () => {
     await open(page, '/?view=component&component=card&version=v1');
     await page.selectOption('#export-format', 'gsap');
     const pre = page.locator('#css-pre');
-    await expect(pre).toContainText('import { gsap } from "gsap";');
-    await expect(pre).toContainText('export function playCardV1(el, { index = 0 } = {})');
-    await expect(pre).toContainText('CustomEase.create("productive-entrance", "0, 0, 0.38, 0.9"); // easing.productive-entrance');
+    await expect(pre).toContainText('gsap.registerPlugin(CustomEase);');
+    await expect(pre).toContainText('const el = document.querySelector(".card");');
+    await expect(pre).toContainText('CustomEase.create("productive-entrance", "0,0,0.38,0.9");');
     await expect(pre).toContainText('duration: 0.2, ease: "productive-entrance"');
     await expect(page.locator('#copy-css-btn')).toHaveText('Copy GSAP');
   });
@@ -405,8 +406,9 @@ test.describe('Export format', () => {
     await expect(page.locator('#css-pre')).toContainText('global bounce setting (bounce.0)');
     await page.selectOption('#export-format', 'gsap');
     const underMotion = await page.locator('#css-pre').textContent();
+    await page.keyboard.press('Escape');
     await setRuntime(page, 'css');
-    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+    await page.locator('#view-code-btn').click();
     await page.selectOption('#export-format', 'gsap');
     expect(await page.locator('#css-pre').textContent()).toBe(underMotion);
   });

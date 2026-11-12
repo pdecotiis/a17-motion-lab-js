@@ -160,12 +160,12 @@ test.describe('Interactions: tokens and exports', () => {
 
   test('the code panel gives CSS transitions, and GSAP and Motion functions that go to a state', async ({ page }) => {
     await page.goto(url('css'));
-    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+    await page.locator('#view-code-btn').click();
     const pre = page.locator('#css-pre');
     await expect(pre).toContainText('.motion-side-panel-v2[data-state="open"]');
     await expect(pre).toContainText('transition-duration: var(--motion-duration-700, 700ms);');
     await page.selectOption('#export-format', 'gsap');
-    await expect(pre).toContainText('export function goToSidePanelV2(el, state)');
+    await expect(pre).toContainText('function show(state) {');
     await expect(pre).toContainText('overwrite: "auto"');
     await page.selectOption('#export-format', 'motion');
     await expect(pre).toContainText('type: "spring", visualDuration: 0.7, bounce: 0.5');
@@ -293,8 +293,9 @@ test.describe('Interactions: the (switched off) plain-language summary', () => {
 test.describe('Interactions: the exported CSS works on its own', () => {
   test('hover and press on a plain element lift it and scale it, after its entrance', async ({ page }) => {
     await page.goto('/?view=component&component=card&version=v2');
-    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+    await page.locator('#view-code-btn').click();
     const cssText = await page.locator('#css-pre').innerText();
+    await page.keyboard.press('Escape');
     await page.evaluate(css => {
       const style = document.createElement('style');
       style.textContent = css.replace(/transition-duration: [^;]+;/g, 'transition-duration: 1ms;').replace(/animation-duration: [^;]+;/g, 'animation-duration: 1ms;');

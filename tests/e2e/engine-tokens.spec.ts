@@ -81,7 +81,7 @@ test.describe('Tokens used', () => {
 
   test('the generated CSS for a spring has no linear() curve: CSS plays its easing', async ({ page }) => {
     await page.goto('/?view=component&component=side-panel&version=v1');
-    await page.locator('.lab-sidebar > details > summary', { hasText: 'Generated code' }).click();
+    await page.locator('#view-code-btn').click();
     const css = page.locator('#css-pre');
     await expect(css).toContainText('/* authored as a spring of easing.expressive-entrance; CSS plays its easing, only a spring runtime (Motion) bounces */');
     await expect(css).toContainText('animation-timing-function: var(--motion-easing-expressive-entrance');
