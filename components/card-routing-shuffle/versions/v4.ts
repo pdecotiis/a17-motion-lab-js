@@ -1,5 +1,5 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
-import { CELLS, COLUMNS, sizeOf } from '../layouts.js';
+import { CELLS, COLUMNS, isColour, sizeOf } from '../layouts.js';
 import { PAIR_LAYOUTS, PAIR_ORDER } from '../layouts-pairs.js';
 import { PAIR_PICTURE_OF, pictureStates } from '../pictures.js';
 
@@ -24,6 +24,12 @@ const delayOf = (id: string): string => COLUMN_DELAY[COLUMNS.findIndex(c => c.in
 const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> = {};
 for (const id of CELLS) {
   layers[id] = { states: each(s => sizeOf(layoutOf(s), id)), transitions: each(s => (s === PAIR_ORDER[0] && delayOf(id) ? { ...MOVE, delay: delayOf(id) } : MOVE)) };
+}
+// a colour card's title and arrow fade out as it collapses and in as it appears (a card is shown where its height is more than nothing)
+for (const id of CELLS.filter(isColour)) {
+  const shown = each(s => ({ opacity: sizeOf(layoutOf(s), id).height === '0%' ? 0 : 1 }));
+  layers[`title-${id}`] = { states: shown, transitions: each(() => MOVE) };
+  layers[`arrow-${id}`] = { states: shown, transitions: each(() => MOVE) };
 }
 // the pictures: each arrangement shows its own (pictures.ts), so the pictures change each time the bento does
 for (const [name, states] of Object.entries(pictureStates(ALL, PAIR_PICTURE_OF, PAIR_ORDER[0]))) layers[name] = { states, transitions: each(() => MOVE) };
