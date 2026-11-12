@@ -1,0 +1,56 @@
+import type { MotionVersion } from '../../../lab/lib/types.js';
+import { CELLS, COLUMNS, sizeOf } from '../layouts.js';
+import { PAIR_LAYOUTS, PAIR_ORDER } from '../layouts-pairs.js';
+import { PAIR_PICTURE_OF, pictureStates } from '../pictures.js';
+
+// v4: v1's opening and controls, with arrangements that are always the same shape: every column is a small cell and a big (two rows) one, and the next arrangement is
+// the opposite of the one before, column for column (see layouts-pairs.ts). The page's arrangement is first: small on top, big on top, small on top; then big on top, small
+// on top, big on top; and so on, with the pictures changing each time. The shuffle button, the arrows and the timer step through them.
+const MOVE = { model: 'tween' as const, duration: 'duration.400', easing: 'easing.expressive-standard' };
+// The intro: the three colour cards alone ('cards': no pictures yet), then the pictures open (the first move, to the first arrangement), the middle one above its
+// card, which it pushes down. 'cards' is not part of the shuffle.
+const INTRO = 'cards';
+const CARDS_ONLY = { y0: 1, i1: 1, g2: 1 };
+const ALL = [INTRO, ...PAIR_ORDER];
+const each = <T>(f: (s: string) => T): Record<string, T> => Object.fromEntries(ALL.map(s => [s, f(s)]));
+const layoutOf = (s: string) => (s === INTRO ? CARDS_ONLY : PAIR_LAYOUTS[s]!);
+// the columns open one after another, each a beat after the one before (into the first arrangement). Every cell of a column takes the column's delay, not just
+// its picture, so a column's cells stay in step with each other (a picture that waited while its neighbour already collapsed would make the card between
+// them jump) and the same holds when the shuffle comes back round to the first arrangement.
+const COLUMN_DELAY = ['', 'delay.40', 'delay.70'];
+const delayOf = (id: string): string => COLUMN_DELAY[COLUMNS.findIndex(c => c.includes(id))]!;
+
+const layers: NonNullable<NonNullable<MotionVersion['interaction']>['layers']> = {};
+for (const id of CELLS) {
+  layers[id] = { states: each(s => sizeOf(layoutOf(s), id)), transitions: each(s => (s === PAIR_ORDER[0] && delayOf(id) ? { ...MOVE, delay: delayOf(id) } : MOVE)) };
+}
+// the pictures: each arrangement shows its own (pictures.ts), so the pictures change each time the bento does
+for (const [name, states] of Object.entries(pictureStates(ALL, PAIR_PICTURE_OF, PAIR_ORDER[0]))) layers[name] = { states, transitions: each(() => MOVE) };
+
+export const v4: MotionVersion = {
+  id: 'v4',
+  label: 'Shuffle: a small and a big in every column, then the opposite',
+  // the grid fades in quickly and the three colour cards rise in with the card preset, then the pictures open (the interaction's first move)
+  model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-entrance' },
+  keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
+  layers: { y0: { preset: 'card' }, i1: { preset: 'card', delay: 'delay.70' }, g2: { preset: 'card', delay: 'delay.120' } },
+  interaction: {
+    initial: INTRO,
+    hold: 'duration.300', // the cards are seen for a quick beat before the pictures open
+    states: each(() => ({})),
+    transitions: each(() => MOVE),
+    layers,
+    triggers: [
+      // the pagination arrows under the bento: next goes to the next arrangement, previous to the one before (the same list the other way round)
+      { on: 'click', toggle: PAIR_ORDER as [string, string, ...string[]], target: 'next' },
+      { on: 'click', toggle: [...PAIR_ORDER].reverse() as [string, string, ...string[]], target: 'prev' },
+      { on: 'click', toggle: PAIR_ORDER as [string, string, ...string[]], target: 'shuffle' },
+      // and by itself: five seconds after the last change (the ring on the button fills over the same five seconds: keep them equal)
+      { on: 'interval', every: '5000ms', toggle: PAIR_ORDER as [string, string, ...string[]] },
+    ],
+  },
+  elements: { shuffle: 'button', y0: 'card', i0: 'card', g1: 'card', i1: 'card', g2: 'card', y2: 'card' },
+  forkedFrom: 'v1',
+};
+
+export default v4;
