@@ -126,13 +126,13 @@ test.describe('Sidebar accordions', () => {
   const accordions = (page: import('@playwright/test').Page) => page.locator('.lab-sidebar > details.lab-accordion');
   const summary = (page: import('@playwright/test').Page, title: string) => page.locator('.lab-sidebar > details > summary', { hasText: title });
 
-  test('the panels are accordions, in the order Version, Details, Version history', async ({ page }) => {
-    await expect(accordions(page).locator('> summary')).toHaveText(['Version', 'Details', 'Version history']);
+  test('the panels are accordions, in the order Version, Details, Version history, Archive', async ({ page }) => {
+    await expect(accordions(page).locator('> summary')).toHaveText(['Version', 'Details', 'Version history', 'Archive']);
   });
 
   test('only Version is open by default; Details and Version history are closed', async ({ page }) => {
     await expect(accordions(page).nth(0)).toHaveAttribute('open', '');
-    for (const i of [1, 2]) await expect(accordions(page).nth(i)).not.toHaveAttribute('open', '');
+    for (const i of [1, 2, 3]) await expect(accordions(page).nth(i)).not.toHaveAttribute('open', '');
     await expect(page.locator('#version-tabs')).toBeVisible();
     await expect(page.locator('#version-spec-meta')).toBeHidden();
     await expect(page.locator('#tokens-used-list')).toBeHidden();
@@ -178,7 +178,7 @@ test.describe('Sidebar accordions', () => {
   });
 
   test('the Compare with panel is switched off (SHOW_COMPARE in lab/main.ts): built but hidden, after the accordions', async ({ page }) => {
-    await expect(page.locator('.lab-sidebar > details')).toHaveCount(3);
+    await expect(page.locator('.lab-sidebar > details')).toHaveCount(4);
     await expect(page.locator('.lab-sidebar > section[aria-label="Compare"]')).toBeHidden();
     await expect(page.locator('#compare-select')).toBeHidden();
     const last = await page.locator('.lab-sidebar > *').last().evaluate(el => el.tagName);

@@ -3,6 +3,8 @@ import { test, expect, type Page } from '@playwright/test';
 // Archive for a whole component, a whole page and a page's versions (lab/lib/archived.ts, scripts/archive-save.ts). The dev server's endpoint is
 // answered by the test, so a real archived.json is never written. Runs on the lab's defaults, so it works in a project too.
 const ENDPOINT = '**/__lab/archive';
+// The Archive panel is an accordion, closed by default.
+const openArchive = (page: Page) => page.locator('#archive-panel > summary').click();
 
 async function mock(page: Page, posts: Record<string, unknown>[]): Promise<void> {
   const versions = new Set<string>();
@@ -21,6 +23,7 @@ test.describe('archiving a whole component', () => {
     const posts: Record<string, unknown>[] = [];
     await mock(page, posts);
     await page.goto('/?view=component');
+    await openArchive(page);
     const btn = page.locator('#archive-component-btn');
     await expect(btn).toHaveText('Archive');
     await btn.click();
@@ -35,6 +38,7 @@ test.describe('archiving a whole component', () => {
     await mock(page, []);
     await page.goto('/?view=component');
     const name = new URL(page.url()).searchParams.get('component') ?? (await page.locator('#breadcrumb-current').textContent())!;
+    await openArchive(page);
     await page.locator('#archive-component-btn').click();
     await expect(page.locator('#archive-component-btn')).toHaveText('Unarchive');
     await page.locator('#breadcrumb-library').click();
@@ -45,6 +49,7 @@ test.describe('archiving a whole component', () => {
   test('a built copy has no endpoint: the button is off', async ({ page }) => {
     await page.route(ENDPOINT, route => route.fulfill({ status: 404, body: 'Not found' }));
     await page.goto('/?view=component');
+    await openArchive(page);
     await expect(page.locator('#archive-component-btn')).toBeDisabled();
   });
 });
@@ -55,10 +60,11 @@ test.describe('archiving a whole page', () => {
     await mock(page, posts);
     await page.goto('/?view=page');
     const id = new URL(page.url()).searchParams.get('page') ?? (await page.evaluate(() => document.querySelector('#breadcrumb-pages')?.textContent ?? ''));
+    await openArchive(page);
     await page.locator('#archive-page-btn').click();
     await expect(page.locator('.lab-toast')).toContainText('Page archived');
     expect(posts[0]).toMatchObject({ kind: 'page', archived: true });
-    await expect(page.locator('#archive-page-btn')).toHaveText('Unarchive');
+    await expect(page.locator('#archive-page-btn')).toHaveText('Unarchive page');
     await page.locator('#breadcrumb-pages').click();
     await expect(page.locator('.lab-library-card[data-page]')).toHaveCount(0);
     await page.locator('#show-archived').check();
@@ -69,6 +75,7 @@ test.describe('archiving a whole page', () => {
   test('a built copy has no endpoint: the button is off', async ({ page }) => {
     await page.route(ENDPOINT, route => route.fulfill({ status: 404, body: 'Not found' }));
     await page.goto('/?view=page');
+    await openArchive(page);
     await expect(page.locator('#archive-page-btn')).toBeDisabled();
   });
 });
@@ -81,6 +88,7 @@ test.describe('archiving page versions', () => {
     const options = page.locator('#page-version-select option');
     const count = await options.count();
     test.skip(count < 2, 'this page has one version');
+    await openArchive(page);
     await page.locator('[data-archive-page-version="v1"]').click();
     await expect(page.locator('.lab-toast')).toContainText('Version archived');
     expect(posts[0]).toMatchObject({ kind: 'page-version', version: 'v1', archived: true });
@@ -99,6 +107,7 @@ test.describe('archiving page versions', () => {
     await page.goto('/?view=page');
     const count = await page.locator('#page-version-select option').count();
     test.skip(count < 2, 'this page has one version');
+    await openArchive(page);
     for (let i = 0; i < count - 1; i++) {
       const id = await page.locator('#page-version-select').inputValue();
       await page.locator(`[data-archive-page-version="${id}"]`).first().click();

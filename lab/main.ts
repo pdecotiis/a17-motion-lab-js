@@ -34,6 +34,7 @@ import { getStepRefs, presetStateTokens, pairingWarnings, buildUsageIndex, build
 import { buildVersionCss } from './lib/css-output.js';
 import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
 import { toast, toastAfterReload, showPendingToast } from './lib/toast.js';
+import { reviewIdsOf, reviewEntries, reviewListText, reviewEntryText } from './lib/review.js';
 import { archivedIdsOf, applyArchived, isArchived, activeVersions, parseArchiveFile, applyComponentArchived, pagePasses, pageVersionsInPlay, nextPageVersion, withArchived } from './lib/archived.js';
 import type { Json } from './lib/scale-apply.js';
 import { defaultStaggerOf, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken, pageHoldMs } from './lib/stagger.js';
@@ -266,6 +267,40 @@ async function setPageVersionArchived(id: string, versionId: string, archived: b
   if (archived && sp.get('compare') === versionId) sp.delete('compare');
   window.history.replaceState(null, '', `?${sp.toString()}`);
   renderPageView(sp);
+}
+// Ready for review: pages/<id>/review.json names the page versions marked (lab/lib/review.ts); the For review list in the Pages library gathers them.
+const reviewMarked = new Map<string, Set<string>>();
+for (const [path, config] of Object.entries(import.meta.glob<unknown>('../pages/*/review.json', { eager: true, import: 'default' }))) {
+  const id = path.split('/')[2];
+  if (id) reviewMarked.set(id, new Set(reviewIdsOf(config)));
+}
+const reviewOf = (page: string): ReadonlySet<string> => reviewMarked.get(page) ?? new Set<string>();
+const REVIEW_ENDPOINT = '/__lab/review';
+const reviewServerReady: Promise<boolean> = fetch(REVIEW_ENDPOINT).then(r => (r.ok ? r.json() : null)).then((i: { available?: boolean } | null) => i?.available === true).catch(() => false);
+function needsReviewServer(btn: HTMLButtonElement): void {
+  void reviewServerReady.then(ready => { if (!ready) { btn.disabled = true; btn.title = 'Marking needs the dev server (npm run dev)'; } });
+}
+// Mark a page version ready for review, or take the mark off: the dev server writes pages/<id>/review.json.
+async function setPageVersionReady(id: string, versionId: string, ready: boolean): Promise<boolean> {
+  try {
+    const res = await fetch(REVIEW_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ page: id, version: versionId, ready }) });
+    const out = (await res.json()) as { marked?: string[]; error?: string };
+    if (!res.ok || !out.marked) throw new Error(out.error ?? `The server said ${res.status}`);
+    reviewMarked.set(id, new Set(out.marked));
+    toast(ready ? 'Marked ready for review' : 'Taken off the review list', { description: `${id} ${versionId}` });
+    return true;
+  } catch (e) {
+    toast(ready ? 'Could not mark it' : 'Could not take it off', { kind: 'error', description: (e as Error).message });
+    return false;
+  }
+}
+// The Archive and Review panels stay open (or shut) as the view is drawn again after an archive or a mark.
+const panelOpen = new Set<string>();
+function keepPanelState(id: string): void {
+  const d = document.getElementById(id) as HTMLDetailsElement | null;
+  if (!d) return;
+  d.open = panelOpen.has(id);
+  d.addEventListener('toggle', () => { if (d.open) panelOpen.add(id); else panelOpen.delete(id); });
 }
 const VERSION_ARCHIVE_ENDPOINT = '/__lab/version-archive';
 // Is there a dev server to write the archived list with? (A built copy has none.)
@@ -1160,11 +1195,16 @@ function renderComponentView(params: URLSearchParams): void {
             <ol class="lab-history" id="version-history"></ol>
           </div>
         </details>
-        <section class="lab-controls lab-code-row" aria-label="Archive component">
-          <h3 class="lab-controls__title">Archive component</h3>
-          <p class="lab-code-row__text" id="archive-component-text"></p>
-          <button class="lab-btn lab-btn--sm" id="archive-component-btn" type="button"></button>
-        </section>
+        <details class="lab-controls lab-accordion" id="archive-panel">
+          <summary class="lab-controls__title">Archive</summary>
+          <div class="lab-accordion__body">
+            <p class="lab-code-row__text" id="archive-component-text"></p>
+            <button class="lab-btn lab-btn--sm" id="archive-component-btn" type="button"></button>
+            <h3 class="lab-details__subtitle">Archived versions</h3>
+            <div class="lab-archive-row" id="archived-versions-row"></div>
+            <p class="lab-text-muted lab-controls__hint" id="archived-versions-none">None. Archive a version from its row in Version.</p>
+          </div>
+        </details>
         <section class="lab-controls lab-code-row" aria-label="Generated code">
           <h3 class="lab-controls__title">Generated code</h3>
           <p class="lab-code-row__text">CSS, GSAP or Motion, written from this version for a developer.</p>
@@ -1193,7 +1233,28 @@ function renderComponentView(params: URLSearchParams): void {
       : 'Hide this component from the Components list. Nothing is deleted.';
     btn.addEventListener('click', () => { btn.disabled = true; void setComponentArchived(componentName, !componentArchived); });
     needsArchiveServer(btn);
+    // The archived versions, each with its Unarchive (a version is archived from its own row in Version).
+    const archivedRow = document.getElementById('archived-versions-row')!;
+    const archivedList = (motionModules[`../components/${componentName}/motion.ts`]?.versions ?? []).filter(isArchived);
+    document.getElementById('archived-versions-none')!.hidden = archivedList.length > 0;
+    for (const v of archivedList) {
+      const item = document.createElement('div');
+      item.className = 'lab-archive-item';
+      const label = document.createElement('span');
+      label.textContent = `${v.id}: ${v.label}`;
+      const undo = document.createElement('button');
+      undo.type = 'button';
+      undo.className = 'lab-version-archive';
+      undo.dataset['unarchiveVersion'] = v.id;
+      undo.textContent = 'Unarchive';
+      undo.setAttribute('aria-label', `Unarchive ${v.id}`);
+      undo.addEventListener('click', () => { undo.disabled = true; void setVersionArchived(componentName, v.id, false); });
+      void archiveServerReady.then(ready => { if (!ready) { undo.disabled = true; undo.title = 'Archiving needs the dev server (npm run dev)'; } });
+      item.append(label, undo);
+      archivedRow.append(item);
+    }
   }
+  keepPanelState('archive-panel');
   bindPlaybackBar();
 
   // Version tabs
@@ -1556,6 +1617,11 @@ function scrollbarWidth(): number {
   return measuredScrollbar;
 }
 
+// Is the page version a saved file (the implicit Default of a page with none is not, and cannot be marked)?
+function versionIsSaved(pageName: string, id: string): boolean {
+  return Object.keys(pageVersionModules).some(p => p.split('/')[2] === pageName && p.endsWith(`/${id}.json`));
+}
+
 function getPageVersions(pageName: string, page: PageConfig): PageVersion[] {
   const saved: PageVersion[] = [];
   for (const [path, data] of Object.entries(pageVersionModules)) {
@@ -1632,7 +1698,6 @@ function renderPageView(params: URLSearchParams): void {
               ${versions.map(v => `<option value="${v.id}"${archivedIds.has(v.id) ? ' disabled' : ''}>${v.id}: ${v.label}${archivedIds.has(v.id) ? ' (archived)' : ''}</option>`).join('')}
             </select>
           </div>
-          <div class="lab-archive-row" id="page-version-archive-row"></div>
           <div class="lab-control-group">
             <label class="lab-control-label" for="page-compare-select">Compare with</label>
             <select class="lab-select" id="page-compare-select">
@@ -1665,11 +1730,23 @@ function renderPageView(params: URLSearchParams): void {
           <div id="motion-map-panel" class="lab-motion-map-panel"></div>
           <p class="lab-text-muted lab-controls__hint">The page is a fixed-height window: scroll it. A section whose version plays on scroll waits until it enters the window; Replay All scrolls back to the top.</p>
         </section>
-        <section class="lab-controls lab-code-row" aria-label="Archive page">
-          <h3 class="lab-controls__title">Archive page</h3>
-          <p class="lab-code-row__text">${pageIsArchived ? 'Archived: hidden from the Pages list unless Show archived is on.' : 'Hide this page from the Pages list. Nothing is deleted.'}</p>
-          <button class="lab-btn lab-btn--sm" id="archive-page-btn" type="button">${pageIsArchived ? 'Unarchive' : 'Archive'}</button>
-        </section>
+        <details class="lab-controls lab-accordion" id="review-panel">
+          <summary class="lab-controls__title">Review</summary>
+          <div class="lab-accordion__body">
+            <p class="lab-code-row__text" id="review-text"></p>
+            <button class="lab-btn lab-btn--sm" id="review-btn" type="button"></button>
+            <p class="lab-text-muted lab-controls__hint"><a href="?view=pages&review=1" id="review-list-link">See everything marked ready for review</a></p>
+          </div>
+        </details>
+        <details class="lab-controls lab-accordion" id="archive-panel">
+          <summary class="lab-controls__title">Archive</summary>
+          <div class="lab-accordion__body">
+            <p class="lab-code-row__text">${pageIsArchived ? 'This page is archived: hidden from the Pages list unless Show archived is on.' : 'Hide this page from the Pages list. Nothing is deleted.'}</p>
+            <button class="lab-btn lab-btn--sm" id="archive-page-btn" type="button">${pageIsArchived ? 'Unarchive page' : 'Archive page'}</button>
+            <h3 class="lab-details__subtitle">Versions</h3>
+            <div class="lab-archive-row" id="page-version-archive-row"></div>
+          </div>
+        </details>
         <section class="lab-controls" aria-label="Stagger">
           <h3 class="lab-controls__title">Stagger</h3>
           <div class="lab-control-group">
@@ -1968,6 +2045,21 @@ function renderPageView(params: URLSearchParams): void {
     playColumn(primary);
   });
 
+  keepPanelState('archive-panel');
+  keepPanelState('review-panel');
+  // Ready for review: mark the version on screen (a saved one), or take the mark off.
+  {
+    const btn = document.getElementById('review-btn') as HTMLButtonElement;
+    const text = document.getElementById('review-text')!;
+    const saved = versionIsSaved(pageName, active.id);
+    const ready = reviewOf(pageName).has(active.id);
+    text.textContent = !saved ? `${active.id} is not saved yet. Save it first, then mark it.` : ready ? `${active.id} is marked ready for review. It is on the For review list.` : `Mark ${active.id} when it is ready to show the client or the team.`;
+    btn.textContent = ready ? 'Take off review list' : 'Mark ready for review';
+    btn.dataset['ready'] = ready ? 'true' : 'false';
+    btn.disabled = !saved;
+    btn.addEventListener('click', () => { btn.disabled = true; void setPageVersionReady(pageName, active.id, !ready).then(ok => { if (ok) renderPageView(new URLSearchParams(window.location.search)); else btn.disabled = false; }); });
+    if (saved) needsReviewServer(btn);
+  }
   // Archive the version on screen, or bring an archived one back; archived versions stay in the lists, disabled.
   {
     const row = document.getElementById('page-version-archive-row')!;
@@ -1976,7 +2068,7 @@ function renderPageView(params: URLSearchParams): void {
       const wrap = document.createElement('div');
       wrap.className = 'lab-archive-item';
       const label = document.createElement('span');
-      label.textContent = archived ? `${version.id} (archived)` : version.id;
+      label.textContent = archived ? `${version.id} (archived)` : `${version.id} (on screen)`;
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'lab-version-archive';
@@ -2691,6 +2783,66 @@ function renderLibraryView(params: URLSearchParams): void {
 // /?view=pages[&q=…]
 // Every page as a scaled preview of its sections, the way the Components view shows components. A card plays the page's
 // sections on hover or focus and opens the page view.
+const pageIdsAll = (): string[] => Object.keys(pageModules).map(p => /\/pages\/([^/]+)\/page\.json$/.exec(p)?.[1]).filter((n): n is string => Boolean(n)).sort();
+
+// The For review list: every page version marked ready, with its label, a link that opens it in preview mode, Copy link, Take off, and Copy all.
+function renderReviewList(grid: HTMLElement, count: HTMLElement, entries: ReturnType<typeof reviewEntries>): void {
+  count.textContent = `${entries.length} version${entries.length === 1 ? '' : 's'}`;
+  if (entries.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'lab-library__empty';
+    empty.textContent = 'Nothing is marked ready for review yet. Open a page version and use Review in the side panel.';
+    grid.appendChild(empty);
+    return;
+  }
+  const copy = (btn: HTMLButtonElement, text: string): void => {
+    const was = btn.textContent;
+    navigator.clipboard.writeText(text).then(() => { btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = was; }, 1500); }).catch(() => { console.log('Copy:', text); });
+  };
+  const list = document.createElement('div');
+  list.className = 'lab-review-list';
+  const head = document.createElement('div');
+  head.className = 'lab-review-head';
+  const intro = document.createElement('p');
+  intro.textContent = 'Page versions marked ready for review. Each link opens the version on its own, full window.';
+  const all = document.createElement('button');
+  all.type = 'button';
+  all.id = 'review-copy-all';
+  all.className = 'lab-btn';
+  all.textContent = 'Copy all';
+  all.addEventListener('click', () => copy(all, reviewListText(entries)));
+  head.append(intro, all);
+  list.append(head);
+  for (const e of entries) {
+    const row = document.createElement('div');
+    row.className = 'lab-review-row';
+    row.dataset['reviewPage'] = e.page;
+    row.dataset['reviewVersion'] = e.version;
+    const link = document.createElement('a');
+    link.className = 'lab-review-row__name';
+    link.href = e.href;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = `${e.pageTitle} ${e.version}: ${e.label}`;
+    const copyOne = document.createElement('button');
+    copyOne.type = 'button';
+    copyOne.className = 'lab-btn lab-btn--sm';
+    copyOne.dataset['copyReview'] = '';
+    copyOne.textContent = 'Copy link';
+    copyOne.addEventListener('click', () => copy(copyOne, reviewEntryText(e)));
+    const off = document.createElement('button');
+    off.type = 'button';
+    off.className = 'lab-btn lab-btn--sm';
+    off.dataset['unmarkReview'] = '';
+    off.textContent = 'Take off';
+    off.addEventListener('click', () => { off.disabled = true; void setPageVersionReady(e.page, e.version, false).then(ok => { if (ok) renderPagesView(new URLSearchParams(window.location.search)); else off.disabled = false; }); });
+    needsReviewServer(off);
+    row.append(link, copyOne, off);
+    list.append(row);
+  }
+  grid.appendChild(list);
+}
+
 function renderPagesView(params: URLSearchParams): void {
   const main = document.getElementById('main-content')!;
   main.innerHTML = '';
@@ -2721,6 +2873,18 @@ function renderPagesView(params: URLSearchParams): void {
   archivedToggle.checked = params.get('archived') === '1';
   archivedToggleLabel.append(archivedToggle, document.createTextNode(' Show archived'));
   meta.append(count, archivedToggleLabel);
+  // For review: a toggle that shows only when something is marked (or the list is open), so a project with no marks looks as before.
+  const reviewToggle = document.createElement('button');
+  reviewToggle.type = 'button';
+  reviewToggle.id = 'review-toggle';
+  reviewToggle.className = 'lab-btn';
+  reviewToggle.addEventListener('click', () => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('review') === '1') sp.delete('review'); else sp.set('review', '1');
+    window.history.replaceState(null, '', `?${sp.toString()}`);
+    renderGrid();
+  });
+  filters.appendChild(reviewToggle);
   toolbar.append(filters, meta);
   archivedToggle.addEventListener('change', () => {
     const sp = new URLSearchParams(window.location.search);
@@ -2749,6 +2913,18 @@ function renderPagesView(params: URLSearchParams): void {
       for (const e of entries) (e.target as HTMLElement & { refit?: () => void }).refit?.();
     });
     grid.innerHTML = '';
+    const forReview = new URLSearchParams(window.location.search).get('review') === '1';
+    const entries = reviewEntries(
+      pageIdsAll().map(id => ({ id, title: getPageConfig(id)?.title ?? '', archived: archivedPages.has(id), versions: getPageVersions(id, getPageConfig(id)!).map(v => ({ id: v.id, label: v.label })) })),
+      reviewMarked, archivedPageVersionIds, window.location.origin + window.location.pathname,
+    );
+    reviewToggle.hidden = entries.length === 0 && !forReview;
+    reviewToggle.textContent = `For review (${entries.length})`;
+    reviewToggle.setAttribute('aria-pressed', String(forReview));
+    reviewToggle.classList.toggle('lab-btn--on', forReview);
+    archivedToggleLabel.hidden = forReview;
+    search.hidden = forReview;
+    if (forReview) { renderReviewList(grid, count, entries); return; }
     const query = (new URLSearchParams(window.location.search).get('q') ?? '').toLowerCase().replace(/-/g, ' ').trim();
     const ids = Object.keys(pageModules)
       .map(p => /\/pages\/([^/]+)\/page\.json$/.exec(p)?.[1])
@@ -2799,6 +2975,8 @@ function renderPagesView(params: URLSearchParams): void {
       versions.className = 'lab-library-card__versions';
       const savedVersions = getPageVersions(id, config).length;
       versions.textContent = `${config.components.length} section${config.components.length === 1 ? '' : 's'} · ${savedVersions} version${savedVersions === 1 ? '' : 's'}`;
+      const marked = reviewOf(id).size;
+      if (marked > 0) versions.textContent += ` · ${marked} for review`;
       footer.append(name, ...(archivedPages.has(id) ? [statusBadge('archived')] : []), versions);
 
       card.append(preview, footer);
