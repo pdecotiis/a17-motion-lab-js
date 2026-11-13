@@ -93,6 +93,11 @@ export function toastAfterReload(message: string, options: ToastOptions = {}): v
   try { sessionStorage.setItem(PENDING_KEY, JSON.stringify({ message, ...options })); } catch { /* storage can be blocked */ }
 }
 
+/** Forget a toast kept by `toastAfterReload` (the page did not reload after all). */
+export function clearPendingToast(): void {
+  try { sessionStorage.removeItem(PENDING_KEY); } catch { /* storage can be blocked */ }
+}
+
 /** Show the toast kept by `toastAfterReload`, if there is one. */
 export function showPendingToast(): void {
   try {

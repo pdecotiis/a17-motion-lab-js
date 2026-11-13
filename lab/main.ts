@@ -33,7 +33,7 @@ import {
 import { getStepRefs, presetStateTokens, pairingWarnings, buildUsageIndex, buildPageUsageIndex, type UsageIndex, type PageUsageIndex } from './lib/token-refs.js';
 import { buildVersionCss } from './lib/css-output.js';
 import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
-import { toast, toastAfterReload, showPendingToast } from './lib/toast.js';
+import { toast, toastAfterReload, clearPendingToast, showPendingToast } from './lib/toast.js';
 import { reviewIdsOf, reviewEntries, reviewListText, reviewEntryText } from './lib/review.js';
 import { archivedIdsOf, applyArchived, isArchived, activeVersions, parseArchiveFile, applyComponentArchived, pagePasses, pageVersionsInPlay, nextPageVersion, withArchived } from './lib/archived.js';
 import type { Json } from './lib/scale-apply.js';
@@ -287,7 +287,11 @@ async function setPageVersionReady(id: string, versionId: string, ready: boolean
     const out = (await res.json()) as { marked?: string[]; error?: string };
     if (!res.ok || !out.marked) throw new Error(out.error ?? `The server said ${res.status}`);
     reviewMarked.set(id, new Set(out.marked));
-    toast(ready ? 'Marked ready for review' : 'Taken off the review list', { description: `${id} ${versionId}` });
+    // Writing review.json makes the dev server reload the page (the lab reads it with a glob): keep the toast across that, and drop it if nothing reloads.
+    const msg = ready ? 'Marked ready for review' : 'Taken off the review list';
+    toast(msg, { description: `${id} ${versionId}` });
+    toastAfterReload(msg, { description: `${id} ${versionId}` });
+    window.setTimeout(clearPendingToast, 3000);
     return true;
   } catch (e) {
     toast(ready ? 'Could not mark it' : 'Could not take it off', { kind: 'error', description: (e as Error).message });
