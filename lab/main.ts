@@ -2787,6 +2787,38 @@ function renderLibraryView(params: URLSearchParams): void {
 // /?view=pages[&q=…]
 // Every page as a scaled preview of its sections, the way the Components view shows components. A card plays the page's
 // sections on hover or focus and opens the page view.
+type CardPreview = HTMLElement & { refit?: () => void };
+
+// A page laid out at its own width inside a card preview, with the motions to play on hover. With a page version, each slot shows that version's
+// choice (a component version, another component, or nothing); without one, every component's default version.
+function buildPagePreview(config: PageConfig, modules: Record<string, ComponentModule>, version?: PageVersion): { preview: CardPreview; scaler: HTMLElement; targets: { target: HTMLElement; version: MotionVersion }[] } {
+  const pageWidth = config.width ?? PAGE_DEFAULT_WIDTH;
+  const map = version ? resolveMotionMap(version.motionMap, config, modules) : undefined;
+  const preview = document.createElement('div') as CardPreview;
+  preview.className = 'lab-library-card__preview lab-library-card__preview--page';
+  const scaler = document.createElement('div');
+  scaler.className = `lab-library-card__scaler lab-page-grid${config.width ? ' lab-page-grid--flush' : ''}${config.components.some(c => c.layout === 'aside') ? ' lab-page-grid--aside' : ''}`;
+  scaler.style.width = `${pageWidth}px`;
+  const targets: { target: HTMLElement; version: MotionVersion }[] = [];
+  for (const pc of config.components) {
+    let component = pc.component;
+    let versionId: string | undefined;
+    const choice = map ? parseSlotChoice(map[pc.id], pc.component) : { kind: 'default' as const };
+    if (choice.kind === 'none') continue;
+    if (choice.kind === 'version') { component = choice.component; versionId = choice.version; }
+    const wrapper = document.createElement('div');
+    wrapper.className = `lab-page-item lab-page-item--${pc.layout ?? 'full'}`;
+    wrapper.innerHTML = getMarkup(component);
+    scaler.appendChild(wrapper);
+    const target = wrapper.querySelector<HTMLElement>('[data-motion-target]') ?? (wrapper.firstElementChild as HTMLElement | null);
+    if (target && modules[component]) targets.push({ target, version: versionId ? getVersion(component, versionId) : getDefaultVersion(component) });
+  }
+  preview.appendChild(scaler);
+  // The page lays out at its own width and is scaled down to the card, from the top left; the card shows its top.
+  preview.refit = () => { scaler.style.transform = `scale(${preview.clientWidth / pageWidth})`; };
+  return { preview, scaler, targets };
+}
+
 const pageIdsAll = (): string[] => Object.keys(pageModules).map(p => /\/pages\/([^/]+)\/page\.json$/.exec(p)?.[1]).filter((n): n is string => Boolean(n)).sort();
 
 // The For review list: every page version marked ready, with its label, a link that opens it in preview mode, Copy link, Take off, and Copy all.
@@ -2803,31 +2835,56 @@ function renderReviewList(grid: HTMLElement, count: HTMLElement, entries: Return
     const was = btn.textContent;
     navigator.clipboard.writeText(text).then(() => { btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = was; }, 1500); }).catch(() => { console.log('Copy:', text); });
   };
-  const list = document.createElement('div');
-  list.className = 'lab-review-list';
   const head = document.createElement('div');
   head.className = 'lab-review-head';
   const intro = document.createElement('p');
-  intro.textContent = 'Page versions marked ready for review. Each link opens the version on its own, full window.';
+  intro.textContent = 'Page versions marked ready for review. Each card opens the version on its own, full window.';
   const all = document.createElement('button');
   all.type = 'button';
   all.id = 'review-copy-all';
   all.className = 'lab-btn';
-  all.textContent = 'Copy all';
+  all.textContent = 'Copy all links';
   all.addEventListener('click', () => copy(all, reviewListText(entries)));
   head.append(intro, all);
-  list.append(head);
+  grid.appendChild(head);
+  const modules = getComponentModules();
   for (const e of entries) {
-    const row = document.createElement('div');
-    row.className = 'lab-review-row';
-    row.dataset['reviewPage'] = e.page;
-    row.dataset['reviewVersion'] = e.version;
-    const link = document.createElement('a');
-    link.className = 'lab-review-row__name';
-    link.href = e.href;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.textContent = `${e.pageTitle} ${e.version}: ${e.label}`;
+    const config = getPageConfig(e.page)!;
+    const version = getPageVersions(e.page, config).find(v => v.id === e.version);
+    const { preview, targets } = buildPagePreview(config, modules, version);
+    // The card is not a link itself (it holds buttons): its picture and name open the version in preview mode.
+    const card = document.createElement('div');
+    card.className = 'lab-library-card lab-review-card';
+    card.dataset['page'] = e.page;
+    card.dataset['reviewPage'] = e.page;
+    card.dataset['reviewVersion'] = e.version;
+    const open = document.createElement('a');
+    open.className = 'lab-review-card__open';
+    open.href = e.href;
+    open.target = '_blank';
+    open.rel = 'noopener';
+    open.setAttribute('aria-label', `Open ${e.pageTitle} ${e.version} in preview`);
+    open.append(preview);
+    const footer = document.createElement('div');
+    footer.className = 'lab-review-card__footer';
+    const top = document.createElement('div');
+    top.className = 'lab-review-card__top';
+    const name = document.createElement('a');
+    name.className = 'lab-library-card__name';
+    name.href = e.href;
+    name.target = '_blank';
+    name.rel = 'noopener';
+    name.textContent = `${e.pageTitle} ${e.version}`;
+    const badge = document.createElement('span');
+    badge.className = 'lab-status-badge lab-status-badge--review';
+    badge.dataset['status'] = 'review';
+    badge.textContent = 'For review';
+    top.append(name, badge);
+    const label = document.createElement('p');
+    label.className = 'lab-review-card__label';
+    label.textContent = e.label;
+    const actions = document.createElement('div');
+    actions.className = 'lab-review-card__actions';
     const copyOne = document.createElement('button');
     copyOne.type = 'button';
     copyOne.className = 'lab-btn lab-btn--sm';
@@ -2841,10 +2898,14 @@ function renderReviewList(grid: HTMLElement, count: HTMLElement, entries: Return
     off.textContent = 'Take off';
     off.addEventListener('click', () => { off.disabled = true; void setPageVersionReady(e.page, e.version, false).then(ok => { if (ok) renderPagesView(new URLSearchParams(window.location.search)); else off.disabled = false; }); });
     needsReviewServer(off);
-    row.append(link, copyOne, off);
-    list.append(row);
+    actions.append(copyOne, off);
+    footer.append(top, label, actions);
+    card.append(open, footer);
+    grid.appendChild(card);
+    libraryObserver?.observe(preview);
+    const play = (): void => targets.forEach(({ target, version: v }, i) => { animateElement(target, v, i); });
+    card.addEventListener('pointerenter', play);
   }
-  grid.appendChild(list);
 }
 
 function renderPagesView(params: URLSearchParams): void {
@@ -2947,28 +3008,12 @@ function renderPagesView(params: URLSearchParams): void {
     const modules = getComponentModules();
     for (const id of ids) {
       const config = getPageConfig(id)!;
-      const pageWidth = config.width ?? PAGE_DEFAULT_WIDTH;
-
       const card = document.createElement('a');
       card.className = 'lab-library-card';
       card.href = `?view=page&page=${id}`;
       card.dataset['page'] = id;
 
-      const preview = document.createElement('div') as HTMLElement & { refit?: () => void };
-      preview.className = 'lab-library-card__preview lab-library-card__preview--page';
-      const scaler = document.createElement('div');
-      scaler.className = `lab-library-card__scaler lab-page-grid${config.width ? ' lab-page-grid--flush' : ''}${config.components.some(c => c.layout === 'aside') ? ' lab-page-grid--aside' : ''}`;
-      scaler.style.width = `${pageWidth}px`;
-      const targets: { target: HTMLElement; version: MotionVersion }[] = [];
-      for (const pc of config.components) {
-        const wrapper = document.createElement('div');
-        wrapper.className = `lab-page-item lab-page-item--${pc.layout ?? 'full'}`;
-        wrapper.innerHTML = getMarkup(pc.component);
-        scaler.appendChild(wrapper);
-        const target = wrapper.querySelector<HTMLElement>('[data-motion-target]') ?? (wrapper.firstElementChild as HTMLElement | null);
-        if (target && modules[pc.component]) targets.push({ target, version: getDefaultVersion(pc.component) });
-      }
-      preview.appendChild(scaler);
+      const { preview, scaler, targets } = buildPagePreview(config, modules);
 
       const footer = document.createElement('div');
       footer.className = 'lab-library-card__footer';
@@ -2986,8 +3031,6 @@ function renderPagesView(params: URLSearchParams): void {
       card.append(preview, footer);
       grid.appendChild(card);
 
-      // The page lays out at its own width and is scaled down to the card, from the top left; the card shows its top.
-      preview.refit = () => { scaler.style.transform = `scale(${preview.clientWidth / pageWidth})`; };
       libraryObserver.observe(preview);
 
       const play = (): void => targets.forEach(({ target, version }, i) => { animateElement(target, version, i); });

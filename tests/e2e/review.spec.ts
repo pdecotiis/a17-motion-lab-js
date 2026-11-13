@@ -49,10 +49,11 @@ test('mark a page version, find it on the For review list, copy its link, take i
   await expect(page.locator('#review-toggle')).toBeVisible();
   await page.locator('#review-toggle').click();
   await expect(page).toHaveURL(/review=1/);
-  const row = page.locator(`.lab-review-row[data-review-version="${version}"]`);
+  const row = page.locator(`.lab-review-card[data-review-version="${version}"]`);
   await expect(row).toHaveCount(1);
-  await expect(row.locator('a')).toHaveAttribute('href', new RegExp(`pv=${version}&preview=1`));
+  await expect(row.locator('a').first()).toHaveAttribute('href', new RegExp(`pv=${version}&preview=1`));
 
+  await expect(row.locator('.lab-status-badge')).toHaveText('For review');
   await row.locator('[data-copy-review]').click();
   await page.locator('#review-copy-all').click();
   const copied = await page.evaluate(() => (window as unknown as { __copied: string[] }).__copied);
