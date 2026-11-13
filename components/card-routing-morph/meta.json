@@ -1,0 +1,16 @@
+{
+  "name": "card-routing-morph",
+  "layerName": "bento",
+  "figma": {
+    "url": "https://www.figma.com/design/HuYFjaWLJq5X1UHQw2z63w/Jane-Street-%E2%80%94-Website-%C2%B7-Design-Implementation-WIP?node-id=13878-104529",
+    "fileKey": "HuYFjaWLJq5X1UHQw2z63w",
+    "nodeId": "13878:104529"
+  },
+  "importedAt": "2026-11-12",
+  "frame": { "width": 1136, "height": 700 },
+  "designWidth": 1136,
+  "variables": [],
+  "assets": [],
+  "fontFallbacks": [],
+  "issues": ["Hand-built from the three arrangements of the bento in the home frame (machine learning, trading, technology)."]
+}

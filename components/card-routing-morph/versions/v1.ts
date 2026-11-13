@@ -21,37 +21,43 @@ const SLIDES = ['slide-1', 'slide-2', 'slide-3'] as [string, string, string];
 const ALL = ['slide-0', ...SLIDES];
 const indexOf = (state: string) => (state === 'slide-0' ? 0 : Number(state.slice(-1)) - 1);
 
-// where a panel is in a state: open, waiting below the stage to come in, or closed at the top after it went
-const OPEN = { height: 'calc(100cqh + 0px)', marginTop: 'calc(0cqh + 0px)' };
-const BELOW = { height: 'calc(0cqh + 0px)', marginTop: 'calc(100cqh + 8px)' };
-const GONE = { height: 'calc(0cqh + 0px)', marginTop: 'calc(0cqh + 0px)' };
-// panel i in slide s: open when it is the slide, below when it is the next one, gone when it is the one before
-const placeOf = (panel: number, slide: number) => (panel === slide ? OPEN : (panel - slide + 3) % 3 === 1 ? BELOW : GONE);
+// Every cell of every arrangement sits in its column (left: machine learning's card, technology's card, trading's big picture, technology's row, machine learning's row; right: trading's row, machine learning's big
+// picture, technology's big picture, trading's card). A change is the shuffle bento's move in each column: the cells of the arrangement that goes close and the ones of the arrangement that comes open, and because of the order in
+// the column the big picture opens (or closes) from the middle between the card and the row, pushing them out, and the cards and rows open at the edges. Heights are shares of the stage (cqh) so it keeps its proportions.
+// a cell's box is its visible part plus the 8px gutter under it (the stylesheet leaves the gutter empty), so the gap between two cells is 8px all through a move, as in the shuffle bento: a cell that opens grows its gutter first and
+// shows after it, and one that closes keeps its gutter until it has gone
+const HALF = 'calc(50cqh + 4px)', FULL = 'calc(100cqh + 8px)', ZERO = 'calc(0cqh + 0px)';
+// how tall each cell is in each slide (0 machine learning, 1 trading, 2 technology): [slide, height]
+const CELLS: Record<string, [number, string]> = {
+  'm-card': [0, HALF], 'm-row': [0, HALF], 'm-large': [0, FULL],
+  't-row': [1, HALF], 't-card': [1, HALF], 't-large': [1, FULL],
+  'e-card': [2, HALF], 'e-row': [2, HALF], 'e-large': [2, FULL],
+};
+const PANEL_OF = ['m', 't', 'e'];
+const CARD_OF = ['m-card', 't-card', 'e-card'];
 
 type Layers = NonNullable<NonNullable<MotionVersion['interaction']>['layers']>;
 const layers: Layers = {};
 const ZOOM = '{scale.106}';
-const CARD_OF = ['m-card', 't-card', 'e-card'];
+const stateMap = <T>(f: (slide: number) => T): Record<string, T> => Object.fromEntries(ALL.map(s => [s, f(indexOf(s))]));
+for (const [id, [slide, height]] of Object.entries(CELLS)) {
+  layers[id] = {
+    states: stateMap(i => ({ height: i === slide ? height : ZERO })),
+    transitions: stateMap(() => MOVE),
+  };
+}
 for (let p = 0; p < 3; p++) {
-  const stateMap = <T>(f: (slide: number) => T): Record<string, T> => Object.fromEntries(ALL.map(s => [s, f(indexOf(s))]));
-  layers[`panel-${p + 1}`] = { states: stateMap(i => placeOf(p, i)), transitions: stateMap(() => MOVE) };
-  // the card's title and arrow: there while its arrangement is open, out in 280ms (twice as fast as the morph) as it closes, back in 280ms, a beat (delay.120) after the arrangement starts to open
-  layers[`route-${CARD_OF[p]}`] = {
+  // the card's title and arrow: there while its arrangement is open, out in 280ms (twice as fast as the move) as it closes, back in 280ms, a beat (delay.120) after the arrangement starts to open
+  layers[`route-${PANEL_OF[p]}-card`] = {
     states: stateMap(i => ({ opacity: i === p ? 1 : 0 })),
     transitions: stateMap(i => (i === p
       ? { model: 'tween' as const, duration: 'duration.280', easing: 'easing.productive-entrance', delay: 'delay.120' }
       : { model: 'tween' as const, duration: 'duration.280', easing: 'easing.productive-exit' })),
   };
-  // the contents of the panel fade as the panel is nearly closed (a card a few pixels high would show a hard line, its rounded corners cut off): out over the last part of the morph (from 300ms, 220ms long), in over the first
-  layers[`fade-${p + 1}`] = {
-    states: stateMap(i => ({ opacity: i === p ? 1 : 0 })),
-    transitions: stateMap(i => (i === p
-      ? { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-entrance' }
-      : { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-exit', delay: 'duration.300' })),
-  };
-  // the shapes (the card fills and the squares) lose their rounded corners as the panel closes (a card a few pixels high with round corners is a hard line) and get them back as it opens
+  // the shapes (the card fills and the squares, the big pictures) lose their rounded corners and fade as their cell closes (a card a few pixels high with round corners is a hard line): out over the last part of the move
+  // (from 300ms, 220ms long), in over the first part of its opening
   layers[`shape-${p + 1}`] = {
-    states: stateMap(i => ({ borderRadius: i === p ? '24px' : '0px' })),
+    states: stateMap(i => ({ borderRadius: i === p ? '24px' : '0px', opacity: i === p ? 1 : 0 })),
     transitions: stateMap(i => (i === p
       ? { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-entrance' }
       : { model: 'tween' as const, duration: 'duration.220', easing: 'easing.productive-exit', delay: 'duration.300' })),
@@ -69,7 +75,7 @@ const CONTROL_IN = [{ opacity: 0, transform: 'translateY({distance.12}) scale({s
 
 export const v1: MotionVersion = {
   id: 'v1',
-  label: 'Three arrangements from the frames, each coming in from the bottom',
+  label: 'Three arrangements from the frames, each column changing in place: the big picture opens from between the cards',
   model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-entrance' },
   keyframes: [{ opacity: 1, offset: 0 }, { opacity: 1, offset: 1 }],
   layers: {

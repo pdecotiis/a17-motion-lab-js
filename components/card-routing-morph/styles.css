@@ -9,16 +9,15 @@
   box-sizing: border-box;
   font-feature-settings: "lnum" 1, "pnum" 1;
 }
-.card-routing-morph__stage { position: relative; width: 100%; aspect-ratio: 1072 / 532; container-type: size; overflow: clip; }
-.card-routing-morph__panel { position: absolute; left: 0; top: 0; width: 100%; height: calc(0cqh + 0px); margin-top: calc(0cqh + 0px); overflow: hidden; }
-.card-routing-morph__panel[data-motion="panel-1"] { height: calc(100cqh + 0px); }                                  /* the first state: machine learning is open, trading waits below, technology has gone above */
-.card-routing-morph__panel[data-motion="panel-2"] { margin-top: calc(100cqh + 8px); }
-.card-routing-morph__inner { display: flex; gap: 8px; width: 100%; height: 100%; }   /* what the panel's window shows: it fades out as the panel nearly closes, and in as it starts to open */
-.card-routing-morph__column { display: flex; flex-direction: column; gap: 8px; flex: 1 1 0; min-width: 0; }
-.card-routing-morph__cell { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; }   /* the shapes inside (the card fills, the squares) are what is rounded; the version takes their corners to 0 as a panel closes */
+.card-routing-morph__stage { position: relative; display: flex; gap: 8px; width: 100%; aspect-ratio: 1072 / 532; container-type: size; overflow: clip; }
+.card-routing-morph__column { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; }   /* two columns; a cell's height and the gap under it (its margin) are the version's states, so the column's stack does the pushing */
+.card-routing-morph__cell { position: relative; flex: none; height: calc(0cqh + 0px); margin-bottom: 0; overflow: hidden; }   /* every cell of every arrangement is in its column, closed; the version opens the ones of the arrangement that is showing */
 .card-routing-morph__cell--row { display: flex; gap: 8px; border-radius: 0; overflow: visible; }
-.card-routing-morph__fill { position: absolute; inset: 0; overflow: hidden; isolation: isolate; contain: paint; border-radius: var(--size-24); background: var(--background-quaternary, #e8e7e5); }
-.card-routing-morph__square { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; isolation: isolate; contain: paint; border-radius: var(--size-24); background: var(--background-quaternary, #e8e7e5); }
+/* the first state: machine learning, a card on top and a row of squares under it at the left, a big picture at the right */
+.card-routing-morph__cell[data-motion="m-card"], .card-routing-morph__cell[data-motion="m-row"] { height: calc(50cqh + 4px); }
+.card-routing-morph__cell[data-motion="m-large"] { height: calc(100cqh + 8px); }
+.card-routing-morph__fill { position: absolute; inset: 0 0 8px 0;   /* the bottom 8px of a cell is its gutter */ overflow: hidden; isolation: isolate; contain: paint; border-radius: var(--size-24); background: var(--background-quaternary, #e8e7e5); }
+.card-routing-morph__square { position: relative; flex: 1 1 0; min-width: 0; align-self: flex-start; height: calc(100% - 8px);   /* less the gutter */ overflow: hidden; isolation: isolate; contain: paint; border-radius: var(--size-24); background: var(--background-quaternary, #e8e7e5); }
 .card-routing-morph__pic { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; }
 
 /* colour cards: a title at the top, an arrow at the bottom */
