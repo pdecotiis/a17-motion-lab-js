@@ -1,0 +1,40 @@
+/* Card routing stack: the bento for a phone (a column 360 wide inside a 400 page): three arrangements (machine learning, trading, technology), each a colour card and a big picture, one above the other. The cards alternate: at the top in
+   machine learning and technology, at the bottom in trading. Every cell of every arrangement is in the one column, closed: the version opens the two of the arrangement that is showing. The cells are in the order card (top), picture,
+   picture, card (bottom), so a change opens the new picture between the card and the picture that is going, in height only, like the middle column of the desktop bento. A cell's box is its visible part plus an 8px gutter under it. */
+.card-routing-stack {
+  width: 100%;
+  padding: var(--space-7, 48px) 20px 0;
+  background: var(--background-default);
+  box-sizing: border-box;
+  font-feature-settings: "lnum" 1, "pnum" 1;
+}
+.card-routing-stack__stage { position: relative; display: flex; flex-direction: column; width: 100%; aspect-ratio: 360 / 456; container-type: size; overflow: clip; }
+.card-routing-stack__cell { position: relative; flex: none; height: calc(0cqh + 0px); overflow: hidden; }
+/* the first state: machine learning, a card on top and a big picture under it */
+.card-routing-stack__cell[data-motion="m-card"] { height: calc(22.8cqh + 8px); }
+.card-routing-stack__cell[data-motion="m-pic"] { height: calc(77.2cqh + 0px); }
+.card-routing-stack__fill { position: absolute; inset: 0 0 8px 0; overflow: hidden; isolation: isolate; contain: paint; border-radius: var(--size-16); background: var(--background-quaternary, #e8e7e5); }
+.card-routing-stack__pic { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; }
+.card-routing-stack__card { cursor: pointer; }
+.card-routing-stack__card--orange { background: var(--background-accent-primary); color: var(--text-on-accent-primary); }
+.card-routing-stack__card--yellow { background: var(--background-accent-1); color: var(--text-on-accent-1); }
+.card-routing-stack__card--indigo { background: var(--background-accent-3); color: var(--text-on-accent-3); }
+.card-routing-stack__route { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: var(--size-16); box-sizing: border-box; }
+.card-routing-stack__title { margin: 0; font-family: var(--heading-family); font-weight: var(--heading-weight); font-size: 22px; line-height: 1.3; color: inherit; }
+.card-routing-stack__arrow { display: block; flex: none; width: 24px; height: 24px; }
+.card-routing-stack__circle { display: block; flex: none; box-sizing: content-box; width: 24px; height: 24px; margin: -12px; padding: 12px; border-radius: 50%; }   /* the circle behind the arrow, shown on press by the card preset */
+/* the black pill of bullets under the stage, at the right, as in the desktop bento */
+.card-routing-stack__bar { display: flex; justify-content: flex-end; align-items: center; height: 72px; padding-top: 24px; box-sizing: border-box; }
+.card-routing-stack__dots { display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 24px; border-radius: var(--radius-full); background: var(--background-inverse); box-sizing: border-box; }
+.card-routing-stack__dot {
+  position: relative; flex: none; width: 8px; height: 8px; padding: 0; border: 0; border-radius: var(--radius-full); overflow: hidden; cursor: pointer;
+  background: rgba(255, 255, 255, 0.56);
+  transition: width var(--motion-duration-400, 400ms) var(--motion-easing-expressive-standard, cubic-bezier(0.45, 0.05, 0.35, 1));
+}
+.card-routing-stack__dot-fill { position: absolute; inset: 0; background: #fff; transform: scaleX(0); transform-origin: left center; }
+.card-routing-stack[data-state="slide-1"] [data-motion="dot-1"], .card-routing-stack[data-state="slide-2"] [data-motion="dot-2"], .card-routing-stack[data-state="slide-3"] [data-motion="dot-3"] { width: 32px; }
+.card-routing-stack[data-state="slide-1"] [data-motion="dot-1"] .card-routing-stack__dot-fill, .card-routing-stack[data-state="slide-2"] [data-motion="dot-2"] .card-routing-stack__dot-fill,
+.card-routing-stack[data-state="slide-3"] [data-motion="dot-3"] .card-routing-stack__dot-fill { animation: card-routing-stack-dot-fill 5s linear forwards; }
+.card-routing-stack[data-held] .card-routing-stack__dot-fill { animation-play-state: paused !important; }
+@keyframes card-routing-stack-dot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .card-routing-stack__dot-fill { animation: none !important; } .card-routing-stack__dot { transition: none; } }

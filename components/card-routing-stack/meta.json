@@ -1,0 +1,16 @@
+{
+  "name": "card-routing-stack",
+  "layerName": "bento (mobile)",
+  "importedAt": "2026-11-13",
+  "frame": {
+    "width": 400,
+    "height": 620
+  },
+  "designWidth": 400,
+  "variables": [],
+  "assets": [],
+  "fontFallbacks": [],
+  "issues": [
+    "Built for a phone from the desktop bento; no Figma frame yet (a 400 x 780 page)."
+  ]
+}
