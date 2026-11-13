@@ -56,3 +56,9 @@
 @media (prefers-reduced-motion: reduce) { .card-routing-morph__dot-fill { animation: none !important; } .card-routing-morph__dot { transition: none; } }
 /* the circle behind a card's arrow (shown on hover and press by the card preset): 48px round around the 24px arrow, taking no room of its own */
 .card-routing-morph__circle { display: block; flex: none; align-self: flex-start; box-sizing: content-box; width: 24px; height: 24px; margin: -12px; padding: 12px; border-radius: 50%; }
+/* a version that places the cells on its own (it sets the stage's column gap to 0): every cell is placed in the stage by its margins and sized by its width and height, with its gutter (8px) at its right and under it */
+.card-routing-morph__stage[style*="column-gap"] .card-routing-morph__column { display: contents; }
+.card-routing-morph__stage[style*="column-gap"] .card-routing-morph__cell { position: absolute; left: 0; top: 0; flex: none; }
+.card-routing-morph__stage[style*="column-gap"] .card-routing-morph__fill { inset: 0 8px 8px 0; }
+.card-routing-morph__stage[style*="column-gap"] .card-routing-morph__cell--row { gap: 8px; }
+.card-routing-morph__stage[style*="column-gap"] .card-routing-morph__square { flex: none; align-self: flex-start; width: calc((100% - 16px) / 2); height: calc(100% - 8px); }

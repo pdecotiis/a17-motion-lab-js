@@ -6,7 +6,7 @@
     "page-intro-pattern": "v8",
     "header": "v6",
     "page-header-title": "v7",
-    "grid-container-mosaic-routing": "card-routing-shuffle@v10",
+    "grid-container-mosaic-routing": "card-routing-morph@v1",
     "card-feature": "v4",
     "prompts-footer-section": "v5",
     "footer": "v1"

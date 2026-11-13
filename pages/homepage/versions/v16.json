@@ -1,0 +1,16 @@
+{
+  "id": "v16",
+  "label": "Black opening with the morph bento: logo, title, then the page goes white with the header, nav and bento parts coming in together",
+  "motionMap": {
+    "menu": "v11",
+    "page-intro-pattern": "v5",
+    "header": "v9",
+    "page-header-title": "v6",
+    "grid-container-mosaic-routing": "card-routing-morph@v2",
+    "card-feature": "v4",
+    "prompts-footer-section": "v5",
+    "footer": "v1"
+  },
+  "stagger": "none",
+  "forkedFrom": "v15"
+}

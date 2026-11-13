@@ -13,7 +13,7 @@ test.describe('preview mode', () => {
     expect(Math.round(stage.x)).toBe(0);
     expect(Math.round(stage.width)).toBe(1200);
     expect(Math.round(stage.height)).toBeGreaterThanOrEqual(800);
-    await expect(page.locator('#lab-preview-bar')).toHaveClass(/lab-preview-bar--shown/);
+    await expect(page.locator('#lab-preview-bar')).not.toHaveClass(/lab-preview-bar--shown/);   // preview is just the design
     await expect(page.locator('.lab-preview-bar__name')).not.toBeEmpty();
     expect(errors).toEqual([]);
   });
@@ -26,6 +26,7 @@ test.describe('preview mode', () => {
     await page.click('#preview-btn');
     await expect(page).toHaveURL(/preview=1/);
     await expect(page.locator('.lab-header')).toBeHidden();
+    await page.keyboard.press('h');   // the bar is not there until it is brought up
     await page.click('#preview-exit');
     await expect(page).not.toHaveURL(/preview=1/);
   });
@@ -76,11 +77,9 @@ test.describe('preview mode', () => {
     expect(await page.locator('.lab-page-grid').evaluate(el => getComputedStyle(el).outlineStyle)).toBe('none');   // a page has no outline
   });
 
-  test('the little bar does not come back when the pointer moves: Hide (or H) puts it away, H brings it back', async ({ page }) => {
+  test('the little bar is not there when preview opens and never comes back when the pointer moves: H brings it up and keeps it, H or Hide puts it away', async ({ page }) => {
     await page.goto('/?view=component&preview=1');
     const bar = page.locator('#lab-preview-bar');
-    await expect(bar).toHaveClass(/lab-preview-bar--shown/);
-    await page.click('#preview-hide');
     await expect(bar).not.toHaveClass(/lab-preview-bar--shown/);
     await page.mouse.move(300, 300); await page.mouse.move(600, 500); await page.mouse.move(100, 700);
     await page.waitForTimeout(300);
@@ -88,14 +87,12 @@ test.describe('preview mode', () => {
     await page.keyboard.press('h');
     await expect(bar).toHaveClass(/lab-preview-bar--shown/);
     await page.waitForTimeout(4500);
-    await expect(bar).toHaveClass(/lab-preview-bar--shown/);       // brought back by hand, it stays
+    await expect(bar).toHaveClass(/lab-preview-bar--shown/);       // brought up by hand, it stays
+    await page.click('#preview-hide');
+    await expect(bar).not.toHaveClass(/lab-preview-bar--shown/);
+    await page.keyboard.press('h');
+    await expect(bar).toHaveClass(/lab-preview-bar--shown/);
     await page.keyboard.press('h');
     await expect(bar).not.toHaveClass(/lab-preview-bar--shown/);
-  });
-
-  test('on its own the bar goes after a few seconds', async ({ page }) => {
-    await page.goto('/?view=component&preview=1');
-    await expect(page.locator('#lab-preview-bar')).toHaveClass(/lab-preview-bar--shown/);
-    await expect(page.locator('#lab-preview-bar')).not.toHaveClass(/lab-preview-bar--shown/, { timeout: 6000 });
   });
 });
