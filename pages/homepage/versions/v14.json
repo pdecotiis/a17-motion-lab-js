@@ -1,0 +1,15 @@
+{
+  "id": "v14",
+  "label": "White opening: the pattern starts strong in the accent colour and settles to grey; full logo, title, header and nav, bento",
+  "motionMap": {
+    "menu": "v9",
+    "page-intro-pattern": "v8",
+    "header": "v6",
+    "page-header-title": "v7",
+    "grid-container-mosaic-routing": "card-routing-shuffle@v7",
+    "card-feature": "none",
+    "prompts-footer-section": "none"
+  },
+  "stagger": "none",
+  "forkedFrom": "v12"
+}

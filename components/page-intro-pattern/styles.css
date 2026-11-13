@@ -30,6 +30,7 @@
 .page-intro-pattern__lights { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
 /* the veil is the page's dark (v3: the colour of the buttons, near-black): there is none unless a version shows it */
 .page-intro-pattern__strength { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }   /* not seen: a version animates its opacity (1 = the dots at their strongest, 0 = as they are) and the runtime draws the dots stronger by it */
+.page-intro-pattern__tint { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; color: var(--background-accent-primary); }   /* not seen: a version animates its opacity (1 = the dots in this colour, an accent of the page, 0 = their grey) */
 .page-intro-pattern__veil { position: absolute; inset: 0; background: var(--background-inverse); opacity: 0; }
 /* a version with states (v3) starts dark: the black is there from the first frame and the page-coloured edge is not (the runtime then drives them both: pattern/runtime.ts) */
 .page-intro-pattern[data-state="dark"] .page-intro-pattern__veil { opacity: 1; }

@@ -174,6 +174,28 @@ export function runDotField(container: HTMLElement): (() => void) | null {
   // as `boost` (see the two changes marked "boost" in pattern-chunk.js): a dot is its colour mixed from the page colour toward the dot colour, and a boost of 1 takes the soft pull-back off that mix (a dot of 12% is 29%) and
   // lets it go all the way (a factor of 1 for .85: 35%). The mix itself changes, a dot's own colour on every frame, so it moves smoothly from one strength to the other and never passes the page colour (no flash). Without an
   // animation on the element the strength is 0 and the dots are drawn as the site draws them.
+  // A version can also tint the dots: the invisible .page-intro-pattern__tint element's opacity (1 = the dots take the element's colour, 0 = the grey they have) and its colour (an accent colour of the page) go into the drawing as
+  // `tint` and `tintColor` (the "tint" change in pattern-chunk.js slides the dot colour the dots are mixed toward from their grey to that colour). Without an animation on the element the tint is 0.
+  const tintEl = container.parentElement?.querySelector<HTMLElement>('.page-intro-pattern__tint') ?? null;
+  let sawTint = false;
+  // the tint goes through the page's four accent colours, one on each play of the intro (the one after the last one the browser showed, kept in localStorage so a reload goes on to the next): orange, yellow-green, green, indigo
+  const ACCENTS = ['--background-accent-primary', '--background-accent-1', '--background-accent-2', '--background-accent-3'];
+  const ACCENT_KEY = 'a17-pattern-accent';
+  let lastTintPlay: Animation | null = null;
+  const nextAccent = (el: HTMLElement): void => {
+    let next = 0;
+    try { next = (Number.parseInt(localStorage.getItem(ACCENT_KEY) ?? '-1', 10) + 1) % ACCENTS.length; localStorage.setItem(ACCENT_KEY, String(next)); } catch { /* no storage: always the first */ }
+    el.style.color = `var(${ACCENTS[next]})`;
+  };
+  const tintNow = (): { tint: number; tintColor?: number[] } => {
+    if (!tintEl) return { tint: 0 };
+    const playing = tintEl.getAnimations()[0];
+    if (playing && playing !== lastTintPlay) { lastTintPlay = playing; nextAccent(tintEl); }   // a new play of the intro (a reload or a replay): the next accent colour
+    if (playing) sawTint = true;
+    if (!sawTint) return { tint: 0 };
+    const style = getComputedStyle(tintEl), rgb = (style.color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+    return { tint: Math.max(0, Math.min(1, parseFloat(style.opacity) || 0)), ...(rgb.length === 3 ? { tintColor: rgb } : {}) };
+  };
   const strengthEl = container.parentElement?.querySelector<HTMLElement>('.page-intro-pattern__strength') ?? null;
   let sawStrength = false;
   const strengthNow = (): number => {
@@ -245,7 +267,7 @@ export function runDotField(container: HTMLElement): (() => void) | null {
     const pageDark = pageIsDark();
     ctx.fillStyle = pageDark ? DARK_BACKGROUND : LIGHT_BACKGROUND; ctx.clearRect(0, 0, w, h); ctx.fillRect(0, 0, w, h);
     if (ctxDark) { ctxDark.clearRect(0, 0, w, h); ctxDark.fillStyle = LIGHTS_OUT; ctxDark.fillRect(0, 0, w, h); }
-    const mainParams = { ...styleParams, dark: pageDark, boost: strengthNow() };
+    const mainParams = { ...styleParams, dark: pageDark, boost: strengthNow(), ...tintNow() };
     const darkParams = { ...styleParams, dark: true };
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
