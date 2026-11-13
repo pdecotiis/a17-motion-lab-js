@@ -147,3 +147,7 @@ Token governance: token habits, off-system badge, nearest-token suggestions, app
 
 - A GitHub Actions workflow running `npm run check`.
 - Library: an "all versions" toggle that shows every version of each component side by side.
+
+## Bento: fixed columns (card-routing-shuffle v8, homepage page version v15)
+
+v8 forks v6: two arrangements (v6's first and its flip), each column keeps its card (Machine Learning, Trading, Technology). A Trading card (i1t) was added on top of column 2 so it can flip. Page version v15 = v11 with this bento (two bullets only). Tests: tests/unit/shuffle-fixed-columns.test.ts. Numbered v8 (not v10): version files may not skip numbers.
