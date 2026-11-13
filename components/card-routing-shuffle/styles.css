@@ -67,6 +67,7 @@
 .card-routing-shuffle__cell[data-motion="p2a"] { height: 66.292%; margin-bottom: 8px; }
 .card-routing-shuffle__cell[data-motion="v2"] { height: 0%; margin-bottom: 0px; }
 .card-routing-shuffle__cell[data-motion="y2"] { height: 0%; margin-bottom: 0px; }
+.card-routing-shuffle__cell[data-motion="i1t"] { height: 0%; margin-bottom: 0px; }
 .card-routing-shuffle__cell[data-motion="o0"] { height: 0%; margin-bottom: 0px; }
 .card-routing-shuffle__cell[data-motion="g0"] { height: 0%; margin-bottom: 0px; }
 .card-routing-shuffle__cell[data-motion="y0b"] { height: 0%; margin-bottom: 0px; }

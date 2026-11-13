@@ -150,4 +150,4 @@ Token governance: token habits, off-system badge, nearest-token suggestions, app
 
 ## Bento: fixed columns (card-routing-shuffle v8, homepage page version v15)
 
-v8 forks v6: each column keeps its card (Machine Learning, Trading, Technology) and what is inside changes (layouts-fixed.ts). Page version v15 = v11 with this bento. Tests: tests/unit/shuffle-fixed-columns.test.ts. Numbered v8 (not v10) because version files may not skip numbers; renumber on merge if v8 is taken.
+v8 forks v6: two arrangements (v6's first and its flip), each column keeps its card (Machine Learning, Trading, Technology). A Trading card (i1t) was added on top of column 2 so it can flip. Page version v15 = v11 with this bento (two bullets only). Tests: tests/unit/shuffle-fixed-columns.test.ts. Numbered v8 (not v10): version files may not skip numbers.
