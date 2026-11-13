@@ -3,7 +3,7 @@
   flex-direction: column;
   align-items: flex-start;
   width: var(--grid-xl-container);
-  padding: var(--space-12) var(--grid-xl-margin) 0;
+  padding: 96px var(--grid-xl-margin) 0;   /* the frame: 96px above the card, 424px in all (the card is 328px) */
   background: var(--background-default);
   box-sizing: border-box;
   font-feature-settings: "lnum" 1, "pnum" 1;
@@ -103,6 +103,8 @@
   border-radius: var(--radius-lg);
   background: var(--background-default);
   box-sizing: border-box;
+  position: relative;
+  overflow: clip;   /* the hover's arrows slide in and out past the row's edge: the row crops them */
 }
 
 .prompts-footer-section__prompt--trail { padding: var(--size-8) var(--size-8) var(--size-8) var(--size-16); }
@@ -133,3 +135,5 @@
 .prompts-footer-section__button--highlight { background: #ffb11f; }
 
 .prompts-footer-section__button img { display: block; }
+/* the hover's twin button: the accent one that comes in at the right end of the row (it waits there, hidden, until the version brings it in) */
+.prompts-footer-section__button--twin { position: absolute; top: var(--size-8); right: var(--size-8); background: var(--background-accent); }

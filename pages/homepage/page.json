@@ -2,6 +2,7 @@
   "id": "homepage",
   "title": "Homepage",
   "width": 1440,
+  "lockScroll": true,
   "components": [
     {
       "id": "menu",
@@ -31,6 +32,10 @@
     {
       "id": "prompts-footer-section",
       "component": "prompts-footer-section"
+    },
+    {
+      "id": "footer",
+      "component": "footer"
     }
   ]
 }

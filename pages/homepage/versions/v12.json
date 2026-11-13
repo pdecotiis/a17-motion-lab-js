@@ -6,9 +6,10 @@
     "page-intro-pattern": "v6",
     "header": "v6",
     "page-header-title": "v7",
-    "grid-container-mosaic-routing": "card-routing-shuffle@v7",
-    "card-feature": "none",
-    "prompts-footer-section": "none"
+    "grid-container-mosaic-routing": "card-routing-shuffle@v10",
+    "card-feature": "v4",
+    "prompts-footer-section": "v5",
+    "footer": "v1"
   },
   "stagger": "none",
   "forkedFrom": "v11"

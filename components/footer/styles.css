@@ -1,0 +1,20 @@
+/* The global footer of the homepage (Figma frame 1136 x 366): a row of links, the back-to-top button at the right, and the legal text under them. */
+.footer {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 366px;
+  padding: 128px 32px 32px;
+  background: var(--background-default);
+  color: var(--text-secondary);
+  font-family: var(--body-family);
+}
+.footer__links { display: flex; align-items: center; gap: 24px; height: 48px; }
+.footer__link { color: inherit; font-size: 16px; line-height: 24px; text-decoration: none; }
+.footer__top {
+  position: absolute; top: 128px; right: 32px;
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--background-secondary); color: var(--text-default); cursor: pointer;
+}
+.footer__legal { margin: 32px 0 0; max-width: 1072px; font-size: 14px; line-height: 18px; }

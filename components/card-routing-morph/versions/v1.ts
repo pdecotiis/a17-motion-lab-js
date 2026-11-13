@@ -1,4 +1,6 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
+// Retimed: the page elements come in together, starting 120ms after the title (with the page going to white where there is one), as in page version v11.
+// Retimed: the idle part of the wait after the title is halved (the black to white starts 120ms after the title instead of 240, and the page elements 60ms after it instead of 120); comments below that give the earlier times are the earlier sequence.
 
 // v1: the bento of the homepage opening (page version v13), three arrangements drawn from the Figma frames (home, 1440 x 2219), and every change comes in from the bottom, including the one that starts over.
 //   slide-1  machine learning: an orange card on top and the hands photo and a yellow-green pattern below it, at the left; a big picture at the right
@@ -63,6 +65,8 @@ for (let p = 0; p < 3; p++) {
   };
 }
 
+const CONTROL_IN = [{ opacity: 0, transform: 'translateY({distance.12}) scale({scale.95})', offset: 0 }, { opacity: 1, transform: 'translateY(0px) scale(1)', offset: 1 }];
+
 export const v1: MotionVersion = {
   id: 'v1',
   label: 'Three arrangements from the frames, each coming in from the bottom',
@@ -70,11 +74,14 @@ export const v1: MotionVersion = {
   keyframes: [{ opacity: 1, offset: 0 }, { opacity: 1, offset: 1 }],
   layers: {
     // the first arrangement's three parts, then the controls
-    'm-card': { preset: 'card', delay: 'duration.1960' },
-    'm-row': { preset: 'card', delay: 'duration.2030' },
-    'm-large': { preset: 'card', delay: 'duration.2100' },
-    pager: { preset: 'card', delay: 'duration.2170' },
-    float: { preset: 'card', delay: 'duration.2170' },
+    'm-card': { preset: 'card', delay: 'duration.1160' },
+    'm-row': { preset: 'card', delay: 'duration.1230' },
+    'm-large': { preset: 'card', delay: 'duration.1300' },
+    // the controls one after another, 15ms apart: each fades in, scales up from 95% and rises 12px into place (400ms on expressive-entrance)
+    prev: { model: { model: 'tween', duration: 'duration.400', easing: 'easing.expressive-entrance', delay: 'duration.1370' }, keyframes: CONTROL_IN },
+    next: { model: { model: 'tween', duration: 'duration.400', easing: 'easing.expressive-entrance', delay: 'duration.1385' }, keyframes: CONTROL_IN },
+    playpause: { model: { model: 'tween', duration: 'duration.400', easing: 'easing.expressive-entrance', delay: 'duration.1400' }, keyframes: CONTROL_IN },
+    dots: { model: { model: 'tween', duration: 'duration.400', easing: 'easing.expressive-entrance', delay: 'duration.1415' }, keyframes: CONTROL_IN },
   },
   interaction: {
     initial: 'slide-0',

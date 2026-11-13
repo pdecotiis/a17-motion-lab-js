@@ -8,8 +8,8 @@ import { validateVersionMeta } from '../../lab/lib/version-meta';
 // v8: the columns keep their identity; what is inside changes.
 describe('the fixed-column bento (v8)', () => {
   const markup = readFileSync('components/card-routing-shuffle/markup.html', 'utf8');
-  it('has two arrangements (the flip) and valid version meta', () => {
-    expect(FIXED_ORDER).toHaveLength(2);
+  it('has four arrangements and valid version meta', () => {
+    expect(FIXED_ORDER).toHaveLength(4);
     expect(() => validateVersionMeta(versions)).not.toThrow();
     expect(versions.find(v => v.id === 'v8')!.forkedFrom).toBe('v6');
   });
@@ -35,20 +35,20 @@ describe('the fixed-column bento (v8)', () => {
   it('the labels agree with the markup', () => {
     for (const [id, label] of Object.entries(CARD_LABEL)) expect(markup).toContain(`data-motion="title-${id}">${label}<`);
   });
-  it('the first arrangement is v6\'s and the second is its flip, column for column', () => {
+  it('the small cards alternate: top, bottom, top and then bottom, top, bottom; a card with its picture B when it is on top and picture A when it is at the bottom', () => {
     const f = FIXED_LAYOUTS['arrangement-1']!, g = FIXED_LAYOUTS['arrangement-2']!;
-    expect([f.o0, f.p0a, f.p1a, f.y1, f.g2, f.p2a]).toEqual([1, 2, 2, 1, 1, 2]);
-    expect([g.p0b, g.y0b, g.i1t, g.p1b, g.v2, g.y2]).toEqual([2, 1, 1, 2, 2, 1]);
+    expect([f.o0, f.p0b, f.p1a, f.y1, f.g2, f.v2]).toEqual([1, 2, 2, 1, 1, 2]);
+    expect([g.p0a, g.y0b, g.i1t, g.p1b, g.p2a, g.y2]).toEqual([2, 1, 1, 2, 2, 1]);
   });
   it('the last arrangement loops to the first: nothing overlaps on the way, and every arrangement to the next', () => {
-    FIXED_ORDER.forEach((name, k) => expect(overlapsBetween(FIXED_LAYOUTS[name]!, FIXED_LAYOUTS[FIXED_ORDER[(k + 1) % 2]!]!), name).toEqual([]));
+    FIXED_ORDER.forEach((name, k) => expect(overlapsBetween(FIXED_LAYOUTS[name]!, FIXED_LAYOUTS[FIXED_ORDER[(k + 1) % FIXED_ORDER.length]!]!), name).toEqual([]));
   });
   it('every arrangement differs from the one before in what is inside its columns', () => {
-    FIXED_ORDER.forEach((name, k) => expect(JSON.stringify(FIXED_LAYOUTS[name]), name).not.toBe(JSON.stringify(FIXED_LAYOUTS[FIXED_ORDER[(k + 1) % 2]!])));
+    FIXED_ORDER.forEach((name, k) => expect(JSON.stringify(FIXED_LAYOUTS[name]), name).not.toBe(JSON.stringify(FIXED_LAYOUTS[FIXED_ORDER[(k + 1) % FIXED_ORDER.length]!])));
   });
   it('the pictures: each cell shows one of its own, none twice, none shared with a neighbouring arrangement (round the loop)', () => {
     FIXED_ORDER.forEach((name, k) => {
-      const pics = Object.values(FIXED_PICTURE_OF[name]!), next = Object.values(FIXED_PICTURE_OF[FIXED_ORDER[(k + 1) % 2]!]!);
+      const pics = Object.values(FIXED_PICTURE_OF[name]!), next = Object.values(FIXED_PICTURE_OF[FIXED_ORDER[(k + 1) % FIXED_ORDER.length]!]!);
       expect(Object.keys(FIXED_PICTURE_OF[name]!).sort(), name).toEqual(Object.keys(CELL_PHOTOS).filter(c => (FIXED_LAYOUTS[name]![c] ?? 0) > 0).sort());
       expect(new Set(pics).size).toBe(pics.length);
       expect(pics.filter(p => next.includes(p)), `${name} -> next`).toEqual([]);

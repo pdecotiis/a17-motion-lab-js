@@ -2,13 +2,14 @@
   "id": "v15",
   "label": "Opening v11 with fixed bento columns: Machine Learning, Trading, Technology keep their column",
   "motionMap": {
-    "menu": "v8",
+    "menu": "v11",
     "page-intro-pattern": "v5",
-    "header": "v5",
+    "header": "v9",
     "page-header-title": "v6",
-    "grid-container-mosaic-routing": "card-routing-shuffle@v8",
-    "card-feature": "none",
-    "prompts-footer-section": "none"
+    "grid-container-mosaic-routing": "card-routing-shuffle@v10",
+    "card-feature": "v4",
+    "prompts-footer-section": "v5",
+    "footer": "v1"
   },
   "stagger": "none",
   "forkedFrom": "v11"

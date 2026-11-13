@@ -34,17 +34,20 @@ for (const id of CELLS.filter(isColour)) {
 for (const [cell, photos] of Object.entries(CELL_PHOTOS)) {
   for (const n of photos) {
     const name = fixedLayerName(cell, `photo-${n}.jpg`);
-    layers[name] = { states: each(s => ({ opacity: FIXED_PICTURE_OF[s === INTRO ? FIXED_ORDER[0]! : s]?.[cell] === `photo-${n}.jpg` ? 1 : 0 })), transitions: timingOf(name, cell) };
+    // a picture does not fade out while its cell scales away: it goes only once the cell has closed (see v4)
+    const own = timingOf(name, cell) ?? {};
+    layers[name] = {
+      states: each(s => ({ opacity: FIXED_PICTURE_OF[s === INTRO ? FIXED_ORDER[0]! : s]?.[cell] === `photo-${n}.jpg` ? 1 : 0 })),
+      transitions: each(s => (sizeOf(layoutOf(s), cell).height === '0%' ? { model: 'tween' as const, duration: 'duration.100', easing: 'easing.linear', delay: 'duration.470' } : own[s] ?? own[Object.keys(own)[0]!]!)),
+    };
   }
 }
 // the controls' entrance (pager, float) are v6's
 for (const name of ['pager', 'float']) layers[name] = { ...v6Layers[name]!, states: each(s => v6Layers[name]!.states[s] ?? {}) };
 
-// two arrangements, so only two bullets: the other two collapse (no width, and the gap before them taken back) in every state
-for (const name of ['dot-3', 'dot-4']) layers[name] = { states: each(() => ({ opacity: 0, width: '0px', marginLeft: '-8px' })) };
-// the triggers are v6's for two states: the arrows and the loop go round the two, the first two bullets go to theirs
+// the triggers are v6's: the arrows and the loop go round the four, each bullet goes to its own
 const ORDER = FIXED_ORDER as [string, string, ...string[]];
-const triggers = i6.triggers!.filter(t => !(t.on === 'click' && typeof (t as { target?: string }).target === 'string' && /^dot-[34]$/.test((t as { target: string }).target))).map(t => {
+const triggers = i6.triggers!.map(t => {
   const r = t as { toggle?: string[] };
   return r.toggle && r.toggle.includes('arrangement-1') ? { ...t, toggle: (r.toggle[0] === 'arrangement-1' ? ORDER : [...ORDER].reverse()) } : t;
 }) as NonNullable<MotionVersion['interaction']>['triggers'];
@@ -52,7 +55,7 @@ const triggers = i6.triggers!.filter(t => !(t.on === 'click' && typeof (t as { t
 export const v8: MotionVersion = {
   ...v6,
   id: 'v8',
-  label: 'Fixed columns, two arrangements: the pairs flip, each column keeps its card',
+  label: 'Fixed columns, four arrangements: the cards move inside their columns',
   interaction: { ...i6, layers, triggers, states: each(() => ({})), transitions: Object.fromEntries(Object.entries(i6.transitions!).filter(([k]) => ALL.includes(k))) },
   elements: { ...v6.elements, i1t: 'card' },
   forkedFrom: 'v6',

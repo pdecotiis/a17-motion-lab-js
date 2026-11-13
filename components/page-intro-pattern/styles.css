@@ -55,3 +55,4 @@
 /* In preview a page that opens in the dark (a version with states) covers the whole window, whatever the window's width: the page is 1440 wide and centred, so on a wider screen the dark would stop at its edges.
    The root is fixed to the window (the runtime tells the page-coloured edge where the page's left edge is: --grid-left). */
 .lab-preview-mode .lab-page-item:has(> .page-intro-pattern[data-state]) .page-intro-pattern { position: fixed; inset: 0; height: auto; }
+.page-intro-pattern__click { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }   /* not seen: a version animates its opacity (0 to 1) and the pattern clicks itself once, when that animation starts to show */

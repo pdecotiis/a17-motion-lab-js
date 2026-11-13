@@ -1,5 +1,7 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 import { v6 } from './v6.js';
+// Retimed: the page elements come in together, starting 120ms after the title (with the page going to white where there is one), as in page version v11.
+// Retimed: the idle part of the wait after the title is halved (the page elements come in 370ms after the title instead of 740); comments below that give the earlier times are the earlier sequence.
 
 // v8: v6's pattern (page white throughout; the dots start at 35%, settle to their 12% from 1640ms over 560ms, and the page-coloured edge comes in with the page), with the dots in an accent colour (one of the page's four, a different one each time)
 // in the intro: the dots start in an accent colour and their colour fades to the grey they have at rest as they settle, over the same 560ms, with the same curve. The dots' own colour moves, so nothing flashes. The accent changes on every
@@ -11,7 +13,7 @@ export const v8: MotionVersion = {
   layers: {
     ...v6.layers,
     tint: {
-      model: { model: 'tween', duration: 'duration.560', easing: 'easing.expressive-entrance', delay: 'duration.1640' },
+      model: { model: 'tween', duration: 'duration.560', easing: 'easing.expressive-entrance', delay: 'duration.1020' },
       keyframes: [{ opacity: 1, offset: 0 }, { opacity: 0, offset: 1 }],
     },
   },

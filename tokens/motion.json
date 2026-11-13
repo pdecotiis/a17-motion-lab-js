@@ -33,6 +33,38 @@
         ]
       }
     },
+    "235": {
+      "$type": "duration",
+      "$value": "235ms",
+      "$description": "A wait in the homepage opening: the shuffle bento's pagination buttons come in this long after its pictures start to open (half of the 470ms it was), 15ms apart. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "240": {
+      "$type": "duration",
+      "$value": "240ms",
+      "$description": "A wait, for the entrance cascades of the modules below the bento (the original Motion Lab's: items start 120ms apart): the second step of a cascade (2 x 120ms). Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "250": {
+      "$type": "duration",
+      "$value": "250ms",
+      "$description": "A wait in the homepage opening: the shuffle bento's pagination buttons come in this long after its pictures start to open (half of the 470ms it was), 15ms apart. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "265": {
+      "$type": "duration",
+      "$value": "265ms",
+      "$description": "A wait in the homepage opening: the shuffle bento's pagination buttons come in this long after its pictures start to open (half of the 470ms it was), 15ms apart. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
     "280": {
       "$type": "duration",
       "$value": "280ms",
@@ -46,6 +78,30 @@
       "$value": "300ms",
       "$extensions": {
         "status": "system"
+      }
+    },
+    "340": {
+      "$type": "duration",
+      "$value": "340ms",
+      "$description": "How long an eyebrow's letters take to resolve after its 220ms wait, so wait and scramble total 560ms (the feature card). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "440": {
+      "$type": "duration",
+      "$value": "440ms",
+      "$description": "How long an eyebrow's letters take to resolve after its 120ms wait, so wait and scramble total 560ms (Read Next). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "360": {
+      "$type": "duration",
+      "$value": "360ms",
+      "$description": "A wait, for the entrance cascades of the modules below the bento (the original Motion Lab's: items start 120ms apart): the third step (3 x 120ms). Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
       }
     },
     "400": {
@@ -63,11 +119,51 @@
         "status": "experimental"
       }
     },
+    "480": {
+      "$type": "duration",
+      "$value": "480ms",
+      "$description": "A wait, for the entrance cascades of the modules below the bento (the original Motion Lab's: items start 120ms apart): the fourth step (4 x 120ms). Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "485": {
+      "$type": "duration",
+      "$value": "485ms",
+      "$description": "A wait in the homepage opening: the pagination buttons come in one after another, 15ms apart. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "500": {
+      "$type": "duration",
+      "$value": "500ms",
+      "$description": "A wait in the homepage opening: the pagination buttons come in one after another, 15ms apart. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "515": {
+      "$type": "duration",
+      "$value": "515ms",
+      "$description": "A wait in the homepage opening: the pagination buttons come in one after another, 15ms apart. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
     "560": {
       "$type": "duration",
       "$value": "560ms",
       "$extensions": {
         "status": "system"
+      }
+    },
+    "600": {
+      "$type": "duration",
+      "$value": "600ms",
+      "$description": "A wait, for the entrance cascades of the modules below the bento (the original Motion Lab's: items start 120ms apart): the fifth step (5 x 120ms). Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
       }
     },
     "630": {
@@ -82,6 +178,14 @@
       "$type": "duration",
       "$value": "700ms",
       "$description": "A wait, for the page's opening: the third colour card starts 70ms after the second. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "720": {
+      "$type": "duration",
+      "$value": "720ms",
+      "$description": "A wait, for the entrance cascades of the modules below the bento (the original Motion Lab's: items start 120ms apart): the sixth step (6 x 120ms). Specific to those animations; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }
@@ -121,10 +225,42 @@
         "status": "experimental"
       }
     },
+    "1020": {
+      "$type": "duration",
+      "$value": "1020ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1035": {
+      "$type": "duration",
+      "$value": "1035ms",
+      "$description": "A wait in the homepage opening (page version v11), where the page's elements come in with the page going to white, as one movement. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
     "1080": {
       "$type": "duration",
       "$value": "1080ms",
       "$description": "A wait, for the page's opening: the bento's pictures open this long after its cards are in (1060ms), 70ms after the sidebar (2140ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1090": {
+      "$type": "duration",
+      "$value": "1090ms",
+      "$description": "A wait in the homepage opening (page version v11), where the page's elements come in with the page going to white, as one movement. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1105": {
+      "$type": "duration",
+      "$value": "1105ms",
+      "$description": "A wait in the homepage opening (page version v11), where the page's elements come in with the page going to white, as one movement. Specific to that animation; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }
@@ -145,6 +281,22 @@
         "status": "experimental"
       }
     },
+    "1160": {
+      "$type": "duration",
+      "$value": "1160ms",
+      "$description": "A wait in the homepage opening (page version v11), where the page's elements come in with the page going to white, as one movement. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1180": {
+      "$type": "duration",
+      "$value": "1180ms",
+      "$description": "A wait in the homepage opening (page version v11), where the page's elements come in with the page going to white, as one movement. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
     "1190": {
       "$type": "duration",
       "$value": "1190ms",
@@ -160,10 +312,106 @@
         "status": "experimental"
       }
     },
+    "1230": {
+      "$type": "duration",
+      "$value": "1230ms",
+      "$description": "A wait in the homepage opening (page version v11), where the page's elements come in with the page going to white, as one movement. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
     "1260": {
       "$type": "duration",
       "$value": "1260ms",
       "$description": "A wait, for the page's opening: the third colour card starts 70ms after the second (1190ms + 70ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1270": {
+      "$type": "duration",
+      "$value": "1270ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1285": {
+      "$type": "duration",
+      "$value": "1285ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1300": {
+      "$type": "duration",
+      "$value": "1300ms",
+      "$description": "A wait in the homepage opening (page version v11), where the page's elements come in with the page going to white, as one movement. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1340": {
+      "$type": "duration",
+      "$value": "1340ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1345": {
+      "$type": "duration",
+      "$value": "1345ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1370": {
+      "$type": "duration",
+      "$value": "1370ms",
+      "$description": "A wait in the homepage opening, where the page's elements come in with the page going to white, as one movement (the morph bento's controls). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1385": {
+      "$type": "duration",
+      "$value": "1385ms",
+      "$description": "A wait in the homepage opening: the pagination buttons come in one after another, 15ms apart. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1400": {
+      "$type": "duration",
+      "$value": "1400ms",
+      "$description": "A wait in the homepage opening: the pagination buttons come in one after another, 15ms apart. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1410": {
+      "$type": "duration",
+      "$value": "1410ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1415": {
+      "$type": "duration",
+      "$value": "1415ms",
+      "$description": "A wait in the homepage opening: the pagination buttons come in one after another, 15ms apart. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1480": {
+      "$type": "duration",
+      "$value": "1480ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }
@@ -208,10 +456,26 @@
         "status": "experimental"
       }
     },
+    "1725": {
+      "$type": "duration",
+      "$value": "1725ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
     "1780": {
       "$type": "duration",
       "$value": "1780ms",
       "$description": "A wait, for the white opening (page version v12): the bento's second card comes in 70ms after the first (1710ms + 70ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1800": {
+      "$type": "duration",
+      "$value": "1800ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }
@@ -256,6 +520,14 @@
         "status": "experimental"
       }
     },
+    "1920": {
+      "$type": "duration",
+      "$value": "1920ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
     "1960": {
       "$type": "duration",
       "$value": "1960ms",
@@ -268,6 +540,14 @@
       "$type": "duration",
       "$value": "1980ms",
       "$description": "A wait, for the page's opening (page version v13): the sidebar's bottom buttons start after the five navigation items, a stagger (15ms) apart (1905ms + 5 x 15ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1990": {
+      "$type": "duration",
+      "$value": "1990ms",
+      "$description": "A wait in the homepage opening, after the title: the sequence after the title runs with the idle part of the gap between them halved. Specific to those animations; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }

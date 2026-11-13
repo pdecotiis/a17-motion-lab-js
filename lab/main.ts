@@ -951,6 +951,7 @@ function animateElement(el: HTMLElement, version: MotionVersion, staggerIndex = 
 
 // One motion on one element, played by the current runtime. The speed control sets the runtime's own
 // speed, so durations and delays here are at normal speed.
+const lockTokens = new WeakMap<HTMLElement, object>();
 // The wait (ms) the page asks of the sections that play as it opens (its `hold`), added to their delay while one starts.
 let pageHold = 0;
 
@@ -1906,6 +1907,8 @@ function renderPageView(params: URLSearchParams): void {
     const observer = new IntersectionObserver(entries => {
       const entry = entries[entries.length - 1]!;
       // The first notice comes right after observing: it says what is in view as the page opens.
+      // while a page that locks its scroll is opening, a section that waits for scroll stays hidden even if the window is tall enough to show it: it is looked at again once the opening has ended
+      if (lockTokens.has(column.viewport)) return;
       const atOpening = opening && firstNotice;
       firstNotice = false;
       if (entry.isIntersecting && entry.intersectionRatio >= Math.min(trigger.threshold, 1)) {
@@ -1931,6 +1934,40 @@ function renderPageView(params: URLSearchParams): void {
     column.grid.innerHTML = '';
     pageConfig.components.forEach((pc, i) => mountSection(column, pc, i, true));
     column.viewport.scrollTop = 0;
+    if (pageConfig.lockScroll) lockScrollWhileOpening(column);
+  }
+
+  // A page with `lockScroll` cannot be scrolled while it opens: the window's scrolling is off until everything that plays as it opens has ended (every finite animation under the page, and the sections' own
+  // hand-offs), so a section below that waits for scroll is not shown early. A replay starts the wait over; leaving the view lets go.
+  function lockScrollWhileOpening(column: PageColumn): void {
+    const vp = column.viewport;
+    const token = {};
+    lockTokens.set(vp, token);
+    vp.style.overflowY = 'hidden';
+    const started = performance.now();
+    let quiet = 0;
+    // what plays as the page opens is what exists in its first moments (delayed starts included); a motion a script starts later on its own (an autoplaying dot) does not hold the page
+    let opening: Animation[] | null = null;
+    const release = (): void => {
+      if (lockTokens.get(vp) !== token) return;
+      vp.style.overflowY = ''; lockTokens.delete(vp);
+      // the sections that waited, in view or not: ask the observers again
+      column.slots.forEach(s => { if (s.observer) { s.observer.unobserve(s.wrapper); s.observer.observe(s.wrapper); } });
+    };
+    onViewLeave(() => { if (lockTokens.get(vp) === token) { vp.style.overflowY = ''; lockTokens.delete(vp); } });   // leaving the view only lets go: nothing is looked at again
+    const check = (): void => {
+      if (lockTokens.get(vp) !== token) return;
+      const now = column.grid.getAnimations({ subtree: true });
+      if (opening === null) {
+        if (performance.now() - started < 120) { requestAnimationFrame(check); return; }
+        opening = now.filter(a => { const end = a.effect?.getComputedTiming().endTime; return typeof end === 'number' && Number.isFinite(end) && a.playState !== 'finished'; });
+      }
+      const running = opening.some(a => a.playState !== 'finished' && a.playState !== 'idle');
+      const handles = opening.length === 0 && [...column.anims.values()].some(h => !h.finished);   // no Web Animations to watch (a runtime that moves things itself): the sections' own handles say
+      quiet = running || handles ? 0 : quiet + 1;
+      if (quiet >= 3 || performance.now() - started > 20000) release(); else requestAnimationFrame(check);
+    };
+    requestAnimationFrame(check);
   }
 
   const unsavedLabel = (): string => (hasUnsaved() ? ' (unsaved changes)' : '');

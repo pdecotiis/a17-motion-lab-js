@@ -42,7 +42,13 @@ for (const id of CELLS.filter(isColour)) {
   layers[`arrow-${id}`] = { states: shown, transitions: each(() => FADE) };
 }
 // the pictures: each arrangement shows its own (pictures.ts), so the pictures change each time the bento does
-for (const [name, states] of Object.entries(pictureStates(ALL, PAIR_PICTURE_OF, PAIR_ORDER[0]))) layers[name] = { states, transitions: each(() => MOVE) };
+// A picture does not fade out while its cell scales away: where its cell has gone (a height of nothing in that arrangement) it stays as it is until the cell has finished closing (the move, 400ms, and the columns' small delay,
+// 470ms in all) and only then goes, when nothing of it can be seen. A picture that comes in still fades in as its cell opens.
+const GONE_AFTER = { model: 'tween' as const, duration: 'duration.100', easing: 'easing.linear', delay: 'duration.470' };
+for (const [name, states] of Object.entries(pictureStates(ALL, PAIR_PICTURE_OF, PAIR_ORDER[0]))) {
+  const cell = name.split('-')[1]!;
+  layers[name] = { states, transitions: each(s => (sizeOf(layoutOf(s), cell).height === '0%' ? GONE_AFTER : MOVE)) };
+}
 
 export const v4: MotionVersion = {
   id: 'v4',

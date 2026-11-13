@@ -24,7 +24,7 @@
 .menu__logo { display: block; width: 181px; height: 48px; flex: none; }
 /* the logomark's three rings turn about its middle (a version can rotate them: the gaps in them line up when they are turned the right amounts) */
 .menu__logo { transform-origin: 24px 24px; }   /* the logo scales and turns about its mark */
-.menu__logo [data-motion^="ring-"] { transform-box: view-box; transform-origin: 24px 24px; }
+.menu__logo [data-motion^="ring-"], .menu__logo [data-motion^="spin-"] { transform-box: view-box; transform-origin: 24px 24px; }   /* spin-*: a wrapper round each ring, for a version that turns the rings as the page loads */
 
 .menu__submenu {
   display: flex;
@@ -127,3 +127,5 @@
 
 /* The nav and the buttons keep their own width (the menu's 256px inside its padding) while the menu itself grows or shrinks around them, so they slide rather than reflow. */
 .menu__submenu, .menu__actions { min-width: 256px; }
+/* the wordmark is many letters; they all scale about the middle of the whole word (x 118 of the logo's 181, y 24), so it moves as one when a version brings it in */
+.menu__logo [data-motion="wordmark"] { transform-box: view-box; transform-origin: 118px 24px; }

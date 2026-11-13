@@ -1,5 +1,6 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 import { v2 } from './v2.js';
+// Retimed: the idle part of the wait after the title is halved (the black to white starts 120ms after the title instead of 240, and the page elements 60ms after it instead of 120); comments below that give the earlier times are the earlier sequence.
 
 // v8: the opening's menu. The rings do not turn or change colour except to follow the page: white on the dark, the text colour once the page is white.
 //   0 to 300ms: only the logomark shows (the menu is 304px wide, as in the frame, but the logo is cropped to its mark and the navigation is not shown), white on the dark, and it comes in with the card preset (fades, rises
@@ -10,11 +11,11 @@ const QUICK = { model: 'tween' as const, duration: 'duration.100', easing: 'easi
 // the rings are white on the dark and go to the text colour as the page goes white (the same time and curve as the page: from 1140ms, 400ms, expressive-entrance); they do not turn or change colour any other way
 const WHITE = 'var(--text-inverse)', DARK = 'var(--text-default)';
 const GO_DARK = {
-  model: { model: 'tween' as const, duration: 'duration.560', easing: 'easing.expressive-entrance', delay: 'duration.1140' },
+  model: { model: 'tween' as const, duration: 'duration.560', easing: 'easing.expressive-entrance', delay: 'duration.1020' },
   keyframes: [{ fill: WHITE, offset: 0 }, { fill: DARK, offset: 1 }],
 };
 const RING_REST = { states: { collapsed: { fill: DARK }, open: { fill: DARK } }, transitions: { collapsed: QUICK, open: QUICK } };
-const AT = 'duration.1890';
+const AT = 'duration.1710';
 const OPEN_CLIP = {
   model: { model: 'tween' as const, duration: 'duration.400', easing: 'easing.expressive-entrance', delay: AT },
   keyframes: [{ clipPath: 'inset(-32px 133px -32px 0px)', offset: 0 }, { clipPath: 'inset(-32px 0px -32px 0px)', offset: 1 }],
@@ -36,8 +37,8 @@ export const v8: MotionVersion = {
     logo: OPEN_CLIP,
     wordmark: FROM_LEFT,
     // the navigation items come in one after another, a stagger (15ms) apart, after the logo; the sidebar's bottom buttons (the sidebar button and the mode switch) after them, with the button preset (fade and rise)
-    row: { preset: 'button', delay: 'duration.1905', stagger: 'delay.15' },
-    actions: { preset: 'button', delay: 'duration.1980' },
+    row: { preset: 'button', delay: 'duration.1725', stagger: 'delay.15' },
+    actions: { preset: 'button', delay: 'duration.1800' },
   },
   interaction: {
     initial: 'collapsed',

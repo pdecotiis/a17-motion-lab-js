@@ -1,5 +1,7 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
 import { v4 } from './v4.js';
+// Retimed: the page elements come in together, starting 120ms after the title (with the page going to white where there is one), as in page version v11.
+// Retimed: the idle part of the wait after the title is halved (the page elements come in 370ms after the title instead of 740); comments below that give the earlier times are the earlier sequence.
 
 // v6: the header of the white opening (page version v12). It is there (it holds its 80px above the title) but not shown, and 1 second after the title's last line has faded in (1640ms) it comes in with the nav: its two buttons each scale up
 // from 95%, fade in and move down 12px into place, 15ms apart (400ms on expressive-entrance). The buttons keep their hover and press (the button preset).
@@ -13,8 +15,8 @@ export const v6: MotionVersion = {
   model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-entrance' },
   keyframes: [{ opacity: 1, offset: 0 }, { opacity: 1, offset: 1 }],
   layers: {
-    search: { model: { model: 'tween', duration: 'duration.400', easing: 'easing.expressive-entrance', delay: 'duration.1640' }, keyframes: BUTTON_IN },
-    join: { model: { model: 'tween', duration: 'duration.400', easing: 'easing.expressive-entrance', delay: 'duration.1655' }, keyframes: BUTTON_IN },
+    search: { model: { model: 'tween', duration: 'duration.400', easing: 'easing.expressive-entrance', delay: 'duration.1020' }, keyframes: BUTTON_IN },
+    join: { model: { model: 'tween', duration: 'duration.400', easing: 'easing.expressive-entrance', delay: 'duration.1035' }, keyframes: BUTTON_IN },
   },
   forkedFrom: 'v5',
 };

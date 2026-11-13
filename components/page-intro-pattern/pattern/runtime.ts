@@ -182,6 +182,12 @@ export function runDotField(container: HTMLElement): (() => void) | null {
   const ACCENTS = ['--background-accent-primary', '--background-accent-1', '--background-accent-2', '--background-accent-3'];
   const ACCENT_KEY = 'a17-pattern-accent';
   let lastTintPlay: Animation | null = null;
+  let lastClickPlay: Animation | null = null, clickedThisPlay = false;
+  const ringColours = new Map<number, number[]>(), ringColoured = new WeakSet<object>();   // the intro click's colour (an accent of the page), by the time of the click, and the rings that have taken it
+  const accentRgb = (name: string): number[] => {
+    const hex = getComputedStyle(container).getPropertyValue(name).trim().replace('#', '');
+    return hex.length === 6 ? [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16)) : ORANGE;
+  };
   const nextAccent = (el: HTMLElement): void => {
     let next = 0;
     try { next = (Number.parseInt(localStorage.getItem(ACCENT_KEY) ?? '-1', 10) + 1) % ACCENTS.length; localStorage.setItem(ACCENT_KEY, String(next)); } catch { /* no storage: always the first */ }
@@ -236,6 +242,20 @@ export function runDotField(container: HTMLElement): (() => void) | null {
     if (!ctx) return;
     const cell = Math.max(4, sc.cellSize), cols = Math.max(1, Math.ceil(w / cell)), rows = Math.max(1, Math.ceil(h / cell)), now = performance.now();
     updateDarkness(now);
+    // A version can have the pattern click itself once as the intro starts: the invisible .page-intro-pattern__click element's opacity goes from 0 to 1, and the moment it starts to show (the time of the version's layer) a ring comes out of a
+    // different place each play, around the title, exactly as a visitor's click makes it on the site. It rings once for each play.
+    const clickEl = container.parentElement?.querySelector<HTMLElement>('.page-intro-pattern__click') ?? null;
+    const clickPlay = clickEl?.getAnimations()[0] ?? null;
+    if (clickPlay !== lastClickPlay) { lastClickPlay = clickPlay; clickedThisPlay = false; }
+    if (clickEl && clickPlay && !clickedThisPlay && (parseFloat(getComputedStyle(clickEl).opacity) || 0) > 0.01) {
+      clickedThisPlay = true;
+      // a plain click, nothing of the page's own added (no strength, size or slowing of the ring): the site's ripple as a visitor's click makes it, but in one of the page's accent colours rather than the site's random one
+      // somewhere different each play: anywhere across the middle three fifths of the width, and between 240 and 600px down (behind and around the title)
+      const x = w * (0.2 + Math.random() * 0.6), y = Math.min(h, 240 + Math.random() * 360);
+      const time = performance.now();
+      ringColours.set(time, accentRgb(ACCENTS[Math.floor(Math.random() * ACCENTS.length)]!));   // one of the page's four accent colours
+      clicks.push({ x, y, time });
+    }
     const dt = last === null ? 0 : Math.min(0.1, (now - last) / 1000);
     last = now;
     sc.cellSize = siteCellSize();
@@ -252,6 +272,7 @@ export function runDotField(container: HTMLElement): (() => void) | null {
     const rippleState = styleState as { ripples?: { startTime: number; color: number[] }[]; rippleStrength?: number; rippleSizeBoost?: number } | null;
     let ringUp = false, strength = 0;
     for (const ripple of rippleState?.ripples ?? []) {
+      if (!ringColoured.has(ripple) && ringColours.has(ripple.startTime)) { ringColoured.add(ripple); ripple.color = ringColours.get(ripple.startTime)!; }
       if (!pulseStart.has(ripple) && pulseColours.has(ripple.startTime)) { pulseStart.set(ripple, ripple.startTime); ripple.color = pulseColours.get(ripple.startTime)!; }
       const began = pulseStart.get(ripple);
       if (began === undefined) continue;

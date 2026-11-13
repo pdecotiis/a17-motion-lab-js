@@ -152,3 +152,11 @@ Token governance: token habits, off-system badge, nearest-token suggestions, app
 ## Bento: fixed columns (card-routing-shuffle v8, homepage page version v15)
 
 v8 forks v6: two arrangements (v6's first and its flip), each column keeps its card (Machine Learning, Trading, Technology). A Trading card (i1t) was added on top of column 2 so it can flip. Page version v15 = v11 with this bento (two bullets only). Tests: tests/unit/shuffle-fixed-columns.test.ts. Numbered v8 (not v10): version files may not skip numbers.
+
+## Homepage opening, modules and bento (page versions v11 to v15)
+
+- **One movement**: after the title (ends 900ms) the white fade, header, nav and bento start together at 1020ms (v11 and v15 menu v11, header v9; v12/v14 and v13 retimed to the same points); the shuffle bento's controls come in 235ms after the pictures start to open. Wait tokens named by value are experimental.
+- **Modules below the bento**: card-feature v4, prompts-footer-section v5 (row hover: arrow swap, from the old lab's prompt item) and footer v1 (static) on v11 to v15. Page option `lockScroll` (homepage): no scrolling while it opens, and sections that wait for scroll stay hidden until the opening ends.
+- **Eyebrow scramble**: GSAP ScrambleText scrubbed by the label layer's animation (`components/card-feature/scramble.ts`), lowercase, spaces kept; wait plus scramble total 560ms.
+- **Bento**: v11, v12, v14, v15 use card-routing-shuffle v10 (fixed columns, four arrangements, the black bullets pill only, no two cards of a colour, cards alternate top/bottom; a card on top goes with picture B, at the bottom with picture A, so a new picture opens between in every column); pictures do not fade while their cell scales away. v13 keeps the morph bento. The cards' arrows have a circle behind them on hover and press (`circle` layer of the card preset's interaction, only where the markup has one).
+- **Pattern**: v12/v14 start at 25%-strength dots; every pattern version clicks itself once at 300ms (random place, a random accent, the site's own ripple); the logo rings spin while loading (menu v9, v10, v11) and the wordmark enters like the logomark in menu v11.

@@ -40,7 +40,13 @@ export function interactionOfPreset(name: string): Interaction {
     transitions['pressed'] = tween(ix.press.timing);
     triggers.push({ on: 'press', state: 'pressed' });
   }
-  return { initial: 'default', states, transitions, triggers };
+  // A card whose markup has a circle behind its arrow (an element named `circle` inside it) shows it too: black at the hover's tint on hover, at the press's tint while pressed (the feature card's hover). An element
+  // with no `circle` inside it is skipped, so it only matters to the cards that have one.
+  const clear = 'rgba(0, 0, 0, 0)', black = (t: number): string => `rgba(0, 0, 0, ${t})`;
+  const circle: Record<string, Record<string, string>> = { default: { backgroundColor: clear } };
+  if (ix.hover) circle['hovered'] = { backgroundColor: black(ix.hover.tint) };
+  if (ix.press) circle['pressed'] = { backgroundColor: black(ix.press.tint) };
+  return { initial: 'default', states, transitions, triggers, layers: { circle: { states: circle } } };
 }
 
 /** A version whose interaction is the preset's: what an element that uses the preset plays (the player takes the element as its root). */

@@ -1,9 +1,10 @@
 import type { MotionVersion } from '../../../lab/lib/types.js';
+// Retimed: the idle part of the wait after the title is halved (the black to white starts 120ms after the title instead of 240, and the page elements 60ms after it instead of 120); comments below that give the earlier times are the earlier sequence.
 
 // v6: the opening's title. White on the dark (the page's dark), it comes in a line at a time with the text preset (each line fades and rises 16px, 560ms on expressive-entrance), the second line one default stagger
 // (this project's, the middle delay token: delay.40) after the first, starting 300ms in, after the logomark: the first line at 300ms, the second at 340ms, done at 900ms. Then, as the page goes to white (from 1140ms, over 400ms
 // on expressive-entrance, the same as the pattern's), the title goes from white to the page's text colour so it can be read on the white. Both are fixed times from the start of the opening, not counted from the end of the entrance.
-const LIGHTS = { model: 'tween' as const, duration: 'duration.560', easing: 'easing.expressive-entrance', delay: 'duration.1140' };
+const LIGHTS = { model: 'tween' as const, duration: 'duration.560', easing: 'easing.expressive-entrance', delay: 'duration.1020' };
 
 export const v8: MotionVersion = {
   id: 'v8',

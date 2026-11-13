@@ -27,7 +27,7 @@
 /* A picture (or the video) fills its cell and the cell crops it, but it only partly follows the cell's height, so it zooms less as the cell grows or shrinks:
    its height is a mix of the cell's own height and the tallest a cell gets (two rows, 472 of the column's 712). --photo-follow is how much it follows: 1 fits the cell exactly (it
    zooms the most as the cell animates), 0 never changes size (the cell is a window onto one fixed picture, so a short cell shows a zoomed-in part of it). */
-.card-routing-shuffle { --photo-follow: 0.5; }
+.card-routing-shuffle { --photo-follow: 0.2; }
 .card-routing-shuffle__photo {
   position: absolute; top: 50%; left: 50%; display: block; max-width: none; aspect-ratio: 16 / 9; width: auto; object-fit: cover;
   height: calc(var(--photo-follow) * 100% + (1 - var(--photo-follow)) * 66.292cqh);   /* two rows is the tallest a cell gets: 472 of 712 */ transform: translate(-50%, -50%);
@@ -124,3 +124,11 @@
 .card-routing-shuffle:is([data-state="cards-only"], [data-state^="arrangement-"]) .card-routing-shuffle__cell { border-radius: 0; clip-path: inset(0 0 8px 0 round var(--size-24)); }
 .card-routing-shuffle:is([data-state="cards-only"], [data-state^="arrangement-"]) .card-routing-shuffle__inner { bottom: 8px; }
 .card-routing-shuffle:is([data-state="cards-only"], [data-state^="arrangement-"]) .card-routing-shuffle__photo { top: calc(50% - 4px); }
+/* a version with no arrows or play / pause sets the pager to no height, which takes it out of the layout, the tab order and the pointer's way; the bar keeps its 72px, so the bullets let go 24px below the cards as they do with the arrows */
+.card-routing-shuffle__pager[style*="height: 0px"] { display: none; }
+/* each pager button sits in a span of its own so a version can bring them in one after another (the span moves, the button keeps its hover and press) */
+.card-routing-shuffle__pg { display: flex; }
+.card-routing-shuffle__pg--playpause { display: none; }
+.card-routing-shuffle[data-pausable] .card-routing-shuffle__pg--playpause { display: flex; }
+/* the circle behind a card's arrow (shown on hover and press by the card preset): 48px round around the 24px arrow, taking no room of its own */
+.card-routing-shuffle__circle { display: block; flex: none; box-sizing: content-box; width: 24px; height: 24px; margin: -12px; padding: 12px; border-radius: 50%; }

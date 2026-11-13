@@ -188,6 +188,8 @@ export interface PageConfig {
   /** How long the sections that play as the page opens wait first (a duration or delay token, or a time such as "2500ms"), so something that is not a section
    *  (a background pattern that fades away) can show before the page fades in. Sections that play later, on scroll, do not wait. Absent = no wait. */
   hold?: string;
+  /** true = the page cannot be scrolled while it opens: from the start until the sections that play as it opens have finished, so content below that waits for scroll is not revealed early. Absent = scrollable throughout. */
+  lockScroll?: boolean;
   components: PageComponent[];
 }
 
