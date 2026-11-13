@@ -19,6 +19,13 @@
   .page-header-title__title { font-size: 32px; }
   .footer { min-height: 0; padding: 64px 20px 32px; }
   .footer__links { flex-wrap: wrap; height: auto; gap: 8px 20px; }
-  .footer__top { top: 64px; right: 20px; }
+  .footer { display: flex; flex-direction: column; }
+  .footer__top { position: static; order: 3; align-self: flex-end; margin-top: 24px; }
   .footer__legal { max-width: none; }
+  /* Read Next: the title above, the prompts under it, each at the full width */
+  .prompts-footer-section { padding-top: 48px; }
+  .prompts-footer-section__card { flex-direction: column; min-height: 0; }
+  .prompts-footer-section__prompts { width: 100%; flex: none; }
+  .prompts-footer-section__title { font-size: 24px; }
+  .prompts-footer-section__prompt-text { font-size: 14px; }
 }
