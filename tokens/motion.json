@@ -105,10 +105,18 @@
         "status": "experimental"
       }
     },
-    "1080": {
+    "1160": {
       "$type": "duration",
-      "$value": "1080ms",
-      "$description": "A wait, for the page's opening: the bento's first move comes this long after its cards are in, so it starts with the header and the sidebar. Specific to that animation; not a duration for a move.",
+      "$value": "1160ms",
+      "$description": "A wait, for the white opening: the wordmark, the header and the sidebar start at the moment the bento goes to its next state (its cards are in at 1060ms, and it waits 100ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1175": {
+      "$type": "duration",
+      "$value": "1175ms",
+      "$description": "A wait, for the page's opening: the white opening: the navigation items start one stagger (15ms) after the logo, the second header button after the first (1160ms + 15ms). Specific to that animation; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }
@@ -120,10 +128,34 @@
         "status": "experimental"
       }
     },
-    "1340": {
+    "1250": {
       "$type": "duration",
-      "$value": "1340ms",
-      "$description": "A wait, for the page's opening: the page starts going to white, a beat after the logomark's rings have unlocked (700 to 1100ms). Specific to that animation; not a duration for a move.",
+      "$value": "1250ms",
+      "$description": "A wait, for the page's opening: the white opening: the sidebar's bottom buttons start after the five navigation items, a stagger (15ms) apart (1175ms + 5 x 15ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1360": {
+      "$type": "duration",
+      "$value": "1360ms",
+      "$description": "A wait, for the page's opening: the page starts going to white at the same moment the header, the sidebar and the bento's sequence start, once the cards are in (the bento waits 300ms after its cards at 1060ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1375": {
+      "$type": "duration",
+      "$value": "1375ms",
+      "$description": "A wait, for the page's opening: the navigation items start one stagger (15ms) after the logo, the second header button after the first (1360ms + 15ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1450": {
+      "$type": "duration",
+      "$value": "1450ms",
+      "$description": "A wait, for the page's opening: the sidebar's bottom buttons start after the five navigation items, a stagger (15ms) apart (1375ms + 5 x 15ms). Specific to that animation; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }
@@ -140,14 +172,6 @@
       "$type": "duration",
       "$value": "1660ms",
       "$description": "A wait, for the page's opening: the logomark rings' whole move (unlock at 700ms, with the last card, hold, and back at 2140ms, done at 2360ms). Specific to that animation; not a duration for a move.",
-      "$extensions": {
-        "status": "experimental"
-      }
-    },
-    "2140": {
-      "$type": "duration",
-      "$value": "2140ms",
-      "$description": "A wait, for the page's opening: the header, the sidebar and the bento's sequence start when the page has finished going to white (1340ms + 800ms). Specific to that animation; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }

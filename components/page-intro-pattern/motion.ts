@@ -4,14 +4,15 @@ import { v2 } from './versions/v2.js';
 import { v3 } from './versions/v3.js';
 import { v4 } from './versions/v4.js';
 import { v5 } from './versions/v5.js';
+import { v6 } from './versions/v6.js';
 import { watchDotFields } from './pattern/start.js';
 
 // The pattern is code, not markup: this starts the dot fields wherever the lab puts one on screen.
 watchDotFields();
 
 // One file per version in ./versions/. Add new versions there and list them here.
-export { v1, v2, v3, v4, v5 };
-export const versions: MotionVersion[] = [v1, v2, v3, v4, v5];
+export { v1, v2, v3, v4, v5, v6 };
+export const versions: MotionVersion[] = [v1, v2, v3, v4, v5, v6];
 export const defaultVersion = 'v1';
 
 const module: ComponentModule = { versions, defaultVersion };

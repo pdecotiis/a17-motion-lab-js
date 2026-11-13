@@ -1,0 +1,15 @@
+{
+  "id": "v12",
+  "label": "White opening: the page is white throughout; logo, title, cards, then wordmark, header, sidebar and bento sequence together",
+  "motionMap": {
+    "menu": "v9",
+    "page-intro-pattern": "v6",
+    "header": "v6",
+    "page-header-title": "v7",
+    "grid-container-mosaic-routing": "card-routing-shuffle@v7",
+    "card-feature": "none",
+    "prompts-footer-section": "none"
+  },
+  "stagger": "none",
+  "forkedFrom": "v11"
+}
