@@ -931,3 +931,8 @@ html, body {
 
 /* Text links use the kit's interactive/primary blue (the nav, the logo and the cards are links too, but they are not text links). */
 .lab-breadcrumb a, .lab-history__item a, .lab-token-chip-link, .lab-ask a, .lab-notice a, .lab-settings a, .lab-scale-panel a, .lab-sidebar a { color: var(--color-link); }
+
+/* The page version's Archive row: the version on screen, then each archived one with its Unarchive, under the Version select. */
+.lab-archive-row { display: flex; flex-direction: column; gap: 4px; }
+.lab-archive-row:empty { display: none; }
+.lab-archive-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: var(--type-caption); color: var(--color-text-muted); }

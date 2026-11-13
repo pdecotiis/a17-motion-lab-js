@@ -3,9 +3,10 @@
  * The file-writing half of the component view's Archive button (see version-archive-plugin.ts). It writes only that one small file, never touches
  * a version file, and refuses to archive the last version still in play.
  */
-import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { ARCHIVE_FILE, archivedIdsOf, serializeArchived, withArchived } from '../lab/lib/archived.js';
+import { withArchived } from '../lab/lib/archived.js';
+import { readArchiveFile, writeArchiveFile } from './archive-save.js';
 
 export interface ArchiveInput {
   component: string;
@@ -22,11 +23,7 @@ export function versionIdsOf(root: string, component: string): string[] {
 }
 
 /** The versions archived now. */
-export function archivedVersions(root: string, component: string): string[] {
-  const file = join(root, 'components', component, ARCHIVE_FILE);
-  if (!existsSync(file)) return [];
-  try { return archivedIdsOf(JSON.parse(readFileSync(file, 'utf8'))); } catch { return []; }
-}
+export const archivedVersions = (root: string, component: string): string[] => readArchiveFile(join(root, 'components', component)).versions;
 
 export function setVersionArchived(root: string, input: ArchiveInput): string[] {
   if (!SAFE_NAME.test(input.component)) throw new Error('That component name is not valid.');
@@ -36,7 +33,7 @@ export function setVersionArchived(root: string, input: ArchiveInput): string[] 
   const now = archivedVersions(root, input.component).filter(v => all.includes(v));
   const next = withArchived(now, input.version, input.archived);
   if (input.archived && all.every(v => next.includes(v))) throw new Error('Keep at least one version in play: this is the last one.');
-  const file = join(root, 'components', input.component, ARCHIVE_FILE);
-  if (next.length === 0) { if (existsSync(file)) unlinkSync(file); } else writeFileSync(file, serializeArchived(next));
+  const dir = join(root, 'components', input.component);
+  writeArchiveFile(dir, { ...readArchiveFile(dir), versions: next });
   return next;
 }

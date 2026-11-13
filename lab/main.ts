@@ -34,7 +34,7 @@ import { getStepRefs, presetStateTokens, pairingWarnings, buildUsageIndex, build
 import { buildVersionCss } from './lib/css-output.js';
 import { renderScaleSettings, SCALE_FLASH_KEY } from './lib/scale-settings.js';
 import { toast, toastAfterReload, showPendingToast } from './lib/toast.js';
-import { archivedIdsOf, applyArchived, isArchived, activeVersions } from './lib/archived.js';
+import { archivedIdsOf, applyArchived, isArchived, activeVersions, parseArchiveFile, applyComponentArchived, pagePasses, pageVersionsInPlay, nextPageVersion, withArchived } from './lib/archived.js';
 import type { Json } from './lib/scale-apply.js';
 import { defaultStaggerOf, PAGE_STAGGER_DEFAULT, PAGE_STAGGER_NONE, delayTokenPaths, staggerFromParam, pageStaggerToken, pageHoldMs } from './lib/stagger.js';
 import { buildExportCode, EXPORT_FORMATS, EXPORT_LABELS, type ExportFormat } from './lib/export-code.js';
@@ -204,7 +204,68 @@ const archivedFiles = import.meta.glob<unknown>('../components/*/archived.json',
 for (const [path, config] of Object.entries(archivedFiles)) {
   const name = path.split('/')[2];
   const mod = name ? motionModules[`../components/${name}/motion.ts`] : undefined;
-  if (mod) applyArchived(mod.versions, archivedIdsOf(config));
+  if (mod) { applyArchived(mod.versions, archivedIdsOf(config)); applyComponentArchived(mod, parseArchiveFile(config).component); }
+}
+// Archived pages and page versions: pages/<id>/archived.json (`"page": true`, `"versions": ["v3"]`), read the same way.
+const archivedPages = new Set<string>();
+const archivedPageVersionIds = new Map<string, Set<string>>();
+for (const [path, config] of Object.entries(import.meta.glob<unknown>('../pages/*/archived.json', { eager: true, import: 'default' }))) {
+  const id = path.split('/')[2];
+  if (!id) continue;
+  const parsed = parseArchiveFile(config);
+  if (parsed.page) archivedPages.add(id);
+  archivedPageVersionIds.set(id, new Set(parsed.versions));
+}
+const pageVersionsArchivedOf = (page: string): ReadonlySet<string> => archivedPageVersionIds.get(page) ?? new Set<string>();
+const ARCHIVE_ENDPOINT = '/__lab/archive';
+const archiveAllServerReady: Promise<boolean> = fetch(ARCHIVE_ENDPOINT).then(r => (r.ok ? r.json() : null)).then((i: { available?: boolean } | null) => i?.available === true).catch(() => false);
+// Disable an Archive button (and say why) when there is no dev server to write the file.
+function needsArchiveServer(btn: HTMLButtonElement): void {
+  void archiveAllServerReady.then(ready => { if (!ready) { btn.disabled = true; btn.title = 'Archiving needs the dev server (npm run dev)'; } });
+}
+async function postArchive<T>(body: Record<string, unknown>, failTitle: string): Promise<T | null> {
+  try {
+    const res = await fetch(ARCHIVE_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const out = (await res.json()) as T & { error?: string };
+    if (!res.ok || (out as { archived?: unknown }).archived === undefined) throw new Error(out.error ?? `The server said ${res.status}`);
+    return out;
+  } catch (e) {
+    toast(failTitle, { kind: 'error', description: (e as Error).message });
+    return null;
+  }
+}
+// Archive or unarchive a whole component: the dev server writes components/<name>/archived.json; the module reads as archived (or its own status again).
+async function setComponentArchived(name: string, archived: boolean): Promise<void> {
+  const out = await postArchive<{ archived: boolean }>({ kind: 'component', component: name, archived }, archived ? 'Could not archive' : 'Could not unarchive');
+  if (!out) return;
+  const mod = motionModules[`../components/${name}/motion.ts`];
+  if (mod) applyComponentArchived(mod, out.archived);
+  toast(archived ? 'Component archived' : 'Component unarchived', { description: name });
+  renderComponentView(new URLSearchParams(window.location.search));
+}
+async function setPageArchived(id: string, archived: boolean): Promise<void> {
+  const out = await postArchive<{ archived: boolean }>({ kind: 'page', page: id, archived }, archived ? 'Could not archive' : 'Could not unarchive');
+  if (!out) return;
+  if (out.archived) archivedPages.add(id); else archivedPages.delete(id);
+  toast(archived ? 'Page archived' : 'Page unarchived', { description: id });
+  renderPageView(new URLSearchParams(window.location.search));
+}
+// Archive or unarchive a page version; the one on screen moves to the first still in play.
+async function setPageVersionArchived(id: string, versionId: string, archived: boolean, all: { id: string }[]): Promise<void> {
+  const firstBefore = pageVersionsInPlay(all, pageVersionsArchivedOf(id))[0]?.id;
+  const out = await postArchive<{ archived: string[] }>({ kind: 'page-version', page: id, version: versionId, archived }, archived ? 'Could not archive' : 'Could not unarchive');
+  if (!out) return;
+  archivedPageVersionIds.set(id, new Set(out.archived));
+  toast(archived ? 'Version archived' : 'Version unarchived', { description: `${id} ${versionId}` });
+  const sp = new URLSearchParams(window.location.search);
+  const onScreen = sp.get('pv') ?? firstBefore;
+  if (archived && onScreen === versionId) {
+    const next = nextPageVersion(all, pageVersionsArchivedOf(id));
+    if (next) { sp.set('pv', next); sp.delete('mm'); sp.delete('pageStagger'); }
+  }
+  if (archived && sp.get('compare') === versionId) sp.delete('compare');
+  window.history.replaceState(null, '', `?${sp.toString()}`);
+  renderPageView(sp);
 }
 const VERSION_ARCHIVE_ENDPOINT = '/__lab/version-archive';
 // Is there a dev server to write the archived list with? (A built copy has none.)
@@ -545,7 +606,8 @@ document.addEventListener('keydown', event => {
   } else {
     const select = document.getElementById('page-version-select') as HTMLSelectElement | null;
     if (!select) return;
-    const next = select.selectedIndex + step;
+    let next = select.selectedIndex + step;
+    while (next >= 0 && next < select.options.length && select.options[next]!.disabled) next += step;
     if (next < 0 || next >= select.options.length) return;
     select.selectedIndex = next;
     select.dispatchEvent(new Event('change'));
@@ -1098,6 +1160,11 @@ function renderComponentView(params: URLSearchParams): void {
             <ol class="lab-history" id="version-history"></ol>
           </div>
         </details>
+        <section class="lab-controls lab-code-row" aria-label="Archive component">
+          <h3 class="lab-controls__title">Archive component</h3>
+          <p class="lab-code-row__text" id="archive-component-text"></p>
+          <button class="lab-btn lab-btn--sm" id="archive-component-btn" type="button"></button>
+        </section>
         <section class="lab-controls lab-code-row" aria-label="Generated code">
           <h3 class="lab-controls__title">Generated code</h3>
           <p class="lab-code-row__text">CSS, GSAP or Motion, written from this version for a developer.</p>
@@ -1117,6 +1184,16 @@ function renderComponentView(params: URLSearchParams): void {
   addPanelResizer(main);
   document.getElementById('preview-btn')?.addEventListener('click', () => navigate(previewHref(true)));
   document.getElementById('breadcrumb-current')!.textContent = componentName;
+  {
+    const componentArchived = motionModules[`../components/${componentName}/motion.ts`]?.status === 'archived';
+    const btn = document.getElementById('archive-component-btn') as HTMLButtonElement;
+    btn.textContent = componentArchived ? 'Unarchive' : 'Archive';
+    document.getElementById('archive-component-text')!.textContent = componentArchived
+      ? 'Archived: hidden from the Components list unless Show archived is on.'
+      : 'Hide this component from the Components list. Nothing is deleted.';
+    btn.addEventListener('click', () => { btn.disabled = true; void setComponentArchived(componentName, !componentArchived); });
+    needsArchiveServer(btn);
+  }
   bindPlaybackBar();
 
   // Version tabs
@@ -1510,7 +1587,9 @@ function renderPageView(params: URLSearchParams): void {
 
   const versions = getPageVersions(pageName, pageConfig);
   const pv = params.get('pv');
-  const active = versions.find(v => v.id === pv) ?? versions[0]!;
+  const archivedIds = pageVersionsArchivedOf(pageName);
+  const active = versions.find(v => v.id === pv) ?? pageVersionsInPlay(versions, archivedIds)[0] ?? versions[0]!;
+  const pageIsArchived = archivedPages.has(pageName);
   const compareParam = params.get('compare');
   const compareWith = isPreview(params) ? undefined : versions.find(v => v.id === compareParam && v.id !== active.id);
 
@@ -1550,14 +1629,15 @@ function renderPageView(params: URLSearchParams): void {
           <div class="lab-control-group">
             <label class="lab-control-label" for="page-version-select">Version</label>
             <select class="lab-select" id="page-version-select">
-              ${versions.map(v => `<option value="${v.id}">${v.id}: ${v.label}</option>`).join('')}
+              ${versions.map(v => `<option value="${v.id}"${archivedIds.has(v.id) ? ' disabled' : ''}>${v.id}: ${v.label}${archivedIds.has(v.id) ? ' (archived)' : ''}</option>`).join('')}
             </select>
           </div>
+          <div class="lab-archive-row" id="page-version-archive-row"></div>
           <div class="lab-control-group">
             <label class="lab-control-label" for="page-compare-select">Compare with</label>
             <select class="lab-select" id="page-compare-select">
               <option value="">None</option>
-              ${versions.filter(v => v.id !== active.id).map(v => `<option value="${v.id}">${v.id}: ${v.label}</option>`).join('')}
+              ${versions.filter(v => v.id !== active.id).map(v => `<option value="${v.id}"${archivedIds.has(v.id) ? ' disabled' : ''}>${v.id}: ${v.label}${archivedIds.has(v.id) ? ' (archived)' : ''}</option>`).join('')}
             </select>
           </div>
           ${compareWith ? `<label class="lab-check"><input type="checkbox" id="page-actual-size"${actualSize ? ' checked' : ''}> Actual size (scroll sideways)</label>` : ''}
@@ -1584,6 +1664,11 @@ function renderPageView(params: URLSearchParams): void {
           <h3 class="lab-controls__title">Motion Map</h3>
           <div id="motion-map-panel" class="lab-motion-map-panel"></div>
           <p class="lab-text-muted lab-controls__hint">The page is a fixed-height window: scroll it. A section whose version plays on scroll waits until it enters the window; Replay All scrolls back to the top.</p>
+        </section>
+        <section class="lab-controls lab-code-row" aria-label="Archive page">
+          <h3 class="lab-controls__title">Archive page</h3>
+          <p class="lab-code-row__text">${pageIsArchived ? 'Archived: hidden from the Pages list unless Show archived is on.' : 'Hide this page from the Pages list. Nothing is deleted.'}</p>
+          <button class="lab-btn lab-btn--sm" id="archive-page-btn" type="button">${pageIsArchived ? 'Unarchive' : 'Archive'}</button>
         </section>
         <section class="lab-controls" aria-label="Stagger">
           <h3 class="lab-controls__title">Stagger</h3>
@@ -1882,6 +1967,36 @@ function renderPageView(params: URLSearchParams): void {
     syncUrl();
     playColumn(primary);
   });
+
+  // Archive the version on screen, or bring an archived one back; archived versions stay in the lists, disabled.
+  {
+    const row = document.getElementById('page-version-archive-row')!;
+    const inPlay = pageVersionsInPlay(versions, archivedIds).length;
+    const make = (version: { id: string }, archived: boolean): HTMLElement => {
+      const wrap = document.createElement('div');
+      wrap.className = 'lab-archive-item';
+      const label = document.createElement('span');
+      label.textContent = archived ? `${version.id} (archived)` : version.id;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'lab-version-archive';
+      btn.dataset['archivePageVersion'] = version.id;
+      btn.textContent = archived ? 'Unarchive' : 'Archive';
+      const lastOne = !archived && inPlay <= 1;
+      btn.disabled = lastOne;
+      btn.title = lastOne ? 'Keep at least one version in play' : archived ? `Bring ${version.id} back` : `Archive ${version.id}: it stays in the list, disabled`;
+      btn.setAttribute('aria-label', `${archived ? 'Unarchive' : 'Archive'} ${version.id}`);
+      btn.addEventListener('click', () => { btn.disabled = true; void setPageVersionArchived(pageName, version.id, !archived, versions); });
+      needsArchiveServer(btn);
+      wrap.append(label, btn);
+      return wrap;
+    };
+    if (!archivedIds.has(active.id)) row.append(make(active, false));
+    for (const v of versions) if (archivedIds.has(v.id)) row.append(make(v, true));
+  }
+  const archivePageBtn = document.getElementById('archive-page-btn') as HTMLButtonElement;
+  archivePageBtn.addEventListener('click', () => { archivePageBtn.disabled = true; void setPageArchived(pageName, !pageIsArchived); });
+  needsArchiveServer(archivePageBtn);
 
   // Choosing a version or a comparison starts from that saved version: unsaved changes are dropped.
   const versionSelect = document.getElementById('page-version-select') as HTMLSelectElement;
@@ -2598,8 +2713,21 @@ function renderPagesView(params: URLSearchParams): void {
   count.id = 'pages-count';
   const meta = document.createElement('div');
   meta.className = 'lab-library__meta';
-  meta.appendChild(count);
+  const archivedToggleLabel = document.createElement('label');
+  archivedToggleLabel.className = 'lab-check';
+  const archivedToggle = document.createElement('input');
+  archivedToggle.type = 'checkbox';
+  archivedToggle.id = 'show-archived';
+  archivedToggle.checked = params.get('archived') === '1';
+  archivedToggleLabel.append(archivedToggle, document.createTextNode(' Show archived'));
+  meta.append(count, archivedToggleLabel);
   toolbar.append(filters, meta);
+  archivedToggle.addEventListener('change', () => {
+    const sp = new URLSearchParams(window.location.search);
+    if (archivedToggle.checked) sp.set('archived', '1'); else sp.delete('archived');
+    window.history.replaceState(null, '', `?${sp.toString()}`);
+    renderGrid();
+  });
   const grid = document.createElement('div');
   grid.className = 'lab-library__grid';
   grid.id = 'pages-grid';
@@ -2626,6 +2754,7 @@ function renderPagesView(params: URLSearchParams): void {
       .map(p => /\/pages\/([^/]+)\/page\.json$/.exec(p)?.[1])
       .filter((n): n is string => Boolean(n))
       .sort()
+      .filter(id => pagePasses(archivedPages.has(id), new URLSearchParams(window.location.search).get('archived') === '1'))
       .filter(id => !query || `${id} ${getPageConfig(id)?.title ?? ''}`.toLowerCase().replace(/-/g, ' ').includes(query));
     count.textContent = `${ids.length} page${ids.length === 1 ? '' : 's'}`;
     if (ids.length === 0) {
@@ -2670,7 +2799,7 @@ function renderPagesView(params: URLSearchParams): void {
       versions.className = 'lab-library-card__versions';
       const savedVersions = getPageVersions(id, config).length;
       versions.textContent = `${config.components.length} section${config.components.length === 1 ? '' : 's'} · ${savedVersions} version${savedVersions === 1 ? '' : 's'}`;
-      footer.append(name, versions);
+      footer.append(name, ...(archivedPages.has(id) ? [statusBadge('archived')] : []), versions);
 
       card.append(preview, footer);
       grid.appendChild(card);
