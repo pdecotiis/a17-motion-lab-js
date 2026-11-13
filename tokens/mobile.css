@@ -1,0 +1,24 @@
+/* Mobile (a page 400px wide): the page is a container (see .lab-page-grid), so these rules answer to the page's own width, not to the lab's window. The grid tokens are narrowed
+   for every section, then each component says what else changes. The motion is the same; only the layout is. */
+@container page (max-width: 520px) {
+  .lab-page-item {
+    --grid-xl-container: 100%;
+    --grid-xl-col-12: 100%;
+    --grid-xl-col-8: 100%;
+    --grid-xl-col-7: 100%;
+    --grid-xl-col-5: 100%;
+    --grid-xl-col-4: 100%;
+    --grid-xl-margin: 20px;
+    --layout-margin: 20px;
+    --space-11: 64px;
+    --space-12: 80px;
+  }
+  .header { height: 64px; padding-top: 12px; }
+  .page-header-title { padding-top: 48px; }
+  .page-header-title__title-lockup { width: 100%; }
+  .page-header-title__title { font-size: 32px; }
+  .footer { min-height: 0; padding: 64px 20px 32px; }
+  .footer__links { flex-wrap: wrap; height: auto; gap: 8px 20px; }
+  .footer__top { top: 64px; right: 20px; }
+  .footer__legal { max-width: none; }
+}
