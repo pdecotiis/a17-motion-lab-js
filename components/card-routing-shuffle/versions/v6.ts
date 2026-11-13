@@ -30,9 +30,9 @@ export const v6: MotionVersion = {
   ...v5,
   id: 'v6',
   label: 'Opening: cards fade in 40ms after the title, sequence starts when the page is white',
-  model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-entrance', delay: 'duration.560' },
-  layers: { o0: { preset: 'card', delay: 'duration.560' }, y1: { preset: 'card', delay: 'duration.630' }, g2: { preset: 'card', delay: 'duration.700' } },
-  interaction: { ...i5, hold: 'duration.300', transitions: { ...i5.transitions, [FIRST]: quick(i5.transitions![FIRST]!) }, layers: { ...firstMoveLayers, ...controls } },
+  model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-entrance', delay: 'duration.1120' },
+  layers: { o0: { preset: 'card', delay: 'duration.1120' }, y1: { preset: 'card', delay: 'duration.1190' }, g2: { preset: 'card', delay: 'duration.1260' } },
+  interaction: { ...i5, hold: 'duration.1080', transitions: { ...i5.transitions, [FIRST]: quick(i5.transitions![FIRST]!) }, layers: { ...firstMoveLayers, ...controls } },
   forkedFrom: 'v5',
 };
 

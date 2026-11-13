@@ -8,10 +8,11 @@ import { v6 } from './versions/v6.js';
 import { v7 } from './versions/v7.js';
 import { v8 } from './versions/v8.js';
 import { v9 } from './versions/v9.js';
+import { v10 } from './versions/v10.js';
 
 // One file per version in ./versions/. Add new versions there and list them here.
-export { v1, v2, v3, v4, v5, v6, v7, v8, v9 };
-export const versions: MotionVersion[] = [v1, v2, v3, v4, v5, v6, v7, v8, v9];
+export { v1, v2, v3, v4, v5, v6, v7, v8, v9, v10 };
+export const versions: MotionVersion[] = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10];
 export const defaultVersion = 'v1';
 
 const module: ComponentModule = { versions, defaultVersion };

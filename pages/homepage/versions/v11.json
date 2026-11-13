@@ -1,12 +1,12 @@
 {
   "id": "v11",
-  "label": "Opening: logo, title, rings unlock, cards, page goes to white, header, sidebar and bento sequence",
+  "label": "Opening: logo, title, black to white, header, nav and bento cards, then the pictures open and the controls come in",
   "motionMap": {
     "menu": "v8",
     "page-intro-pattern": "v5",
     "header": "v5",
     "page-header-title": "v6",
-    "grid-container-mosaic-routing": "card-routing-shuffle@v6",
+    "grid-container-mosaic-routing": "card-routing-shuffle@v9",
     "card-feature": "none",
     "prompts-footer-section": "none"
   },

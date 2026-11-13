@@ -33,6 +33,14 @@
         ]
       }
     },
+    "280": {
+      "$type": "duration",
+      "$value": "280ms",
+      "$description": "A duration, for the slideshow's colour cards: their title and arrow fade out in 280ms, twice as fast as the card's own 560ms morph. Specific to that animation.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
     "300": {
       "$type": "duration",
       "$value": "300ms",
@@ -43,6 +51,14 @@
     "400": {
       "$type": "duration",
       "$value": "400ms",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "470": {
+      "$type": "duration",
+      "$value": "470ms",
+      "$description": "A wait, for the bento's pagination controls in the homepage opening: they come in 470ms after the pictures start opening, when the last column (70ms late, 400ms long) has finished. Specific to that animation; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }
@@ -105,18 +121,34 @@
         "status": "experimental"
       }
     },
-    "1160": {
+    "1080": {
       "$type": "duration",
-      "$value": "1160ms",
-      "$description": "A wait, for the white opening: the wordmark, the header and the sidebar start at the moment the bento goes to its next state (its cards are in at 1060ms, and it waits 100ms). Specific to that animation; not a duration for a move.",
+      "$value": "1080ms",
+      "$description": "A wait, for the page's opening: the bento's pictures open this long after its cards are in (1060ms), 70ms after the sidebar (2140ms). Specific to that animation; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }
     },
-    "1175": {
+    "1120": {
       "$type": "duration",
-      "$value": "1175ms",
-      "$description": "A wait, for the page's opening: the white opening: the navigation items start one stagger (15ms) after the logo, the second header button after the first (1160ms + 15ms). Specific to that animation; not a duration for a move.",
+      "$value": "1120ms",
+      "$description": "A wait, for the page's opening: the first colour card starts a beat (480ms) after the title's last line has faded in (640ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1140": {
+      "$type": "duration",
+      "$value": "1140ms",
+      "$description": "A wait, for the page's opening (page version v13): the page starts going to white 500ms after the title has finished (its last line has faded in at 640ms); the fade takes 560ms. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1190": {
+      "$type": "duration",
+      "$value": "1190ms",
+      "$description": "A wait, for the page's opening: the second colour card starts 70ms after the first (1120ms + 70ms). Specific to that animation; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }
@@ -128,34 +160,10 @@
         "status": "experimental"
       }
     },
-    "1250": {
+    "1260": {
       "$type": "duration",
-      "$value": "1250ms",
-      "$description": "A wait, for the page's opening: the white opening: the sidebar's bottom buttons start after the five navigation items, a stagger (15ms) apart (1175ms + 5 x 15ms). Specific to that animation; not a duration for a move.",
-      "$extensions": {
-        "status": "experimental"
-      }
-    },
-    "1360": {
-      "$type": "duration",
-      "$value": "1360ms",
-      "$description": "A wait, for the page's opening: the page starts going to white at the same moment the header, the sidebar and the bento's sequence start, once the cards are in (the bento waits 300ms after its cards at 1060ms). Specific to that animation; not a duration for a move.",
-      "$extensions": {
-        "status": "experimental"
-      }
-    },
-    "1375": {
-      "$type": "duration",
-      "$value": "1375ms",
-      "$description": "A wait, for the page's opening: the navigation items start one stagger (15ms) after the logo, the second header button after the first (1360ms + 15ms). Specific to that animation; not a duration for a move.",
-      "$extensions": {
-        "status": "experimental"
-      }
-    },
-    "1450": {
-      "$type": "duration",
-      "$value": "1450ms",
-      "$description": "A wait, for the page's opening: the sidebar's bottom buttons start after the five navigation items, a stagger (15ms) apart (1375ms + 5 x 15ms). Specific to that animation; not a duration for a move.",
+      "$value": "1260ms",
+      "$description": "A wait, for the page's opening: the third colour card starts 70ms after the second (1190ms + 70ms). Specific to that animation; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }
@@ -168,10 +176,122 @@
         "status": "experimental"
       }
     },
-    "1660": {
+    "1640": {
       "$type": "duration",
-      "$value": "1660ms",
-      "$description": "A wait, for the page's opening: the logomark rings' whole move (unlock at 700ms, with the last card, hold, and back at 2140ms, done at 2360ms). Specific to that animation; not a duration for a move.",
+      "$value": "1640ms",
+      "$description": "A wait, for the white opening (page version v12): the pattern starts settling and the header and the nav come in together, 1 second after the title's last line has faded in (640ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1655": {
+      "$type": "duration",
+      "$value": "1655ms",
+      "$description": "A wait, for the white opening (page version v12): the second header button starts one stagger (15ms) after the first (1640ms + 15ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1710": {
+      "$type": "duration",
+      "$value": "1710ms",
+      "$description": "A wait, for the white opening (page version v12): the bento's first card comes in 70ms after the header and the nav (1640ms + 70ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1715": {
+      "$type": "duration",
+      "$value": "1715ms",
+      "$description": "A wait, for the white opening (page version v12): the sidebar's bottom buttons start after the five navigation items, a stagger (15ms) apart (1640ms + 5 x 15ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1780": {
+      "$type": "duration",
+      "$value": "1780ms",
+      "$description": "A wait, for the white opening (page version v12): the bento's second card comes in 70ms after the first (1710ms + 70ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1820": {
+      "$type": "duration",
+      "$value": "1820ms",
+      "$description": "A wait, for the page's opening (page version v13): the header comes in a beat (120ms) after the page has finished going to white (1140ms + 560ms); then the sidebar, then the bento's parts, 70ms apart. Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1835": {
+      "$type": "duration",
+      "$value": "1835ms",
+      "$description": "A wait, for the page's opening (page version v13): the second header button starts one stagger (15ms) after the first (1820ms + 15ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1850": {
+      "$type": "duration",
+      "$value": "1850ms",
+      "$description": "A wait, for the white opening (page version v12): the bento's third card comes in 70ms after the second (1780ms + 70ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1890": {
+      "$type": "duration",
+      "$value": "1890ms",
+      "$description": "A wait, for the page's opening (page version v13): the logo's wordmark and the sidebar come in 70ms after the header (1820ms + 70ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1905": {
+      "$type": "duration",
+      "$value": "1905ms",
+      "$description": "A wait, for the page's opening (page version v13): the navigation items start one stagger (15ms) after the logo (1890ms + 15ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1960": {
+      "$type": "duration",
+      "$value": "1960ms",
+      "$description": "A wait, for the page's opening (page version v13): the bento's first part comes in 70ms after the sidebar (1890ms + 70ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "1980": {
+      "$type": "duration",
+      "$value": "1980ms",
+      "$description": "A wait, for the page's opening (page version v13): the sidebar's bottom buttons start after the five navigation items, a stagger (15ms) apart (1905ms + 5 x 15ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "2030": {
+      "$type": "duration",
+      "$value": "2030ms",
+      "$description": "A wait, for the page's opening (page version v13): the bento's second part comes in 70ms after the first (1960ms + 70ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "2100": {
+      "$type": "duration",
+      "$value": "2100ms",
+      "$description": "A wait, for the page's opening (page version v13): the bento's third part comes in 70ms after the second (2030ms + 70ms). Specific to that animation; not a duration for a move.",
+      "$extensions": {
+        "status": "experimental"
+      }
+    },
+    "2170": {
+      "$type": "duration",
+      "$value": "2170ms",
+      "$description": "A wait, for the page's opening (page version v13): the bento's pagination controls come in 70ms after its last part (2100ms + 70ms). Specific to that animation; not a duration for a move.",
       "$extensions": {
         "status": "experimental"
       }

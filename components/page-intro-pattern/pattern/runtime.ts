@@ -170,6 +170,17 @@ export function runDotField(container: HTMLElement): (() => void) | null {
   // page is is that opacity, on every frame, and the state is not used.
   const lights = container.parentElement?.querySelector<HTMLElement>('.page-intro-pattern__lights') ?? null;
   let sawLights = false;
+  // A version can make the dots stronger for a while by animating the opacity of the invisible .page-intro-pattern__strength element (1 = at their strongest, 0 = as they are). The strength goes into the site's own drawing of a dot
+  // as `boost` (see the two changes marked "boost" in pattern-chunk.js): a dot is its colour mixed from the page colour toward the dot colour, and a boost of 1 takes the soft pull-back off that mix (a dot of 12% is 29%) and
+  // lets it go all the way (a factor of 1 for .85: 35%). The mix itself changes, a dot's own colour on every frame, so it moves smoothly from one strength to the other and never passes the page colour (no flash). Without an
+  // animation on the element the strength is 0 and the dots are drawn as the site draws them.
+  const strengthEl = container.parentElement?.querySelector<HTMLElement>('.page-intro-pattern__strength') ?? null;
+  let sawStrength = false;
+  const strengthNow = (): number => {
+    if (!strengthEl) return 0;
+    if (strengthEl.getAnimations().length > 0) sawStrength = true;
+    return sawStrength ? Math.max(0, Math.min(1, parseFloat(getComputedStyle(strengthEl).opacity) || 0)) : 0;
+  };
   const updateDarkness = (now: number): void => {
     if (lights && lights.getAnimations().length > 0) sawLights = true;
     if (sawLights) { darkness = parseFloat(getComputedStyle(lights!).opacity) || 0; return; }
@@ -234,7 +245,7 @@ export function runDotField(container: HTMLElement): (() => void) | null {
     const pageDark = pageIsDark();
     ctx.fillStyle = pageDark ? DARK_BACKGROUND : LIGHT_BACKGROUND; ctx.clearRect(0, 0, w, h); ctx.fillRect(0, 0, w, h);
     if (ctxDark) { ctxDark.clearRect(0, 0, w, h); ctxDark.fillStyle = LIGHTS_OUT; ctxDark.fillRect(0, 0, w, h); }
-    const mainParams = { ...styleParams, dark: pageDark };
+    const mainParams = { ...styleParams, dark: pageDark, boost: strengthNow() };
     const darkParams = { ...styleParams, dark: true };
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {

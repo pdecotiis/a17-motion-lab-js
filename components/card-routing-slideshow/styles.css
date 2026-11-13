@@ -73,3 +73,9 @@
 .card-routing-slideshow[data-held] .card-routing-slideshow__dot-fill { animation-play-state: paused !important; }
 @keyframes card-routing-slideshow-dot-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .card-routing-slideshow__dot-fill { animation: none !important; } .card-routing-slideshow__dot { transition: none; } }
+
+/* version v4 (the opening of page version v13): three arrangements, so three bullets. The states are slide-1 to slide-3 (machine learning, trading, technology); the other three bullets are not shown. */
+.card-routing-slideshow[data-state^="slide-"] [data-motion="dot-4"], .card-routing-slideshow[data-state^="slide-"] [data-motion="dot-5"], .card-routing-slideshow[data-state^="slide-"] [data-motion="dot-6"] { display: none; }
+.card-routing-slideshow[data-state="slide-1"] [data-motion="dot-1"], .card-routing-slideshow[data-state="slide-2"] [data-motion="dot-2"], .card-routing-slideshow[data-state="slide-3"] [data-motion="dot-3"] { width: 32px; }
+.card-routing-slideshow[data-state="slide-1"] [data-motion="dot-1"] .card-routing-slideshow__dot-fill, .card-routing-slideshow[data-state="slide-2"] [data-motion="dot-2"] .card-routing-slideshow__dot-fill,
+.card-routing-slideshow[data-state="slide-3"] [data-motion="dot-3"] .card-routing-slideshow__dot-fill { animation: card-routing-slideshow-dot-fill 5s linear forwards; }

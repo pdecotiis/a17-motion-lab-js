@@ -1,6 +1,6 @@
 {
   "id": "v12",
-  "label": "White opening: the page is white throughout; logo, title, cards, then wordmark, header, sidebar and bento sequence together",
+  "label": "White opening: full logo, title, then header and nav, bento cards, pictures open, controls",
   "motionMap": {
     "menu": "v9",
     "page-intro-pattern": "v6",

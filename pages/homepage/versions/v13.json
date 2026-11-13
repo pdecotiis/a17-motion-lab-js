@@ -1,0 +1,15 @@
+{
+  "id": "v13",
+  "label": "Opening with the three-arrangement bento: logo, title, white, then the page staggers in (header, nav, bento parts, controls)",
+  "motionMap": {
+    "menu": "v10",
+    "page-intro-pattern": "v7",
+    "header": "v7",
+    "page-header-title": "v8",
+    "grid-container-mosaic-routing": "card-routing-morph@v1",
+    "card-feature": "none",
+    "prompts-footer-section": "none"
+  },
+  "stagger": "none",
+  "forkedFrom": "v11"
+}
