@@ -1,6 +1,6 @@
 import type { MotionVersion } from './types.js';
 import { hasEntrance, playbackOf, stepsOf, type StepEntry } from './motion-models.js';
-import { presetOf, presetTracks } from './entrance-presets.js';
+import { hasScaleTrack, presetOf, presetTracks } from './entrance-presets.js';
 import { orderedKeyframes } from './css-output.js';
 import { getTokenRefs } from './token-refs.js';
 import { describeTrigger, getReducedMotionPolicy } from './version-meta.js';
@@ -90,7 +90,9 @@ function entranceLines(
     const timing = (m: { duration: string; easing: string }): string => `duration: ${seconds(parseMs(m.duration, raw))}, ease: ${str(ease.nameOf(m.easing))}`;
     const rise = parseFloat(String(raw[p.rise]));
     const scale = p.scale ? Number(raw[p.scale]) : undefined;
-    return `  ${name}: {\n    fade: { opacity: 0, ${timing(fade.model)} },\n    move: { y: ${num(rise)}, ${scale !== undefined ? `scale: ${num(scale)}, ` : ''}${timing(move.model)} },\n  },`;
+    const own = hasScaleTrack(p) ? tracks.find(t => t.track === 'scale') : undefined;   // a scale with timing of its own is a track of its own
+    const scaleRow = own ? `\n    scale: { scale: ${num(scale!)}, ${timing(own.model)} },` : '';
+    return `  ${name}: {\n    fade: { opacity: 0, ${timing(fade.model)} },\n    move: { y: ${num(rise)}, ${scale !== undefined && !own ? `scale: ${num(scale)}, ` : ''}${timing(move.model)} },${scaleRow}\n  },`;
   });
 
   const body: string[] = [], reduced: string[] = [];
@@ -102,9 +104,10 @@ function entranceLines(
     if (entry.preset) {
       const key = `${name}:${entry.preset}`;
       const gap = entry.elementStagger ? `, stagger: ${seconds(parseMs(entry.elementStagger, raw))}` : '';
-      const props = (track: 'fade' | 'move'): string => `{ ...presets.${entry.preset}.${track}${gap} }`;
+      const props = (track: 'fade' | 'move' | 'scale'): string => `{ ...presets.${entry.preset}.${track}${gap} }`;
       if (entry.track === 'fade' || entry.track === undefined) body.push(`  tl.from(${target}, ${props('fade')}, ${at});`);
-      if (entry.track !== 'fade') body.push(`  tl.from(${target}, ${props('move')}, ${at});`);
+      if (entry.track === 'move' || entry.track === 'all' || entry.track === undefined) body.push(`  tl.from(${target}, ${props('move')}, ${at});`);
+      if (entry.track === 'scale') body.push(`  tl.from(${target}, ${props('scale')}, ${at});`);
       if (!done.has(key) && (entry.track === 'fade' || entry.track === undefined)) {
         done.add(key);
         reduced.push(`  tl.from(${target}, { ...presets.${entry.preset}.fade${gap}, duration: ${seconds(Math.min(parseMs(String(presetTracks(entry.preset).find(t => t.track === 'fade')?.model.duration ?? presetTracks(entry.preset)[0]!.model.duration), raw), REDUCED_MOTION_FADE_MS))} }, ${at});`);

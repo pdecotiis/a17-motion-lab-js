@@ -2380,6 +2380,7 @@ function renderPresetsView(): void {
     title.title = [
       `rise ${p.rise}${p.scale ? `, from ${p.scale}` : ''}`,
       `move ${p.move.duration}, ${p.move.easing}`,
+      p.scaleMove ? `scale ${p.scaleMove.duration}, ${p.scaleMove.easing}` : null,
       p.fade ? `fade ${p.fade.duration}, ${p.fade.easing}` : null,
       p.status === 'system' ? 'system' : 'experimental',
       p.description ?? null,

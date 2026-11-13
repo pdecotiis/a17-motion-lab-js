@@ -1,0 +1,15 @@
+{
+  "id": "v8",
+  "label": "Sequenced opening: pattern, title, bento, then navigation and header",
+  "motionMap": {
+    "menu": "v4",
+    "page-intro-pattern": "v2",
+    "header": "v4",
+    "page-header-title": "v3",
+    "grid-container-mosaic-routing": "card-routing-slideshow@v2",
+    "card-feature": "v1",
+    "prompts-footer-section": "v1"
+  },
+  "stagger": "none",
+  "forkedFrom": "v7"
+}

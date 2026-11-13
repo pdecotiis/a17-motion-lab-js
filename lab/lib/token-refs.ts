@@ -181,7 +181,8 @@ export function pairingWarnings(version: MotionVersion, raw: Record<string, unkn
       ]
     : [];
   const motions = [
-    ...(version.interaction && !hasEntrance(version) ? [] : stepsOf(version).map(({ name, version: step }) => ({ name, model: step.model }))),
+    // (the scale of a preset that has its own timing is left out: a card's scale is an expressive easing over 300ms by design, see entrance-presets.ts)
+    ...(version.interaction && !hasEntrance(version) ? [] : stepsOf(version).filter(({ track }) => track !== 'scale').map(({ name, version: step }) => ({ name, model: step.model }))),
     ...stateMotions,
   ];
   return motions.flatMap(({ name, model }) => {

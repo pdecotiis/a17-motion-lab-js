@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  PRESETS, PRESET_NAMES, isPresetName, parsePresets, presetOf, presetTracks, validatePresetTokens,
+  PRESETS, PRESET_NAMES, hasScaleTrack, isPresetName, parsePresets, presetOf, presetTracks, validatePresetTokens,
 } from '../../lab/lib/entrance-presets.js';
 import { pairingWarnings } from '../../lab/lib/token-refs.js';
 import { compileTokens } from '../../lab/lib/token-compiler.js';
@@ -70,6 +70,16 @@ describe('parsePresets', () => {
     expect(t.presets['card']).toMatchObject({ scale: 'scale.95', status: 'system', description: 'A card' });
   });
 
+  it('keeps a scale with timing of its own (scaleMove), and needs a scale for it', () => {
+    const own = { duration: Object.keys(raw).find(k => k.startsWith('duration.'))!, easing: 'easing.expressive-entrance' };   // any duration token the project has
+    const t = parsePresets({ presets: { card: { ...ok.eyebrow, scale: 'scale.95', scaleMove: own } } });
+    expect(t.presets['card']!.scaleMove).toEqual(own);
+    expect(hasScaleTrack(t.presets['card']!)).toBe(true);
+    expect(hasScaleTrack(parsePresets({ presets: { card: { ...ok.eyebrow, scale: 'scale.95' } } }).presets['card']!)).toBe(false);
+    expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, scaleMove: own } } })).toThrow('scaleMove needs a "scale"');
+    expect(() => parsePresets({ presets: { x: { ...ok.eyebrow, scale: 'scale.95', scaleMove: { duration: '300ms', easing: 'easing.linear' } } } })).toThrow('Preset "x".scaleMove.duration');
+  });
+
   it('refuses what is not an object, an empty table and unknown top-level keys', () => {
     expect(() => parsePresets('x')).toThrow('must be an object');
     expect(() => parsePresets({ presets: {} })).toThrow('at least one preset');
@@ -96,6 +106,12 @@ describe('validatePresetTokens', () => {
   it('passes a preset whose tokens exist', () => {
     expect(validatePresetTokens(table({}), raw)).toEqual([]);
     expect(validatePresetTokens(table({ scale: 'scale.95' }), raw)).toEqual([]);
+  });
+
+  it('checks the tokens of the scale timing too', () => {
+    const own = { duration: Object.keys(raw).find(k => k.startsWith('duration.'))!, easing: 'easing.expressive-entrance' };   // any duration token the project has
+    expect(validatePresetTokens(table({ scale: 'scale.95', scaleMove: own }), raw)).toEqual([]);
+    expect(validatePresetTokens(table({ scale: 'scale.95', scaleMove: { ...own, duration: 'duration.1' } }), raw)).toEqual(['Preset "x" scaleMove duration: no token "duration.1"']);
   });
 
   it('names a token that does not exist', () => {

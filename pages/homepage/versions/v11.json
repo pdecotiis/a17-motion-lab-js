@@ -1,0 +1,15 @@
+{
+  "id": "v11",
+  "label": "Opening: logo, title, rings unlock, cards, page goes to white, header, sidebar and bento sequence",
+  "motionMap": {
+    "menu": "v8",
+    "page-intro-pattern": "v5",
+    "header": "v5",
+    "page-header-title": "v6",
+    "grid-container-mosaic-routing": "card-routing-shuffle@v6",
+    "card-feature": "none",
+    "prompts-footer-section": "none"
+  },
+  "stagger": "none",
+  "forkedFrom": "v10"
+}

@@ -20,6 +20,7 @@ export const v2: MotionVersion = {
   model: { ...RISE, delay: '0ms' },
   keyframes: [{ opacity: 1, offset: 0 }, { opacity: 1, offset: 1 }],
   layers: {
+    'logo-mark': { preset: 'button', delay: 'delay.15' },   // the logo is the first of the sequence, as it was when it was a row
     row: { preset: 'button', delay: 'delay.15', stagger: 'delay.15' },
   },
   interaction: {

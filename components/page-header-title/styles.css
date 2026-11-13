@@ -39,3 +39,6 @@
   letter-spacing: -0.01em;
   color: var(--text-default);
 }
+
+/* the title's two lines are their own elements, so a version can bring them in one at a time */
+.page-header-title__line { display: block; }

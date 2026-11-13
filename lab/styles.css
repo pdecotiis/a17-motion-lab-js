@@ -889,6 +889,9 @@ html, body {
 /* Preview mode (`&preview=1`, syncPreviewMode in lab/main.ts): just the component or page, filling the window. The same view with the chrome hidden. */
 .lab-preview-mode .lab-header, .lab-preview-mode .lab-notice, .lab-preview-mode .lab-viewbar, .lab-preview-mode .lab-sidebar, .lab-preview-mode .lab-panel-resizer { display: none; }
 .lab-preview-mode #main-content { padding: 0; overflow: auto; }
+/* in preview the page is the whole window: no scrollbar tracks drawn over its edges (a light strip along the right and bottom of a dark page); it still scrolls */
+.lab-preview-mode #main-content, .lab-preview-mode .lab-page-stage, .lab-preview-mode .lab-page-viewport { scrollbar-width: none; }
+.lab-preview-mode #main-content::-webkit-scrollbar, .lab-preview-mode .lab-page-stage::-webkit-scrollbar, .lab-preview-mode .lab-page-viewport::-webkit-scrollbar { display: none; }
 .lab-preview-mode .lab-component-layout, .lab-preview-mode .lab-page-layout { display: block; min-height: 100vh; --page-preview-height: 100vh; }
 .lab-preview-mode .lab-preview-area { min-height: 100vh; }
 .lab-preview-mode .lab-preview { min-height: 100vh; border-radius: 0; background: var(--color-bg); }

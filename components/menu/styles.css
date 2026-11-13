@@ -22,6 +22,9 @@
 
 .menu__logo-clip { display: block; width: 181px; height: 48px; flex: none; }
 .menu__logo { display: block; width: 181px; height: 48px; flex: none; }
+/* the logomark's three rings turn about its middle (a version can rotate them: the gaps in them line up when they are turned the right amounts) */
+.menu__logo { transform-origin: 24px 24px; }   /* the logo scales and turns about its mark */
+.menu__logo [data-motion^="ring-"] { transform-box: view-box; transform-origin: 24px 24px; }
 
 .menu__submenu {
   display: flex;

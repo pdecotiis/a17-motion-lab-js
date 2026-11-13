@@ -14,6 +14,8 @@ import presetsJson from '../../tokens/presets.json';
 // timing, so a preset is up to TWO TRACKS on the same element (opacity, and transform). To use ONE track
 // instead: set `separateFade` to false in the file (every preset), or leave a preset's `fade` out (that preset
 // only). With one track the fade shares the move's duration and easing.
+// A preset with a scale may give it timing of its own too (`scaleMove`): a card's scale uses an expressive easing while its rise uses a productive one, so the scale is then a
+// THIRD TRACK (the CSS `scale` property, which composes with the move's `transform`). Without it the scale is part of the move, with the move's timing.
 
 export interface PresetTiming { duration: string; easing: string }
 
@@ -32,8 +34,10 @@ export interface EntrancePreset {
   rise: string;
   /** A scale token: what it scales up from (card and media). */
   scale?: string;
-  /** The rise (and scale). */
+  /** The rise (and the scale, unless it has its own `scaleMove`). */
   move: PresetTiming;
+  /** The scale's own timing, when it differs from the rise's (a third track). Needs `scale`. */
+  scaleMove?: PresetTiming;
   /** Hover and press (the same name is used for an element's states: see the version's `elements`). */
   interaction?: PresetInteraction;
   /** The opacity fade, when it has timing of its own (a second track). */
@@ -47,7 +51,7 @@ export interface PresetTable { separateFade: boolean; presets: Record<string, En
 
 const NAME = /^[a-z][a-z0-9-]*$/;
 const TIMING_KEYS = ['duration', 'easing'];
-const PRESET_KEYS = ['rise', 'scale', 'move', 'fade', 'interaction', 'status', 'description'];
+const PRESET_KEYS = ['rise', 'scale', 'move', 'scaleMove', 'fade', 'interaction', 'status', 'description'];
 
 function timing(value: unknown, where: string): PresetTiming {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error(`${where} must be { duration, easing }`);
@@ -108,6 +112,10 @@ export function parsePresets(data: unknown): PresetTable {
       if (typeof p['scale'] !== 'string' || !p['scale'].startsWith('scale.')) throw new Error(`Preset "${name}".scale must be a scale token such as "scale.95"`);
       out.scale = p['scale'];
     }
+    if (p['scaleMove'] !== undefined) {
+      if (out.scale === undefined) throw new Error(`Preset "${name}".scaleMove needs a "scale" (the token it scales from)`);
+      out.scaleMove = timing(p['scaleMove'], `Preset "${name}".scaleMove`);
+    }
     if (p['interaction'] !== undefined) out.interaction = interactionOf(p['interaction'], name);
     if (p['fade'] !== undefined) out.fade = timing(p['fade'], `Preset "${name}".fade`);
     if (p['status'] !== undefined) {
@@ -144,6 +152,7 @@ export function validatePresetTokens(table: PresetTable, raw: Record<string, unk
     if (p.scale) check(name, 'scale', p.scale, 'scale');
     check(name, 'move duration', p.move.duration, 'duration');
     check(name, 'move easing', p.move.easing, 'easing');
+    if (p.scaleMove) { check(name, 'scaleMove duration', p.scaleMove.duration, 'duration'); check(name, 'scaleMove easing', p.scaleMove.easing, 'easing'); }
     const ix = p.interaction;
     if (ix?.hover) { check(name, 'hover duration', ix.hover.timing.duration, 'duration'); check(name, 'hover easing', ix.hover.timing.easing, 'easing'); }
     if (ix?.press) {
@@ -188,7 +197,7 @@ export interface PresetStep {
   stagger?: string;
 }
 
-export type PresetTrackName = 'fade' | 'move' | 'all';
+export type PresetTrackName = 'fade' | 'move' | 'scale' | 'all';
 
 export interface PresetTrack {
   track: PresetTrackName;
@@ -201,11 +210,17 @@ export function hasFadeTrack(preset: EntrancePreset): boolean {
   return SEPARATE_FADE && preset.fade !== undefined;
 }
 
-// The transform a preset starts from and ends at: translateY(rise) [scale(from)] → translateY(0px) [scale(1)].
+/** Whether the scale is a track of its own (it has its own timing) rather than part of the move. */
+export function hasScaleTrack(preset: EntrancePreset): boolean {
+  return preset.scale !== undefined && preset.scaleMove !== undefined;
+}
+
+// The transform a preset starts from and ends at: translateY(rise) [scale(from)] → translateY(0px) [scale(1)] (the scale only when it is part of the move).
 function moveFrames(preset: EntrancePreset): { from: string; to: string } {
+  const inMove = preset.scale !== undefined && !hasScaleTrack(preset);
   return {
-    from: `translateY({${preset.rise}})${preset.scale ? ` scale({${preset.scale}})` : ''}`,
-    to: `translateY(0px)${preset.scale ? ' scale(1)' : ''}`,
+    from: `translateY({${preset.rise}})${inMove ? ` scale({${preset.scale}})` : ''}`,
+    to: `translateY(0px)${inMove ? ' scale(1)' : ''}`,
   };
 }
 
@@ -225,7 +240,14 @@ export function presetTracks(name: PresetName, delay?: string): PresetTrack[] {
       ? [{ transform: from, offset: 0 }, { transform: to, offset: 1 }]
       : [{ opacity: 0, transform: from, offset: 0 }, { opacity: 1, transform: to, offset: 1 }],
   };
-  if (!hasFadeTrack(p)) return [move];
+  const scale: PresetTrack[] = hasScaleTrack(p)
+    ? [{
+        track: 'scale',
+        model: { model: 'tween', duration: p.scaleMove!.duration, easing: p.scaleMove!.easing, ...d },
+        keyframes: [{ scale: `{${p.scale}}`, offset: 0 }, { scale: 1, offset: 1 }],
+      }]
+    : [];
+  if (!hasFadeTrack(p)) return [move, ...scale];
   return [
     {
       track: 'fade',
@@ -235,5 +257,6 @@ export function presetTracks(name: PresetName, delay?: string): PresetTrack[] {
       },
     },
     move,
+    ...scale,
   ];
 }

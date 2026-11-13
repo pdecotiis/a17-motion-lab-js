@@ -232,7 +232,7 @@ export function buildPresetsCss(raw: Record<string, unknown>, names: readonly Pr
         'animation-fill-mode: both;',
       ]),
       '',
-      `/* ${name}: rise ${lit(p.rise)}${p.scale ? `, from scale ${lit(p.scale)}` : ''} (${p.move.duration}, ${p.move.easing})${tracks.length > 1 ? `, fade (${p.fade!.duration}, ${p.fade!.easing})` : ''} */`,
+      `/* ${name}: rise ${lit(p.rise)}${p.scale ? `, from scale ${lit(p.scale)}` : ''} (${p.move.duration}, ${p.move.easing})${p.fade ? `, fade (${p.fade.duration}, ${p.fade.easing})` : ''}${p.scaleMove ? `, scale (${p.scaleMove.duration}, ${p.scaleMove.easing})` : ''} */`,
       '@media (prefers-reduced-motion: reduce) {',
       ...block(`.${cls}`, [
         `animation-name: ${cls}-fade;`,

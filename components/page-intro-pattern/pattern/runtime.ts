@@ -68,6 +68,14 @@ function load(id: number): SiteModule {
 }
 
 // ----- the dot field's settings
+// These are the staging site's own (read from its running pattern, staging-jane-street.a17.dev, with its React props): the algorithm and the style are the site's modules, and this is what the
+// site hands them. The speed is the site's (sqrt(22 / 100) * 3, the value of its latest curated date), the dots are the soft ones (controlsOpen false: the site blends every dot 60% toward the
+// background) and the canvas is painted with the page colour on every frame (the site does not draw on a clear canvas). The cell size follows the window, the site's way.
+const SITE_ALGO = { depth: 5, width: 15, weightScale: 0.8 + (3.7 * 5) / 10, outputContrast: 2, activation: 'mixed', timeRate: Math.sqrt(22 / 100) * 3, seed: 6857 };
+const SITE_STYLE = { shape: 'dot', colorMode: 'mono', interaction: 5, dark: false, controlsOpen: false };
+const LIGHT_BACKGROUND = '#F5F4F2', DARK_BACKGROUND = '#0D0D0D', LIGHTS_OUT = '#141414';   // the page's, the site's dark theme's, and the colour of the buttons (the black the opening starts in)
+const siteCellSize = (): number => Math.min(24, Math.round(12 * Math.sqrt((window.innerWidth * window.innerHeight) / 1296e3)));
+const pageIsDark = (): boolean => document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
 let cached: Field | null | undefined;
 function marketField(): Field | null {
   if (cached !== undefined) return cached;
@@ -95,8 +103,8 @@ function marketField(): Field | null {
       style: canvasProps.style,
       sc,
       // the settings the loop reads: the site's defaults for the algorithm and the style, then the dot field's own
-      algoParams: { ...scene.defaultsFor(canvasProps.algo.params ?? {}), ...canvasProps['algoParams'] },
-      styleParams: { ...scene.defaultsFor(canvasProps.style.params ?? {}), ...canvasProps['styleParams'] },
+      algoParams: { ...scene.defaultsFor(canvasProps.algo.params ?? {}), ...SITE_ALGO },
+      styleParams: { ...scene.defaultsFor(canvasProps.style.params ?? {}), ...SITE_STYLE },
     };
   } catch (error) {
     console.warn('market dot field', error);
@@ -130,19 +138,74 @@ export function runDotField(container: HTMLElement): (() => void) | null {
   let size = { w: 0, h: 0 }, algoState: unknown = null, styleState: unknown = null, key = '', last: number | null = null, clock = 0, frame = 0, previous = 0;
   let faded = false;   // scrolled far enough that the pattern is gone: nothing is drawn
   let mouse: { x: number; y: number } | null = null, visible = true, clicks: { x: number; y: number; time: number }[] = [];
-  canvas.style.opacity = '1';
+  // ----- a version of the pattern that opens in the dark (the page's "lights up": the component's states are 'dark', then 'light')
+  // One number, `darkness`, runs the whole change from the dark to the light, so the pattern and the page behind it are one thing changing, not two things swapped: it is 1 while the component
+  // is in its 'dark' state and eases to 0 over 800ms (the expressive-standard curve) once the state is 'light'. It sets, together and on every frame: the opacity of the black veil behind the dots
+  // (the colour of the buttons), the opacity of the two palettes the dots are drawn in (the site's own light and dark ones, drawn from the same values, so a dot is the same dot in both: the
+  // dark canvas is as opaque as the veil, the light one as clear), and the page-coloured overlay that leaves the dots only at the top of the content column (it comes in only once the dark is
+  // half gone). While it is dark the field is also more agitated (it runs its clock four times as fast, and more contrasty), and it settles back as the lights come up. When the lights start to come
+  // up the field gets one click, from the bottom middle of the page, and the ring that comes out of it is orange (the first of the accent colours).
+  const stateOf = (): string | null => container.closest('[data-motion-target]')?.getAttribute('data-state') ?? null;
+  const veil = container.parentElement?.querySelector<HTMLElement>('.page-intro-pattern__veil') ?? null;
+  const fadeOverlay = container.querySelector<HTMLElement>('.page-intro-pattern__fade');
+  const darkCanvas = document.createElement('canvas');
+  darkCanvas.style.cssText = 'position:absolute;inset:0;display:block;width:100%;height:100%;opacity:0;';
+  canvas.after(darkCanvas);
+  const ORANGE = [255, 150, 100];   // --background-accent-primary (#F57853), a little brighter so the ring reads on the dark and the light
+  const RING_SLOWDOWN = 2;         // the site's ripple lasts 1.2s and travels at 600px/s; the page's lasts twice as long and travels half as fast, so it holds
+  const RING_STRENGTH = 2.2, RING_SIZE = 3.2;   // the rings along the bottom of the page (a version's 'light' state)
+  // (the strength is how far the dots go toward the colour: more than 1 is brighter than the colour itself; RING_SIZE is how much they swell)
+  const LIGHTS_MS = 800;
+  const ease = (x: number): number => {   // cubic-bezier(0.45, 0.05, 0.35, 1)
+    let lo = 0, hi = 1, t = x;
+    const bez = (u: number, p1: number, p2: number): number => 3 * (1 - u) * (1 - u) * u * p1 + 3 * (1 - u) * u * u * p2 + u * u * u;
+    for (let i = 0; i < 24; i++) { t = (lo + hi) / 2; if (bez(t, 0.45, 0.35) < x) lo = t; else hi = t; }
+    return bez(t, 0.05, 1);
+  };
+  let darkness = stateOf() === 'dark' ? 1 : 0, lightsAt: number | null = null, wasDark = darkness === 1;
+  const pulseColours = new Map<number, number[]>();   // the start time of each of the page's clicks, and the colour of its ring
+  const pulseStrength = new Map<number, number>();    // and how strongly it takes that colour
+  const pulseStart = new WeakMap<object, number>();   // each ring of the page's: the time it really began (its start time is moved every frame to slow it down)
+  // A version can give the change from dark to light a time of its own, by animating the opacity of the .page-intro-pattern__lights element (1 = dark, 0 = light): from the moment that animation exists, how dark the
+  // page is is that opacity, on every frame, and the state is not used.
+  const lights = container.parentElement?.querySelector<HTMLElement>('.page-intro-pattern__lights') ?? null;
+  let sawLights = false;
+  const updateDarkness = (now: number): void => {
+    if (lights && lights.getAnimations().length > 0) sawLights = true;
+    if (sawLights) { darkness = parseFloat(getComputedStyle(lights!).opacity) || 0; return; }
+    const state = stateOf();
+    if (state === 'dark') { darkness = 1; lightsAt = null; wasDark = true; }
+    else if ((state === 'light' || state === 'white') && wasDark) {   // the lights come up ('light': with the rings that come out of the bottom of the page, 'white': without them)
+      wasDark = false; lightsAt = now;
+      if (state === 'light') {
+        // three clicks along the bottom of the page (left, middle, right), a beat apart, so three rings come out of it and spread over the page
+        const { w } = size;
+        [[w / 2, 0], [w * 0.22, 130], [w * 0.78, 260]].forEach(([x, delay]) => window.setTimeout(() => { const time = performance.now(); pulseColours.set(time, ORANGE); pulseStrength.set(time, RING_STRENGTH); clicks.push({ x: x!, y: size.h, time }); }, delay));
+      }
+    }
+    if (lightsAt !== null) darkness = 1 - ease(Math.min(1, (now - lightsAt) / LIGHTS_MS));
+    if (state === null) darkness = 0;
+  };
   canvas.style.filter = 'none';
+  const dpr = (): number => window.devicePixelRatio || 1;
+  function fit(c: HTMLCanvasElement, w: number, h: number): CanvasRenderingContext2D | null {
+    const d = dpr();
+    if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); }
+    const ctx = c.getContext('2d');
+    ctx?.setTransform(d, 0, 0, d, 0, 0);
+    return ctx;
+  }
 
   function draw(): void {
-    const ctx = canvas!.getContext('2d');
     const { w, h } = size;
-    if (!ctx || !w || !h) return;
-    const dpr = window.devicePixelRatio || 1;
-    if (canvas!.width !== Math.round(w * dpr) || canvas!.height !== Math.round(h * dpr)) { canvas!.width = Math.round(w * dpr); canvas!.height = Math.round(h * dpr); }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!w || !h) return;
+    const ctx = fit(canvas!, w, h);
+    if (!ctx) return;
     const cell = Math.max(4, sc.cellSize), cols = Math.max(1, Math.ceil(w / cell)), rows = Math.max(1, Math.ceil(h / cell)), now = performance.now();
+    updateDarkness(now);
     const dt = last === null ? 0 : Math.min(0.1, (now - last) / 1000);
     last = now;
+    sc.cellSize = siteCellSize();
     clock += dt;
     const scene = { width: w, height: h, cols, rows, cellSize: cell, mouseX: mouse ? mouse.x : -1, mouseY: mouse ? mouse.y : -1, mouseInCanvas: mouse !== null, hoverEffect: mouse !== null, noise3D: noise, clicks };
     clicks = [];
@@ -152,16 +215,43 @@ export function runDotField(container: HTMLElement): (() => void) | null {
     key = layout;
     if (algo.step) algo.step(algoState, algoParams, scene, dt);
     if (style.step) style.step(styleState, styleParams, scene, dt);
-    ctx.clearRect(0, 0, w, h);
+    // the ring from the page's click is orange, not a colour picked at random
+    const rippleState = styleState as { ripples?: { startTime: number; color: number[] }[]; rippleStrength?: number; rippleSizeBoost?: number } | null;
+    let ringUp = false, strength = 0;
+    for (const ripple of rippleState?.ripples ?? []) {
+      if (!pulseStart.has(ripple) && pulseColours.has(ripple.startTime)) { pulseStart.set(ripple, ripple.startTime); ripple.color = pulseColours.get(ripple.startTime)!; }
+      const began = pulseStart.get(ripple);
+      if (began === undefined) continue;
+      ripple.startTime = now - (now - began) / RING_SLOWDOWN;   // the site's ripple, run slower
+      ringUp = true;
+      strength = Math.max(strength, pulseStrength.get(began) ?? RING_STRENGTH);
+    }
+    if (ringUp && rippleState) { rippleState.rippleStrength = strength; rippleState.rippleSizeBoost = RING_SIZE; }
+    // the two palettes: the light one (the site's) and the dark one, each drawn on a canvas of its own and crossfaded by `darkness`
+    const drawDark = darkness > 0;
+    const ctxDark = drawDark ? fit(darkCanvas, w, h) : null;
+    // the site paints its canvas with the page colour on every frame; the light one is the page's (or the site's dark theme's, on a dark page) and the other is always dark, near-black
+    const pageDark = pageIsDark();
+    ctx.fillStyle = pageDark ? DARK_BACKGROUND : LIGHT_BACKGROUND; ctx.clearRect(0, 0, w, h); ctx.fillRect(0, 0, w, h);
+    if (ctxDark) { ctxDark.clearRect(0, 0, w, h); ctxDark.fillStyle = LIGHTS_OUT; ctxDark.fillRect(0, 0, w, h); }
+    const mainParams = { ...styleParams, dark: pageDark };
+    const darkParams = { ...styleParams, dark: true };
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const value = algo.sample(algoState, algoParams, scene, r, c, clock);
-        style.drawCell(ctx, c * cell + cell / 2, r * cell + cell / 2, cell, value, styleParams, {
-          state: styleState, r, c, dt, rows, cols, background: sc.background, mouseX: scene.mouseX, mouseY: scene.mouseY, mouseInCanvas: scene.mouseInCanvas, cellSize: cell, t: clock, noise3D: noise,
-        });
+        const extra = { state: styleState, r, c, dt, rows, cols, background: pageDark ? DARK_BACKGROUND : LIGHT_BACKGROUND, mouseX: scene.mouseX, mouseY: scene.mouseY, mouseInCanvas: scene.mouseInCanvas, cellSize: cell, t: clock, noise3D: noise };
+        style.drawCell(ctx, c * cell + cell / 2, r * cell + cell / 2, cell, value, mainParams, extra);
+        if (ctxDark) style.drawCell(ctxDark, c * cell + cell / 2, r * cell + cell / 2, cell, value, darkParams, { ...extra, background: LIGHTS_OUT });
       }
     }
-    if (style.drawFrame) style.drawFrame(ctx, w, h, styleParams, styleState);
+    if (style.drawFrame) { style.drawFrame(ctx, w, h, mainParams, styleState); if (ctxDark) style.drawFrame(ctxDark, w, h, darkParams, styleState); }
+    canvas!.style.opacity = String(1 - darkness);
+    darkCanvas.style.opacity = String(darkness);
+    if (veil) veil.style.opacity = String(darkness);
+    // where the page's left edge is (the page is centred in a wider window), for the page-coloured edge of the dots
+    const gridLeft = container.closest('.lab-page-grid')?.getBoundingClientRect().left ?? 0, rootLeft = container.getBoundingClientRect().left;
+    container.parentElement?.style.setProperty('--grid-left', `${Math.round(gridLeft - rootLeft)}px`);
+    if (fadeOverlay) fadeOverlay.style.opacity = String(Math.max(0, Math.min(1, 1 - 2 * darkness)));
   }
   function loop(time: number): void {
     frame = 0;

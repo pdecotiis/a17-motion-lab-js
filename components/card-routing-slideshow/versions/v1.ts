@@ -24,7 +24,7 @@ const INTRO_CARDS = ['intro-ml', 'intro-trading', 'intro-technology'];
 for (const card of INTRO_CARDS) layers[`route-${card}`] = { states: each(s => ({ opacity: INTRO_STATES.includes(s) ? 1 : 0 })), transitions: each(() => FADE) };
 
 // hovering a colour card holds the timer and the bullet's fill
-const CARDS = [...INTRO_CARDS, ...FEATURE_CARDS];
+const CARDS = ['intro-card', ...FEATURE_CARDS];   // the intro's three cards share one name
 
 export const v1: MotionVersion = {
   id: 'v1',
@@ -32,7 +32,7 @@ export const v1: MotionVersion = {
   // the stage fades in quickly and the three colour cards rise in with the card preset; the intro then plays by itself (the sequence), and the slides follow
   model: { model: 'tween', duration: 'duration.100', easing: 'easing.productive-entrance' },
   keyframes: [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 1 }],
-  layers: { 'intro-ml': { preset: 'card' }, 'intro-trading': { preset: 'card', delay: 'delay.70' }, 'intro-technology': { preset: 'card', delay: 'delay.120' } },
+  layers: { 'intro-card': { preset: 'card', stagger: 'delay.70' } },   // one after another, 70ms apart
   interaction: {
     initial: INTRO_STATES[0]!,
     states: each(() => ({})),

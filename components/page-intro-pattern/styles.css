@@ -16,14 +16,40 @@
   pointer-events: none;
   background: var(--background-default);
 }
-.page-intro-pattern::after {
-  content: "";
+/* the fade at the pattern's bottom and left edges is its own layer on the field, so a version can take it away (v3 has none while the page is dark) */
+.page-intro-pattern__fade {
   position: absolute;
   inset: 0;
+  pointer-events: none;
   background:
     linear-gradient(to bottom, transparent 45%, var(--background-default)),
     linear-gradient(to right, var(--background-default), transparent 160px);
 }
 .page-intro-pattern__field { position: absolute; inset: 0; }
+/* the lights are not seen: a version animates this element's opacity from 1 (dark) to 0 (light) and the runtime takes its value as how dark the page is (a version with a time of its own for the change, v5) */
+.page-intro-pattern__lights { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+/* the veil is the page's dark (v3: the colour of the buttons, near-black): there is none unless a version shows it */
+.page-intro-pattern__veil { position: absolute; inset: 0; background: var(--background-inverse); opacity: 0; }
+/* a version with states (v3) starts dark: the black is there from the first frame and the page-coloured edge is not (the runtime then drives them both: pattern/runtime.ts) */
+.page-intro-pattern[data-state="dark"] .page-intro-pattern__veil { opacity: 1; }
+.page-intro-pattern[data-state] .page-intro-pattern__fade { opacity: 0; }
 .page-intro-pattern__field canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+/* On a page the pattern also paints the page colour behind everything (the sidebar included: it reaches 304px to the left, the menu's width, and down a page window), so a version can
+   change the whole page's light with it (v3 starts it inverted: near-black, then lifts to light). The field stays in the content column, 400px tall. */
+.lab-page-item:has(> .page-intro-pattern) .page-intro-pattern { left: -304px; height: calc(var(--page-preview-height, 100vh) / var(--page-zoom, 1)); }   /* a page window tall, whatever the page is zoomed to (fit to window) */
+.lab-preview-mode .lab-page-item:has(> .page-intro-pattern) .page-intro-pattern { height: calc(100vh / var(--page-zoom, 1)); }   /* in preview the page window is the whole window */
+.lab-page-item:has(> .page-intro-pattern) .page-intro-pattern__field { inset: 0 0 auto 304px; height: 400px; }
+/* A version with states (v3) has the field fill the whole page while it is dark (the dots cover the window, the sidebar included). The fade is then a page-coloured overlay over the whole
+   field, clear over the top of the content column (right of the 304px sidebar, 400px tall) and the page colour everywhere else, so when the version fades it in (once the dark has gone) the
+   dots are left only where they are in the other versions, with nothing moving and nothing white over the dark. */
+.lab-page-item:has(> .page-intro-pattern[data-state]) .page-intro-pattern__field { inset: 0; height: auto; }
+.lab-page-item:has(> .page-intro-pattern[data-state]) .page-intro-pattern__fade {
+  inset: 0;
+  background:
+    linear-gradient(to right, var(--background-default) calc(var(--grid-left, 0px) + 304px), transparent calc(var(--grid-left, 0px) + 464px)),
+    linear-gradient(to bottom, transparent 180px, var(--background-default) 400px);
+}
 .lab-page-grid:has(.page-intro-pattern) [data-motion-target]:not(.page-intro-pattern) { background: transparent; }
+/* In preview a page that opens in the dark (a version with states) covers the whole window, whatever the window's width: the page is 1440 wide and centred, so on a wider screen the dark would stop at its edges.
+   The root is fixed to the window (the runtime tells the page-coloured edge where the page's left edge is: --grid-left). */
+.lab-preview-mode .lab-page-item:has(> .page-intro-pattern[data-state]) .page-intro-pattern { position: fixed; inset: 0; height: auto; }

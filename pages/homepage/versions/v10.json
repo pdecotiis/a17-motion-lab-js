@@ -1,0 +1,15 @@
+{
+  "id": "v10",
+  "label": "Opening, scene 1: dots fade in, logomark enters (everything else left out)",
+  "motionMap": {
+    "menu": "v7",
+    "page-intro-pattern": "v4",
+    "header": "none",
+    "page-header-title": "none",
+    "grid-container-mosaic-routing": "none",
+    "card-feature": "none",
+    "prompts-footer-section": "none"
+  },
+  "stagger": "none",
+  "forkedFrom": "v9"
+}

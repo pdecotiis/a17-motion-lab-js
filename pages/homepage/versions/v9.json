@@ -1,0 +1,15 @@
+{
+  "id": "v9",
+  "label": "Lights up: dark opening, then the sequence",
+  "motionMap": {
+    "menu": "v6",
+    "page-intro-pattern": "v3",
+    "header": "v5",
+    "page-header-title": "v5",
+    "grid-container-mosaic-routing": "card-routing-shuffle@v6",
+    "card-feature": "v1",
+    "prompts-footer-section": "v1"
+  },
+  "stagger": "none",
+  "forkedFrom": "v8"
+}

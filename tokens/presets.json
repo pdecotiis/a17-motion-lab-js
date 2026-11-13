@@ -35,6 +35,7 @@
       "rise": "distance.24",
       "scale": "scale.95",
       "move": { "duration": "duration.300", "easing": "easing.productive-entrance" },
+      "scaleMove": { "duration": "duration.300", "easing": "easing.expressive-entrance" },
       "fade": { "duration": "duration.300", "easing": "easing.productive-entrance" },
       "interaction": {
         "hover": { "tint": 0.04, "timing": { "duration": "duration.100", "easing": "easing.productive-standard" } },

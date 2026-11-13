@@ -3,9 +3,10 @@
   "label": "Default",
   "motionMap": {
     "menu": "v2",
+    "page-intro-pattern": "v1",
     "header": "v3",
     "page-header-title": "v1",
-    "grid-container-mosaic-routing": "card-routing-shuffle@v1",
+    "grid-container-mosaic-routing": "card-routing-shuffle@v5",
     "card-feature": "v1",
     "prompts-footer-section": "v1"
   }
